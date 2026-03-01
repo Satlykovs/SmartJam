@@ -80,28 +80,23 @@ services:
       - /bin/sh
       - -c
       - |
-        # 1. Ждем старта сервера
         until /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin; do
           echo 'Waiting for MinIO server...'
           sleep 1
         done
         
-        # 2. Функция настройки
         provision_bucket() {
           BUCKET_NAME=$$1
           echo "Provisioning bucket: $$BUCKET_NAME"
         
-          # Создаем бакет (флаг --ignore-existing уже встроен в mc mb)
           /usr/bin/mc mb --ignore-existing myminio/$$BUCKET_NAME
         
-          # Удаляем старую привязку, если она была, и ставим свежую.
-          # Символ '|| true' позволяет игнорировать ошибку, если привязки не было.
+
           echo "Resetting Kafka events for $$BUCKET_NAME..."
           /usr/bin/mc event remove myminio/$$BUCKET_NAME arn:minio:sqs::primary:kafka --event put || true
           /usr/bin/mc event add myminio/$$BUCKET_NAME arn:minio:sqs::primary:kafka --event put
         }
         
-        # 3. Применяем
         provision_bucket references
         provision_bucket submissions
         
@@ -118,12 +113,15 @@ services:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
       KAFKA_LISTENERS: PLAINTEXT://:9092,EXTERNAL://:29092,CONTROLLER://:9093
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_KRAFT_CLUSTER_ID: L69792B199C24976A03504
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
     volumes:
       - kafka_data:/var/lib/kafka/data
 

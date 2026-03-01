@@ -10,6 +10,13 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U admin -d smartjam" ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+      start_interval: 2s
 
   pgadmin:
     image: dpage/pgadmin4
@@ -19,18 +26,31 @@ services:
       PGADMIN_DEFAULT_PASSWORD: admin
     ports:
       - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   redis:
     image: redis:latest
     container_name: smartjam-redis
     ports:
       - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+      start_interval: 2s
 
   redis-insight:
     image: redis/redisinsight:latest
     container_name: smartjam-redis-ui
     ports:
       - "5540:5540"
+    depends_on:
+      redis:
+        condition: service_healthy
 
   minio:
     image: minio/minio
@@ -71,6 +91,8 @@ services:
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    depends_on:
+      - kafka
 
 
 

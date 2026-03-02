@@ -8,5 +8,5 @@ dependencies {
     testImplementation 'org.springframework.kafka:spring-kafka-test'
 
 
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.1'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui'
 }

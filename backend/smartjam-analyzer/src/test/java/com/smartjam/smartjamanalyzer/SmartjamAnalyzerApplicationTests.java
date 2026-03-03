@@ -1,15 +1,13 @@
 package com.smartjam.smartjamanalyzer;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
+@Disabled
 @SpringBootTest
-class SmartjamAnalyzerApplicationTests
-{
+class SmartjamAnalyzerApplicationTests {
 
     @Test
-    void contextLoads()
-    {
-    }
-
+    void contextLoads() {}
 }

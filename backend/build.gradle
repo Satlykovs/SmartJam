@@ -1,6 +1,8 @@
 plugins {
     id 'org.springframework.boot' version '4.0.3' apply false
     id 'io.spring.dependency-management' version '1.1.7' apply false
+
+    id "com.diffplug.spotless" version "6.25.0" apply false
 }
 
 group = 'com.smartjam'
@@ -12,6 +14,8 @@ subprojects {
     apply plugin: 'java'
     apply plugin: 'org.springframework.boot'
     apply plugin: 'io.spring.dependency-management'
+
+    apply plugin: 'com.diffplug.spotless'
 
     java {
         toolchain {
@@ -29,6 +33,19 @@ subprojects {
 
         testImplementation 'org.springframework.boot:spring-boot-starter-test'
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+
+
+    spotless {
+        java {
+            palantirJavaFormat("2.89.0").formatJavadoc(true)
+
+            removeUnusedImports()
+
+            importOrder('java', 'jakarta', '', '\\#')
+
+            toggleOffOn()
+        }
     }
 
     tasks.named('test') {

@@ -1,14 +1,13 @@
 package com.smartjam.smartjamapi;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class SmartjamApiApplication
-{
+public class SmartjamApiApplication {
 
-    public static void main(String[] args)
-    {
+    static void main(String[] args) {
         SpringApplication.run(SmartjamApiApplication.class, args);
     }
 

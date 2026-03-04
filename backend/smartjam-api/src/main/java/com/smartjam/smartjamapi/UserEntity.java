@@ -2,11 +2,15 @@ package com.smartjam.smartjamapi;
 
 import jakarta.persistence.*;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Setter
 @Getter
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "users")
 @Entity
 public class UserEntity {
@@ -38,27 +42,4 @@ public class UserEntity {
 
     @Column(name = "fcm_token")
     private String fcmToken;
-
-    public UserEntity() {}
-
-    public UserEntity(
-            Long id,
-            String username,
-            String email,
-            String passwordHash,
-            String firstName,
-            String lastName,
-            String avatarUrl,
-            String role,
-            String fcmToken) {
-        this.id = id;
-        this.username = username;
-        this.email = email;
-        this.passwordHash = passwordHash;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.avatarUrl = avatarUrl;
-        this.role = role;
-        this.fcmToken = fcmToken;
-    }
 }

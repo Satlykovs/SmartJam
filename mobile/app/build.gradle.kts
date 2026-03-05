@@ -40,6 +40,30 @@ android {
 }
 
 dependencies {
+
+    val nav_version = "2.9.7"
+    // Jetpack Compose integration
+    implementation("androidx.navigation:navigation-compose:$nav_version+")
+
+    //network
+    implementation("com.squareup.retrofit2:retrofit:2.11.+")
+    implementation("com.squareup.okhttp3:okhttp:4.12.+")
+
+    //serialization
+    implementation("com.squareup.retrofit2:converter-gson:2.11.+")
+
+    //logging
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.+")
+
+    //database
+    implementation("androidx.datastore:datastore-preferences:1.1.+")
+
+    //coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.+")
+
+    //ne pon
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.+")
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

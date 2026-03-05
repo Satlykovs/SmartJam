@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import com.smartjam.smartjamanalyzer.dto.S3EventDto;
 import com.smartjam.smartjamanalyzer.service.AudioProcessorService;
 import com.smartjam.smartjamanalyzer.service.StorageService;
+import com.smartjam.smartjamanalyzer.utils.TempWorkspace;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -30,28 +31,30 @@ public class S3StorageListener {
         if (event.records() == null || event.records().isEmpty()) {
             return;
         }
-        for (S3EventDto.S3Record record : event.records()) {
-            StopWatch watch = new StopWatch(record.s3().object().key());
-            try {
-                var s3Data = record.s3();
+        for (S3EventDto.S3Record s3Record : event.records()) {
+            StopWatch watch = new StopWatch(s3Record.s3().object().key());
+
+            try (TempWorkspace workspace = new TempWorkspace()) {
+
+                var s3Data = s3Record.s3();
                 String bucket = s3Data.bucket().name();
 
                 String fileKey = URLDecoder.decode(s3Data.object().key(), StandardCharsets.UTF_8);
 
                 log.info("-------------------------------------------------------");
-                log.info("[S3 EVENT] Поймали новое событие: {}", record.eventName());
+                log.info("[S3 EVENT] Поймали новое событие: {}", s3Record.eventName());
                 log.info("Бакет: {}", bucket);
                 log.info("Файл: {}", fileKey);
 
                 watch.start("Download S3");
 
-                Path localFile = storageService.downloadAudioFile(bucket, fileKey);
+                Path localFile = workspace.register(storageService.downloadAudioFile(bucket, fileKey));
 
                 watch.stop();
 
                 watch.start("FFmpeg convert");
 
-                Path cleanWavFile = audioProcessorService.convertToStandartWav(localFile);
+                Path cleanWavFile = workspace.register(audioProcessorService.convertToStandardWav(localFile));
 
                 watch.stop();
 
@@ -74,7 +77,7 @@ public class S3StorageListener {
                 log.info("-------------------------------------------------------");
 
             } catch (Exception e) {
-                log.error("Ошибка при разборе события S3: {}", e.getMessage());
+                log.error("Ошибка пайплайна: {}", e.getMessage());
             }
         }
     }

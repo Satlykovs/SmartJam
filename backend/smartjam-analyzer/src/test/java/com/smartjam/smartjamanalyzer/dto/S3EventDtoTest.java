@@ -5,13 +5,11 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class S3EventDtoTest
-{
+public class S3EventDtoTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
-    void shouldDeserializeMinioJsonWithExtraFieldsCorrectly() throws Exception
-    {
+    void shouldDeserializeMinioJsonWithExtraFieldsCorrectly() throws Exception {
         String json = """
                 {
                     "EventName": "s3:ObjectCreated:Put",
@@ -39,7 +37,7 @@ public class S3EventDtoTest
         assertEquals(1, dto.records().size());
         assertEquals("references", dto.records().getFirst().s3().bucket().name());
 
-        assertEquals("Digital+Zombies.mp3", dto.records().getFirst().s3().object().key());
-
+        assertEquals(
+                "Digital+Zombies.mp3", dto.records().getFirst().s3().object().key());
     }
 }

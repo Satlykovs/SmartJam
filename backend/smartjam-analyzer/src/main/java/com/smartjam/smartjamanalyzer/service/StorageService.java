@@ -1,5 +1,7 @@
 package com.smartjam.smartjamanalyzer.service;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import io.minio.DownloadObjectArgs;
 import io.minio.MinioClient;
@@ -7,22 +9,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class StorageService
-{
+public class StorageService {
     private final MinioClient minioClient;
 
-    public Path downloadAudioFile(String bucketName, String fileKey)
-    {
+    public Path downloadAudioFile(String bucketName, String fileKey) {
         log.info("Начинаем скачивание файла [{}] из бакета [{}]", fileKey, bucketName);
 
-        try
-        {
+        try {
             String flatFileName = fileKey.replace("/", "_");
             Path tempFilePath = Files.createTempFile("smartjam_", flatFileName);
 
@@ -35,8 +31,7 @@ public class StorageService
 
             log.info("Файл скачан: {}", tempFilePath.toAbsolutePath());
             return tempFilePath;
-        } catch (Exception e)
-        {
+        } catch (Exception e) {
             log.error("Ошибка при скачивании из MinIO: {}", e.getMessage());
 
             throw new RuntimeException("Failed to download file", e);

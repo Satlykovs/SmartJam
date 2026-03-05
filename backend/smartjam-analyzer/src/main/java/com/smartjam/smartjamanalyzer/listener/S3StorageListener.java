@@ -1,38 +1,38 @@
 package com.smartjam.smartjamanalyzer.listener;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import com.smartjam.smartjamanalyzer.dto.S3EventDto;
+import com.smartjam.smartjamanalyzer.service.AudioProcessorService;
 import com.smartjam.smartjamanalyzer.service.StorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
-
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-
+import org.springframework.util.StopWatch;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class S3StorageListener
-{
+public class S3StorageListener {
     private final StorageService storageService;
+    private final AudioProcessorService audioProcessorService;
 
-    @KafkaListener(topics = "s3-events", groupId = "smartjam-analyzer-group", concurrency = "3",
-            properties = {"spring.json.value.default.type=com.smartjam.smartjamanalyzer.dto" +
-                    ".S3EventDto"})
-    public void onFileUploaded(S3EventDto event)
-    {
-        if (event.records() == null || event.records().isEmpty())
-        {
+    @KafkaListener(
+            topics = "s3-events",
+            groupId = "smartjam-analyzer-group",
+            concurrency = "3",
+            properties = {"spring.json.value.default.type=com.smartjam.smartjamanalyzer.dto" + ".S3EventDto"})
+    public void onFileUploaded(S3EventDto event) {
+        if (event.records() == null || event.records().isEmpty()) {
             return;
         }
-        for (S3EventDto.S3Record record : event.records())
-        {
-            try
-            {
+        for (S3EventDto.S3Record record : event.records()) {
+            StopWatch watch = new StopWatch(record.s3().object().key());
+            try {
                 var s3Data = record.s3();
                 String bucket = s3Data.bucket().name();
 
@@ -43,20 +43,37 @@ public class S3StorageListener
                 log.info("Бакет: {}", bucket);
                 log.info("Файл: {}", fileKey);
 
+                watch.start("Download S3");
 
                 Path localFile = storageService.downloadAudioFile(bucket, fileKey);
 
+                watch.stop();
 
-                if ("references".equals(bucket))
-                {
+                watch.start("FFmpeg convert");
+
+                Path cleanWavFile = audioProcessorService.convertToStandartWav(localFile);
+
+                watch.stop();
+
+                log.info(
+                        "Аудио готово к анализу: {} (Размер: {} байт)",
+                        cleanWavFile.getFileName(),
+                        Files.size(cleanWavFile));
+
+                watch.start("Math and algos");
+                if ("references".equals(bucket)) {
                     log.info("🛠 Действие: Обработка ЭТАЛОНА учителя...");
-                } else if ("submissions".equals(bucket))
-                {
+                } else if ("submissions".equals(bucket)) {
                     log.info("🛠 Действие: Обработка ПОПЫТКИ ученика...");
                 }
+
+                watch.stop();
+
+                log.info("Время выполнения: \n{}", watch.prettyPrint());
+
                 log.info("-------------------------------------------------------");
-            } catch (Exception e)
-            {
+
+            } catch (Exception e) {
                 log.error("Ошибка при разборе события S3: {}", e.getMessage());
             }
         }

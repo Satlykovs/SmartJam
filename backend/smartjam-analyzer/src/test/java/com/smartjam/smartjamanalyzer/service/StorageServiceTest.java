@@ -1,5 +1,7 @@
 package com.smartjam.smartjamanalyzer.service;
 
+import java.nio.file.Path;
+
 import io.minio.DownloadObjectArgs;
 import io.minio.MinioClient;
 import org.junit.jupiter.api.Test;
@@ -9,14 +11,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.nio.file.Path;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class StorageServiceTest
-{
+public class StorageServiceTest {
     @Mock
     private MinioClient minioClient;
 
@@ -24,42 +23,32 @@ public class StorageServiceTest
     private StorageService storageService;
 
     @Test
-    void shouldPrepareCorrectPathAndCallMinio() throws Exception
-    {
+    void shouldPrepareCorrectPathAndCallMinio() throws Exception {
         String bucket = "submissions";
         String fileKey = "user1/my_audio.mp3";
 
         Path resultPath = storageService.downloadAudioFile(bucket, fileKey);
 
-
         String fileName = resultPath.getFileName().toString();
 
-        assertTrue(fileName.contains("user1_my_audio.mp3"),
-                "Имя файла должно содержать ключ с замененными слэшами");
+        assertTrue(fileName.contains("user1_my_audio.mp3"), "Имя файла должно содержать ключ с замененными слэшами");
 
-
-        ArgumentCaptor<DownloadObjectArgs> captor = ArgumentCaptor.forClass(
-                DownloadObjectArgs.class);
+        ArgumentCaptor<DownloadObjectArgs> captor = ArgumentCaptor.forClass(DownloadObjectArgs.class);
         verify(minioClient, times(1)).downloadObject(captor.capture());
-
 
         DownloadObjectArgs capturedArgs = captor.getValue();
         assertEquals("submissions", capturedArgs.bucket());
         assertEquals("user1/my_audio.mp3", capturedArgs.object());
-
     }
 
-
     @Test
-    void shouldThrowRuntimeExceptionWhenMinioFails() throws Exception
-    {
+    void shouldThrowRuntimeExceptionWhenMinioFails() throws Exception {
 
         doThrow(new RuntimeException("Connection error"))
-                .when(minioClient).downloadObject(any(DownloadObjectArgs.class));
+                .when(minioClient)
+                .downloadObject(any(DownloadObjectArgs.class));
 
-
-        RuntimeException exception = assertThrows(RuntimeException.class, () ->
-        {
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             storageService.downloadAudioFile("any-bucket", "any-file");
         });
 

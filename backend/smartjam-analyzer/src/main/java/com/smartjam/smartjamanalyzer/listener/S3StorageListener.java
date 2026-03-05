@@ -22,6 +22,10 @@ public class S3StorageListener {
     private final StorageService storageService;
     private final AudioProcessorService audioProcessorService;
 
+    /**
+     * Слушатель событий S3, поступающих через Kafka. Ожидает JSON-события в формате MinIO, парсит их и делегирует
+     * обработку.
+     */
     @KafkaListener(
             topics = "s3-events",
             groupId = "smartjam-analyzer-group",
@@ -32,6 +36,7 @@ public class S3StorageListener {
             return;
         }
         for (S3EventDto.S3Record s3Record : event.records()) {
+            // NOTE: Добавить нормальный сбор метрик
             StopWatch watch = new StopWatch(s3Record.s3().object().key());
 
             try (TempWorkspace workspace = new TempWorkspace()) {

@@ -38,7 +38,7 @@ public class S3StorageListener {
             topics = "s3-events",
             groupId = "smartjam-analyzer-group",
             concurrency = "3",
-            properties = {"spring.json.value.default.type=com.smartjam.smartjamanalyzer.dto" + ".S3EventDto"})
+            properties = {"spring.json.value.default.type=com.smartjam.smartjamanalyzer.dto.S3EventDto"})
     public void onFileUploaded(S3EventDto event, Acknowledgment ack) {
         if (event == null || event.records() == null || event.records().isEmpty()) {
             if (ack != null) ack.acknowledge();

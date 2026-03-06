@@ -18,6 +18,10 @@ import net.bramp.ffmpeg.builder.FFmpegBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service responsible for orchestrating audio file processing using FFmpeg. It standardizes incoming audio to a unified
+ * format (WAV, Mono, 44100Hz) and ensures safe OS-level process management to prevent resource leaks.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -91,6 +95,10 @@ public class AudioProcessorService {
         }
     }
 
+    /**
+     * An internal implementation of {@link ProcessFunction} that captures the native OS process handle to allow
+     * forceful termination.
+     */
     private static class CapturingProcessFunction implements ProcessFunction {
         private final AtomicReference<Process> current = new AtomicReference<>();
 

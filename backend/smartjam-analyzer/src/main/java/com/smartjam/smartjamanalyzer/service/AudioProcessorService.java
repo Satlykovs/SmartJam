@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class AudioProcessorService {
+
     private final FFmpeg ffmpeg;
     private final FFprobe ffprobe;
 
@@ -37,14 +38,17 @@ public class AudioProcessorService {
      */
     public Path convertToStandardWav(Path inputFile, TempWorkspace workspace) {
         String inputPathStr = inputFile.toAbsolutePath().toString();
-
         log.info("Конвертация с фильтрами: {}", audioFilter);
 
         try {
-
             Path outputPath = workspace.createTempFile("smartjam_clean_", ".wav");
-
             String outputPathStr = outputPath.toAbsolutePath().toString();
+
+            CapturingProcessFunction ffmpegFn = new CapturingProcessFunction();
+            CapturingProcessFunction ffprobeFn = new CapturingProcessFunction();
+
+            FFmpeg boundFfmpeg = new FFmpeg(ffmpeg.getPath(), ffmpegFn);
+            FFprobe boundFfprobe = new FFprobe(ffprobe.getPath(), ffprobeFn);
 
             FFmpegBuilder builder = new FFmpegBuilder()
                     .setInput(inputPathStr)
@@ -56,26 +60,49 @@ public class AudioProcessorService {
                     .setAudioFilter(audioFilter)
                     .done();
 
-            FFmpegExecutor executor = new FFmpegExecutor(ffmpeg, ffprobe);
-
+            FFmpegExecutor executor = new FFmpegExecutor(boundFfmpeg, boundFfprobe);
             CompletableFuture<Void> future =
                     CompletableFuture.runAsync(() -> executor.createJob(builder).run());
 
             try {
                 future.get(3, TimeUnit.MINUTES);
             } catch (java.util.concurrent.TimeoutException e) {
+                ffmpegFn.stop();
+                ffprobeFn.stop();
                 future.cancel(true);
+
                 log.error("FFmpeg завис (таймаут 3 минуты) для файла: {}", inputPathStr);
                 throw new RuntimeException("FFmpeg timeout exceeded", e);
             }
 
             return outputPath;
+
         } catch (Exception e) {
             if (e instanceof InterruptedException || e.getCause() instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
+
             log.error("Ошибка при конвертации в FFmpeg: {}", e.getMessage(), e);
             throw new RuntimeException("FFmpeg conversion failed", e);
+        }
+    }
+
+    private static class CapturingProcessFunction implements net.bramp.ffmpeg.ProcessFunction {
+        private final java.util.concurrent.atomic.AtomicReference<Process> current =
+                new java.util.concurrent.atomic.AtomicReference<>();
+
+        @Override
+        public Process run(java.util.List<String> args) throws java.io.IOException {
+            Process p = new ProcessBuilder(args).start();
+            current.set(p);
+            return p;
+        }
+
+        public void stop() {
+            Process p = current.getAndSet(null);
+            if (p != null && p.isAlive()) {
+                p.destroyForcibly();
+            }
         }
     }
 }

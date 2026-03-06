@@ -16,6 +16,10 @@ import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StopWatch;
 
+/**
+ * Kafka listener responsible for processing S3 object creation events. It coordinates the storage and processing
+ * pipeline for incoming audio files.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -24,8 +28,11 @@ public class S3StorageListener {
     private final AudioProcessorService audioProcessorService;
 
     /**
-     * Слушатель событий S3, поступающих через Kafka. Ожидает JSON-события в формате MinIO, парсит их и делегирует
-     * обработку.
+     * Processes file upload events from the S3 Kafka topic.
+     *
+     * @param event The parsed S3 event DTO containing file metadata.
+     * @param ack The Kafka acknowledgment object for manual offset management.
+     * @throws RuntimeException if processing is failed
      */
     @KafkaListener(
             topics = "s3-events",

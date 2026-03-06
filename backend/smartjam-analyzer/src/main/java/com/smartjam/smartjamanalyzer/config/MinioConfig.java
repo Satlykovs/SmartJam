@@ -9,10 +9,20 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "minio")
 record MinioProperties(String url, String accessKey, String secretKey) {}
 
+/**
+ * Configuration class for the MinIO client. Enables automatic configuration properties binding for S3/MinIO
+ * connectivity.
+ */
 @Configuration
 @EnableConfigurationProperties(MinioProperties.class)
 public class MinioConfig {
 
+    /**
+     * Builds and provides the {@link MinioClient} instance.
+     *
+     * @param props MinIO configuration properties.
+     * @return a configured {@link MinioClient}.
+     */
     @Bean
     public MinioClient minioClient(MinioProperties props) {
         return MinioClient.builder()

@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-/** Сервис для взаимодействия с S3-хранилищем (MinIO). */
+/** Service for interacting with S3-compatible storage (MinIO). */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -17,14 +17,13 @@ public class StorageService {
     private final MinioClient minioClient;
 
     /**
-     * Скачивает аудиофайл из указанного бакета и сохраняет его во временную директорию ОС. После скачивания файл готов
-     * к обработке FFmpeg.
+     * Downloads an audio file from the specified bucket to a local temporary location.
      *
-     * @param bucketName Имя бакета (references или submissions)
-     * @param fileKey Путь к объекту в S3
-     * @param workspace Временное рабочее пространство, которое создает и очищает временные файлы
-     * @return Path к временному файлу на диске
-     * @throws RuntimeException если скачивание не удалось (например, нет сети или файла)
+     * @param bucketName The name of the S3 bucket.
+     * @param fileKey The object key in the S3 bucket.
+     * @param workspace The workspace that registers the downloaded file for cleanup.
+     * @return A {@link Path} to the downloaded file.
+     * @throws RuntimeException if the download fails (e.g., network error or file not found).
      */
     public Path downloadAudioFile(String bucketName, String fileKey, TempWorkspace workspace) {
         log.info("Начинаем скачивание файла [{}] из бакета [{}]", fileKey, bucketName);

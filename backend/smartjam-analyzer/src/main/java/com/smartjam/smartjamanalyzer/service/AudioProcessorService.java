@@ -25,12 +25,15 @@ public class AudioProcessorService {
     private String audioFilter;
 
     /**
-     * Метод для конвертации скачанного аудиофайла. Конвертирует его в стандартизированный тип MONO WAV, применяет
-     * фильтры, обрезая лишние частоты и нормализуя громкость.
+     * Converts an audio file to standardized mono WAV format (44100Hz) using FFmpeg. Applies noise reduction,
+     * normalization, and frequency filtering.
      *
-     * @param inputFile Путь к файлу для обработки
-     * @param workspace Временное рабочее пространство, которое создает и очищает временные файлы
-     * @return Path к обработанному файлу
+     * <p>Execution is performed in a separate thread with a strict 3-minute timeout.
+     *
+     * @param inputFile The path to the source audio file.
+     * @param workspace The workspace responsible for the lifecycle of temporary files.
+     * @return A {@link Path} to the successfully processed WAV file.
+     * @throws RuntimeException if the process times out, is interrupted, or fails during conversion.
      */
     public Path convertToStandardWav(Path inputFile, TempWorkspace workspace) {
         String inputPathStr = inputFile.toAbsolutePath().toString();
@@ -55,13 +58,22 @@ public class AudioProcessorService {
 
             FFmpegExecutor executor = new FFmpegExecutor(ffmpeg, ffprobe);
 
-            CompletableFuture.runAsync(() -> executor.createJob(builder).run()).get(3, TimeUnit.MINUTES);
+            CompletableFuture<Void> future =
+                    CompletableFuture.runAsync(() -> executor.createJob(builder).run());
+
+            try {
+                future.get(3, TimeUnit.MINUTES);
+            } catch (java.util.concurrent.TimeoutException e) {
+                future.cancel(true);
+                log.error("FFmpeg завис (таймаут 3 минуты) для файла: {}", inputPathStr);
+                throw new RuntimeException("FFmpeg timeout exceeded", e);
+            }
 
             return outputPath;
-        } catch (java.util.concurrent.TimeoutException e) {
-            log.error("FFmpeg завис (таймаут 3 минуты) для файла: {}", inputPathStr);
-            throw new RuntimeException("FFmpeg timeout exceeded", e);
         } catch (Exception e) {
+            if (e instanceof InterruptedException || e.getCause() instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             log.error("Ошибка при конвертации в FFmpeg: {}", e.getMessage(), e);
             throw new RuntimeException("FFmpeg conversion failed", e);
         }

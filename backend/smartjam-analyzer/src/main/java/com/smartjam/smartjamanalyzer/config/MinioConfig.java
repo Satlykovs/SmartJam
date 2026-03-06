@@ -1,14 +1,21 @@
 package com.smartjam.smartjamanalyzer.config;
 
+import jakarta.validation.constraints.NotBlank;
+
 import io.minio.MinioClient;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.validation.annotation.Validated;
 
 /** Configuration properties for MinIO connection. */
 @ConfigurationProperties(prefix = "minio")
-record MinioProperties(String url, String accessKey, String secretKey) {}
+@Validated
+record MinioProperties(
+        @NotBlank String url,
+        @NotBlank String accessKey,
+        @NotBlank String secretKey) {}
 
 /**
  * Configuration class for the MinIO client. Enables automatic configuration properties binding for S3/MinIO

@@ -18,7 +18,7 @@ public record S3EventDto(@JsonProperty("Records") List<S3Record> records) {
     /**
      * Record detail.
      *
-     * @param eventName The type of event (e.g, ObjectCreated:Put)
+     * @param eventName The type of event (e.g., ObjectCreated:Put)
      * @param s3 The container for S3 bucket and object data
      */
     @Builder

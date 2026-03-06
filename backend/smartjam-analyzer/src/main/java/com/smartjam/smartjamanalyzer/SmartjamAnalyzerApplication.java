@@ -3,7 +3,7 @@ package com.smartjam.smartjamanalyzer;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-/** Entry point. Just starts the app Starts the Spring Boot application context. */
+/** Entry point that starts the Spring Boot application */
 @SpringBootApplication
 public class SmartjamAnalyzerApplication {
 

@@ -9,7 +9,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.validation.annotation.Validated;
 
-/** Configuration properties for MinIO connection. */
+/**
+ * Configuration properties for MinIO connection.
+ *
+ * @param url The endpoint url of the MinIO server
+ * @param accessKey The access key for authentication
+ * @param secretKey The secret key for authentication
+ */
 @ConfigurationProperties(prefix = "minio")
 @Validated
 record MinioProperties(

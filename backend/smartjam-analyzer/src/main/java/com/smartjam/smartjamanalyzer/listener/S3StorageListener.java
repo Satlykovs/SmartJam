@@ -46,6 +46,10 @@ public class S3StorageListener {
         }
         for (S3EventDto.S3Record s3Record : event.records()) {
 
+            if (s3Record == null) {
+                log.warn("Получен null S3 record, пропускаем");
+                continue;
+            }
             if (s3Record.s3() == null
                     || s3Record.s3().bucket() == null
                     || s3Record.s3().bucket().name() == null

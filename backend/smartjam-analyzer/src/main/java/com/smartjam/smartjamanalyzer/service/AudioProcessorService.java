@@ -102,6 +102,13 @@ public class AudioProcessorService {
     private static class CapturingProcessFunction implements ProcessFunction {
         private final AtomicReference<Process> current = new AtomicReference<>();
 
+        /**
+         * Starts the process and captures its handle.
+         *
+         * @param args Command line arguments.
+         * @return The started process.
+         * @throws IOException if startup fails.
+         */
         @Override
         public Process run(List<String> args) throws IOException {
             Process p = new ProcessBuilder(args).start();
@@ -109,6 +116,7 @@ public class AudioProcessorService {
             return p;
         }
 
+        /** Forcibly destroys the captured process if it is still alive. */
         public void stop() {
             Process p = current.getAndSet(null);
             if (p != null && p.isAlive()) {

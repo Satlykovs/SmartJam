@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/** Configuration properties for MinIO connection. */
 @ConfigurationProperties(prefix = "minio")
 record MinioProperties(String url, String accessKey, String secretKey) {}
 

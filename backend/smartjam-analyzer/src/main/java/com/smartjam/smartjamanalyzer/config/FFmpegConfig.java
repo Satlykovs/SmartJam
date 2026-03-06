@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class FFmpegConfig {
     @Bean
-    public FFmpeg fFmpeg() {
+    public FFmpeg ffmpeg() {
         try {
             return new FFmpeg("ffmpeg");
         } catch (IOException e) {

@@ -1,26 +1,23 @@
 package com.smartjam.smartjamanalyzer.config;
 
 import io.minio.MinioClient;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+@ConfigurationProperties(prefix = "minio")
+record MinioProperties(String url, String accessKey, String secretKey) {}
+
 @Configuration
+@EnableConfigurationProperties(MinioProperties.class)
 public class MinioConfig {
-    @Value("${minio.url}")
-    private String url;
-
-    @Value("${minio.access-key}")
-    private String accessKey;
-
-    @Value("${minio.secret-key}")
-    private String secretKey;
 
     @Bean
-    public MinioClient minioClient() {
+    public MinioClient minioClient(MinioProperties props) {
         return MinioClient.builder()
-                .endpoint(url)
-                .credentials(accessKey, secretKey)
+                .endpoint(props.url())
+                .credentials(props.accessKey(), props.secretKey())
                 .build();
     }
 }

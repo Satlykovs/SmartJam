@@ -1,8 +1,8 @@
 package com.smartjam.smartjamanalyzer.service;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 
+import com.smartjam.smartjamanalyzer.utils.TempWorkspace;
 import io.minio.DownloadObjectArgs;
 import io.minio.MinioClient;
 import lombok.RequiredArgsConstructor;
@@ -25,12 +25,12 @@ public class StorageService {
      * @return Path к временному файлу на диске
      * @throws RuntimeException если скачивание не удалось (например, нет сети или файла)
      */
-    public Path downloadAudioFile(String bucketName, String fileKey) {
+    public Path downloadAudioFile(String bucketName, String fileKey, TempWorkspace workspace) {
         log.info("Начинаем скачивание файла [{}] из бакета [{}]", fileKey, bucketName);
 
         try {
             String flatFileName = fileKey.replace("/", "_");
-            Path tempFilePath = Files.createTempFile("smartjam_", flatFileName);
+            Path tempFilePath = workspace.createTempFile("smartjam_", flatFileName);
 
             minioClient.downloadObject(DownloadObjectArgs.builder()
                     .bucket(bucketName)

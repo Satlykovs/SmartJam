@@ -11,16 +11,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TempWorkspaceTest {
     @Test
-    void shouldDeleteRegistredFilesOnClose() throws IOException {
-        Path file = Files.createTempFile("test", ".tmp");
-        assertTrue(Files.exists(file), "Файл должен быть создан перед тестом");
-
+    void shouldDeleteRegisteredFilesOnClose() throws IOException {
+        Path filePath;
         try (TempWorkspace workspace = new TempWorkspace()) {
-            workspace.register(file);
+            Path file = workspace.createTempFile("test", ".tmp");
+            filePath = file;
 
             assertTrue(Files.exists(file), "Файл должен существовать внутри try блока");
         }
 
-        assertFalse(Files.exists(file), "Файл должен быть удален после выхода из try блока");
+        assertFalse(Files.exists(filePath), "Файл должен быть удален после выхода из try блока");
     }
 }

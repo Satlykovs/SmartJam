@@ -1,7 +1,10 @@
 package com.smartjam.smartjamanalyzer.service;
 
 import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
+import com.smartjam.smartjamanalyzer.utils.TempWorkspace;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.bramp.ffmpeg.FFmpeg;
@@ -21,14 +24,17 @@ public class AudioProcessorService {
     @Value("${analyzer.audio-filter}")
     private String audioFilter;
 
-    public Path convertToStandardWav(Path inputFile) {
+    public Path convertToStandardWav(Path inputFile, TempWorkspace workspace) {
         String inputPathStr = inputFile.toAbsolutePath().toString();
-
-        String outputPathStr = inputPathStr + "_clean.wav";
 
         log.info("Конвертация с фильтрами: {}", audioFilter);
 
         try {
+
+            Path outputPath = workspace.createTempFile("smartjam_clean_", ".wav");
+
+            String outputPathStr = outputPath.toAbsolutePath().toString();
+
             FFmpegBuilder builder = new FFmpegBuilder()
                     .setInput(inputPathStr)
                     .overrideOutputFiles(true)
@@ -41,11 +47,14 @@ public class AudioProcessorService {
 
             FFmpegExecutor executor = new FFmpegExecutor(ffmpeg, ffprobe);
 
-            executor.createJob(builder).run();
+            CompletableFuture.runAsync(() -> executor.createJob(builder).run()).get(3, TimeUnit.MINUTES);
 
-            return Path.of(outputPathStr);
+            return outputPath;
+        } catch (java.util.concurrent.TimeoutException e) {
+            log.error("FFmpeg завис (таймаут 3 минуты) для файла: {}", inputPathStr);
+            throw new RuntimeException("FFmpeg timeout exceeded", e);
         } catch (Exception e) {
-            log.error("Ошибка при конвертации в FFmpeg: {}", e.getMessage());
+            log.error("Ошибка при конвертации в FFmpeg: {}", e.getMessage(), e);
             throw new RuntimeException("FFmpeg conversion failed", e);
         }
     }

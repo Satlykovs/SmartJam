@@ -1,5 +1,6 @@
 package com.smartjam.smartjamanalyzer.utils;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -12,15 +13,16 @@ public class TempWorkspace implements AutoCloseable {
     private final List<Path> filesToClean = new ArrayList<>();
 
     /**
-     * Регистрирует файл в рабочем пространстве.
+     * Создаёт временный файл в рабочем пространстве, регистрирует его на автоматическое удаление при закрытии
+     * workspace-а.
      *
-     * @param path Путь к файлу для регистрации.
-     * @return Возвращает тот же путь (для удобства)
+     * @param prefix Префикс пути к файлу.
+     * @param suffix Суффикс пути к файлу.
+     * @return Возвращает зарегистрированный путь.
      */
-    public Path register(Path path) {
-        if (path != null) {
-            filesToClean.add(path);
-        }
+    public Path createTempFile(String prefix, String suffix) throws IOException {
+        Path path = Files.createTempFile(prefix, suffix);
+        filesToClean.add(path);
         return path;
     }
 

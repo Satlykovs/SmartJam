@@ -58,7 +58,7 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
-      MINIO_NOTIFY_KAFKA_ENABLE_primary: on
+      MINIO_NOTIFY_KAFKA_ENABLE_primary: "on"
       MINIO_NOTIFY_KAFKA_BROKERS_primary: kafka:9092
       MINIO_NOTIFY_KAFKA_TOPIC_primary: s3-events
     command: server /data --console-address ":9001"

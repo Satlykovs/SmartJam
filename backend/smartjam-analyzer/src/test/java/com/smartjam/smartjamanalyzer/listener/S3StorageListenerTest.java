@@ -13,6 +13,7 @@ import com.smartjam.smartjamanalyzer.utils.TempWorkspace;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -43,6 +44,9 @@ public class S3StorageListenerTest {
                 .build();
     }
 
+    @TempDir
+    Path tempDir;
+
     @Test
     @DisplayName("Должен обработать файл из references и вызвать сервисы")
     void shouldProcessReferencesBucketCorrectly() throws IOException {
@@ -50,8 +54,10 @@ public class S3StorageListenerTest {
         String key = "teacher_riff.wav";
         S3EventDto event = createEvent(bucket, key);
 
-        Path mockPath = Files.createTempFile("test", ".tmp");
-        Path mockCleanPath = Files.createTempFile("test_clean", ".wav");
+        Path mockPath = tempDir.resolve("test.tmp");
+        Files.createFile(mockPath);
+        Path mockCleanPath = tempDir.resolve("test_clean.wav");
+        Files.createFile(mockCleanPath);
 
         when(storageService.downloadAudioFile(eq(bucket), eq(key), any(TempWorkspace.class)))
                 .thenReturn(mockPath);

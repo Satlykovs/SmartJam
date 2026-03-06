@@ -41,7 +41,9 @@ public class S3StorageListener {
 
             if (s3Record.s3() == null
                     || s3Record.s3().bucket() == null
-                    || s3Record.s3().object() == null) {
+                    || s3Record.s3().bucket().name() == null
+                    || s3Record.s3().object() == null
+                    || s3Record.s3().object().key() == null) {
                 log.warn("Получен некорректный S3 payload, пропускаем: {}", s3Record);
                 continue;
             }

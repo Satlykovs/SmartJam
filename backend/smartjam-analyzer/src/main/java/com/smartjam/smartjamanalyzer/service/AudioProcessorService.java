@@ -24,6 +24,14 @@ public class AudioProcessorService {
     @Value("${analyzer.audio-filter}")
     private String audioFilter;
 
+    /**
+     * Метод для конвертации скачанного аудиофайла. Конвертирует его в стандартизированный тип MONO WAV, применяет
+     * фильтры, обрезая лишние частоты и нормализуя громкость.
+     *
+     * @param inputFile Путь к файлу для обработки
+     * @param workspace Временное рабочее пространство, которое создает и очищает временные файлы
+     * @return Path к обработанному файлу
+     */
     public Path convertToStandardWav(Path inputFile, TempWorkspace workspace) {
         String inputPathStr = inputFile.toAbsolutePath().toString();
 

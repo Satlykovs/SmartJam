@@ -22,6 +22,7 @@ public class StorageService {
      *
      * @param bucketName Имя бакета (references или submissions)
      * @param fileKey Путь к объекту в S3
+     * @param workspace Временное рабочее пространство, которое создает и очищает временные файлы
      * @return Path к временному файлу на диске
      * @throws RuntimeException если скачивание не удалось (например, нет сети или файла)
      */

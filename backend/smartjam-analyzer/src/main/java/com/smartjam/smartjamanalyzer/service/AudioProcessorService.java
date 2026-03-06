@@ -1,8 +1,11 @@
 package com.smartjam.smartjamanalyzer.service;
 
+import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.smartjam.smartjamanalyzer.utils.TempWorkspace;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.bramp.ffmpeg.FFmpeg;
 import net.bramp.ffmpeg.FFmpegExecutor;
 import net.bramp.ffmpeg.FFprobe;
+import net.bramp.ffmpeg.ProcessFunction;
 import net.bramp.ffmpeg.builder.FFmpegBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -87,12 +91,11 @@ public class AudioProcessorService {
         }
     }
 
-    private static class CapturingProcessFunction implements net.bramp.ffmpeg.ProcessFunction {
-        private final java.util.concurrent.atomic.AtomicReference<Process> current =
-                new java.util.concurrent.atomic.AtomicReference<>();
+    private static class CapturingProcessFunction implements ProcessFunction {
+        private final AtomicReference<Process> current = new AtomicReference<>();
 
         @Override
-        public Process run(java.util.List<String> args) throws java.io.IOException {
+        public Process run(List<String> args) throws IOException {
             Process p = new ProcessBuilder(args).start();
             current.set(p);
             return p;

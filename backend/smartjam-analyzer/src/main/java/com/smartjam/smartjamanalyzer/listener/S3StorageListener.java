@@ -6,8 +6,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import com.smartjam.smartjamanalyzer.dto.S3EventDto;
-import com.smartjam.smartjamanalyzer.service.AudioProcessorService;
-import com.smartjam.smartjamanalyzer.service.StorageService;
+import com.smartjam.smartjamanalyzer.service.AudioConverter;
+import com.smartjam.smartjamanalyzer.service.AudioStorage;
 import com.smartjam.smartjamanalyzer.utils.TempWorkspace;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,8 +24,8 @@ import org.springframework.util.StopWatch;
 @Component
 @RequiredArgsConstructor
 public class S3StorageListener {
-    private final StorageService storageService;
-    private final AudioProcessorService audioProcessorService;
+    private final AudioStorage audioStorage;
+    private final AudioConverter audioProcessorService;
 
     /**
      * Processes file upload events from the S3 Kafka topic.
@@ -76,7 +76,7 @@ public class S3StorageListener {
                 StopWatch watch = new StopWatch(fileKey);
 
                 watch.start("Download S3");
-                Path localFile = storageService.downloadAudioFile(bucket, fileKey, workspace);
+                Path localFile = audioStorage.downloadAudioFile(bucket, fileKey, workspace);
                 watch.stop();
 
                 watch.start("FFmpeg convert");

@@ -9,22 +9,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-/** Service for interacting with S3-compatible storage (MinIO). */
+/** MinIO-based implementation of {@link AudioStorage}. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class StorageService {
+class MinioAudioStorage implements AudioStorage {
     private final MinioClient minioClient;
 
-    /**
-     * Downloads an audio file from the specified bucket to a local temporary location.
-     *
-     * @param bucketName The name of the S3 bucket.
-     * @param fileKey The object key in the S3 bucket.
-     * @param workspace The workspace that registers the downloaded file for cleanup.
-     * @return A {@link Path} to the downloaded file.
-     * @throws RuntimeException if the download fails (e.g., network error or file not found).
-     */
+    @Override
     public Path downloadAudioFile(String bucketName, String fileKey, TempWorkspace workspace) {
         log.info("Начинаем скачивание файла [{}] из бакета [{}]", fileKey, bucketName);
 

@@ -16,12 +16,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class StorageServiceTest {
+class MinioAudioStorageTest {
     @Mock
     private MinioClient minioClient;
 
     @InjectMocks
-    private StorageService storageService;
+    private MinioAudioStorage audioStorage;
 
     @Test
     void shouldPrepareCorrectPathAndCallMinio() throws Exception {
@@ -29,7 +29,7 @@ public class StorageServiceTest {
         String fileKey = "user1/my_audio.mp3";
 
         try (TempWorkspace workspace = new TempWorkspace()) {
-            Path resultPath = storageService.downloadAudioFile(bucket, fileKey, workspace);
+            Path resultPath = audioStorage.downloadAudioFile(bucket, fileKey, workspace);
 
             String fileName = resultPath.getFileName().toString();
 
@@ -54,7 +54,7 @@ public class StorageServiceTest {
 
         try (TempWorkspace workspace = new TempWorkspace()) {
             RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-                storageService.downloadAudioFile("any-bucket", "any-file", workspace);
+                audioStorage.downloadAudioFile("any-bucket", "any-file", workspace);
             });
             assertTrue(exception.getMessage().contains("Failed to download file"));
         }

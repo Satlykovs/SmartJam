@@ -7,8 +7,8 @@ import java.util.Collections;
 import java.util.List;
 
 import com.smartjam.smartjamanalyzer.dto.S3EventDto;
-import com.smartjam.smartjamanalyzer.service.AudioProcessorService;
-import com.smartjam.smartjamanalyzer.service.StorageService;
+import com.smartjam.smartjamanalyzer.service.AudioConverter;
+import com.smartjam.smartjamanalyzer.service.AudioStorage;
 import com.smartjam.smartjamanalyzer.utils.TempWorkspace;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,12 +22,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class S3StorageListenerTest {
+class S3StorageListenerTest {
     @Mock
-    private StorageService storageService;
+    private AudioStorage audioStorage;
 
     @Mock
-    private AudioProcessorService audioProcessorService;
+    private AudioConverter audioProcessorService;
 
     @InjectMocks
     private S3StorageListener listener;
@@ -59,14 +59,14 @@ public class S3StorageListenerTest {
         Path mockCleanPath = tempDir.resolve("test_clean.wav");
         Files.createFile(mockCleanPath);
 
-        when(storageService.downloadAudioFile(eq(bucket), eq(key), any(TempWorkspace.class)))
+        when(audioStorage.downloadAudioFile(eq(bucket), eq(key), any(TempWorkspace.class)))
                 .thenReturn(mockPath);
         when(audioProcessorService.convertToStandardWav(eq(mockPath), any(TempWorkspace.class)))
                 .thenReturn(mockCleanPath);
 
         listener.onFileUploaded(event, null);
 
-        verify(storageService).downloadAudioFile(eq(bucket), eq(key), any(TempWorkspace.class));
+        verify(audioStorage).downloadAudioFile(eq(bucket), eq(key), any(TempWorkspace.class));
         verify(audioProcessorService).convertToStandardWav(eq(mockPath), any(TempWorkspace.class));
     }
 
@@ -76,7 +76,7 @@ public class S3StorageListenerTest {
         S3EventDto event = createEvent("references", "bad_file.wav");
 
         doThrow(new RuntimeException("S3 Down"))
-                .when(storageService)
+                .when(audioStorage)
                 .downloadAudioFile(anyString(), anyString(), any(TempWorkspace.class));
 
         assertThrows(RuntimeException.class, () -> listener.onFileUploaded(event, null));
@@ -94,7 +94,7 @@ public class S3StorageListenerTest {
         listener.onFileUploaded(emptyEvent, null);
         listener.onFileUploaded(nullEvent, null);
 
-        verifyNoInteractions(storageService);
+        verifyNoInteractions(audioStorage);
         verifyNoInteractions(audioProcessorService);
     }
 }

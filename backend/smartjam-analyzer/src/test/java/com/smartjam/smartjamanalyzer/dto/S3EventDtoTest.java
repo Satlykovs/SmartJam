@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class S3EventDtoTest {
+class S3EventDtoTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test

@@ -19,13 +19,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
- * Service responsible for orchestrating audio file processing using FFmpeg. It standardizes incoming audio to a unified
- * format (WAV, Mono, 44100Hz) and ensures safe OS-level process management to prevent resource leaks.
+ * FFmpeg-based implementation of {@link AudioConverter}. Ensures safe OS-level process management to prevent resource
+ * leaks.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AudioProcessorService {
+class FfmpegAudioConverter implements AudioConverter {
 
     private final FFmpeg ffmpeg;
     private final FFprobe ffprobe;
@@ -33,17 +33,7 @@ public class AudioProcessorService {
     @Value("${analyzer.audio-filter}")
     private String audioFilter;
 
-    /**
-     * Converts an audio file to standardized mono WAV format (44100Hz) using FFmpeg. Applies noise reduction,
-     * normalization, and frequency filtering.
-     *
-     * <p>Execution is performed in a separate thread with a strict 3-minute timeout.
-     *
-     * @param inputFile The path to the source audio file.
-     * @param workspace The workspace responsible for the lifecycle of temporary files.
-     * @return A {@link Path} to the successfully processed WAV file.
-     * @throws RuntimeException if the process times out, is interrupted, or fails during conversion.
-     */
+    @Override
     public Path convertToStandardWav(Path inputFile, TempWorkspace workspace) {
         String inputPathStr = inputFile.toAbsolutePath().toString();
         log.info("Конвертация с фильтрами: {}", audioFilter);

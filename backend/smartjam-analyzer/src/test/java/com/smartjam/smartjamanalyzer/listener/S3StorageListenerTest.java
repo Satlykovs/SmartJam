@@ -17,6 +17,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.kafka.support.Acknowledgment;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
@@ -64,23 +65,27 @@ class S3StorageListenerTest {
         when(audioProcessorService.convertToStandardWav(eq(mockPath), any(TempWorkspace.class)))
                 .thenReturn(mockCleanPath);
 
-        listener.onFileUploaded(event, null);
+        Acknowledgment ack = mock(Acknowledgment.class);
+        listener.onFileUploaded(event, ack);
 
         verify(audioStorage).downloadAudioFile(eq(bucket), eq(key), any(TempWorkspace.class));
         verify(audioProcessorService).convertToStandardWav(eq(mockPath), any(TempWorkspace.class));
+        verify(ack).acknowledge();
     }
 
     @Test
     @DisplayName("Не должен падать, если StorageService выбросил ошибку")
     void shouldNotCrashWhenStorageServiceFails() {
         S3EventDto event = createEvent("references", "bad_file.wav");
+        Acknowledgment ack = mock(Acknowledgment.class);
 
         doThrow(new RuntimeException("S3 Down"))
                 .when(audioStorage)
                 .downloadAudioFile(anyString(), anyString(), any(TempWorkspace.class));
 
-        assertThrows(RuntimeException.class, () -> listener.onFileUploaded(event, null));
+        assertThrows(RuntimeException.class, () -> listener.onFileUploaded(event, ack));
         verifyNoInteractions(audioProcessorService);
+        verifyNoInteractions(ack);
     }
 
     @Test
@@ -91,10 +96,13 @@ class S3StorageListenerTest {
                 S3EventDto.builder().records(Collections.emptyList()).build();
         S3EventDto nullEvent = S3EventDto.builder().records(null).build();
 
-        listener.onFileUploaded(emptyEvent, null);
-        listener.onFileUploaded(nullEvent, null);
+        Acknowledgment ack = mock(Acknowledgment.class);
+
+        listener.onFileUploaded(emptyEvent, ack);
+        listener.onFileUploaded(nullEvent, ack);
 
         verifyNoInteractions(audioStorage);
         verifyNoInteractions(audioProcessorService);
+        verify(ack, times(2)).acknowledge();
     }
 }

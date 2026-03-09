@@ -23,7 +23,7 @@ public class AudioAnalysisUseCase {
     public void execute(String bucket, String fileKey) {
         try (Workspace workspace = workspaceFactory.create()) {
 
-            //NOTE: Добавить обработку(проверку типа) входящего файла
+            // NOTE: Добавить обработку(проверку типа) входящего файла
 
             // NOTE: Добавить нормальный сбор метрик
             StopWatch watch = new StopWatch(fileKey);

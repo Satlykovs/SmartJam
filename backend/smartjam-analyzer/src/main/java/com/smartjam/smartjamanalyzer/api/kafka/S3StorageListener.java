@@ -32,7 +32,9 @@ public class S3StorageListener {
             topics = "s3-events",
             groupId = "smartjam-analyzer-group",
             concurrency = "3",
-            properties = {"spring.json.value.default.type=com.smartjam.smartjamanalyzer.api.dto" + ".S3EventDto"})
+            properties = {
+                "spring.json.value.default.type=com.smartjam.smartjamanalyzer.api" + ".kafka.dto" + ".S3EventDto"
+            })
     public void onFileUploaded(S3EventDto event, Acknowledgment ack) {
         if (event == null || event.records() == null || event.records().isEmpty()) {
             if (ack != null) ack.acknowledge();
@@ -62,6 +64,11 @@ public class S3StorageListener {
     }
 
     private boolean isVaild(S3EventDto.S3Record r) {
-        return r != null && r.s3() != null && r.s3().bucket() != null && r.s3().object() != null;
+        return r != null
+                && r.s3() != null
+                && r.s3().bucket() != null
+                && r.s3().bucket().name() != null
+                && r.s3().object() != null
+                && r.s3().object().key() != null;
     }
 }

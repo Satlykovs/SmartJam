@@ -4,17 +4,18 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import com.smartjam.smartjamanalyzer.domain.port.Workspace;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class TempWorkspaceTest {
+class FsWorkspaceTest {
     @Test
     void shouldDeleteRegisteredFilesOnClose() throws IOException {
         Path filePath;
-        try (TempWorkspace workspace = new TempWorkspace()) {
-            Path file = workspace.createTempFile("test", ".tmp");
+        try (Workspace workspace = new FsWorkspace()) {
+            Path file = workspace.allocate("test", ".tmp");
             filePath = file;
 
             assertTrue(Files.exists(file), "Файл должен существовать внутри try блока");

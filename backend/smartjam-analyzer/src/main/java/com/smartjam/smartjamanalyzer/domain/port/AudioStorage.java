@@ -2,8 +2,6 @@ package com.smartjam.smartjamanalyzer.domain.port;
 
 import java.nio.file.Path;
 
-import com.smartjam.smartjamanalyzer.infrastructure.utils.TempWorkspace;
-
 /** Port for interacting with remote audio storage. */
 public interface AudioStorage {
     /**
@@ -15,5 +13,5 @@ public interface AudioStorage {
      * @return A {@link Path} to the downloaded file.
      * @throws RuntimeException if the download fails.
      */
-    Path downloadAudioFile(String bucketName, String fileKey, TempWorkspace workspace);
+    Path downloadAudioFile(String bucketName, String fileKey, Workspace workspace);
 }

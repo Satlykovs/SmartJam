@@ -4,6 +4,8 @@ import java.nio.file.Path;
 
 import com.smartjam.smartjamanalyzer.domain.port.AudioConverter;
 import com.smartjam.smartjamanalyzer.domain.port.AudioStorage;
+import com.smartjam.smartjamanalyzer.domain.port.Workspace;
+import com.smartjam.smartjamanalyzer.domain.port.WorkspaceFactory;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,7 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
@@ -25,6 +27,12 @@ class AudioAnalysisUseCaseTest {
 
     @Mock
     private AudioConverter converter;
+
+    @Mock
+    private WorkspaceFactory workspaceFactory;
+
+    @Mock
+    private Workspace workspace;
 
     @InjectMocks
     private AudioAnalysisUseCase useCase;
@@ -39,6 +47,8 @@ class AudioAnalysisUseCaseTest {
 
         when(storage.downloadAudioFile(eq(bucket), eq(key), any())).thenReturn(mockPath);
         when(converter.convertToStandardWav(eq(mockPath), any())).thenReturn(mockClean);
+        when(workspaceFactory.create()).thenReturn(workspace);
+        when(storage.downloadAudioFile(bucket, key, workspace)).thenReturn(mockPath);
 
         useCase.execute(bucket, key);
 
@@ -52,18 +62,20 @@ class AudioAnalysisUseCaseTest {
     void shouldThrowExceptionWhenConverterTimesOut() {
         Path mockPath = Path.of("input");
         when(storage.downloadAudioFile(any(), any(), any())).thenReturn(mockPath);
-        when(converter.convertToStandardWav(any(), any()))
-                .thenThrow(new RuntimeException("FFmpeg timeout exceeded"));
+        when(converter.convertToStandardWav(any(), any())).thenThrow(new RuntimeException("FFmpeg timeout exceeded"));
 
         assertThrows(RuntimeException.class, () -> useCase.execute("sub", "key.mp3"));
     }
 
     @Test
-    @DisplayName("UseCase должен оборачивать ошибку скачивания в свою бизнес-ошибку")
+    @DisplayName("UseCase должен оборачивать ошибку скачивания в свою ошибку")
     void shouldWrapStorageException() {
-        when(storage.downloadAudioFile(any(), any(), any()))
-                .thenThrow(new RuntimeException("MinIO is down"));
+        String errorMessage = "MinIO is down";
+        when(storage.downloadAudioFile(any(), any(), any())).thenThrow(new RuntimeException(errorMessage));
 
-        assertThrows(RuntimeException.class, () -> useCase.execute("sub", "key.mp3"));
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> useCase.execute("sub", "key.mp3"));
+
+        assertTrue(exception.getMessage().contains("Business logic failed"));
+        assertEquals(errorMessage, exception.getCause().getMessage());
     }
 }

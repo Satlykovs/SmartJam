@@ -4,11 +4,13 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.smartjam.smartjamanalyzer.domain.port.AudioConverter;
-import com.smartjam.smartjamanalyzer.infrastructure.utils.TempWorkspace;
+import com.smartjam.smartjamanalyzer.domain.port.Workspace;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.bramp.ffmpeg.FFmpeg;
@@ -35,16 +37,17 @@ class FfmpegAudioConverter implements AudioConverter {
     private String audioFilter;
 
     @Override
-    public Path convertToStandardWav(Path inputFile, TempWorkspace workspace) {
+    public Path convertToStandardWav(Path inputFile, Workspace workspace) {
         String inputPathStr = inputFile.toAbsolutePath().toString();
-        log.info("Конвертация с фильтрами: {}", audioFilter);
+        log.info("Starting conversion with filters: {}", audioFilter);
+
+        CapturingProcessFunction ffmpegFn = new CapturingProcessFunction();
+        CapturingProcessFunction ffprobeFn = new CapturingProcessFunction();
+        Path outputPath = null;
 
         try {
-            Path outputPath = workspace.createTempFile("smartjam_clean_", ".wav");
+            outputPath = workspace.allocate("smartjam_clean_", ".wav");
             String outputPathStr = outputPath.toAbsolutePath().toString();
-
-            CapturingProcessFunction ffmpegFn = new CapturingProcessFunction();
-            CapturingProcessFunction ffprobeFn = new CapturingProcessFunction();
 
             FFmpeg boundFfmpeg = new FFmpeg(ffmpeg.getPath(), ffmpegFn);
             FFprobe boundFfprobe = new FFprobe(ffprobe.getPath(), ffprobeFn);
@@ -63,26 +66,40 @@ class FfmpegAudioConverter implements AudioConverter {
             CompletableFuture<Void> future =
                     CompletableFuture.runAsync(() -> executor.createJob(builder).run());
 
-            try {
-                future.get(3, TimeUnit.MINUTES);
-            } catch (java.util.concurrent.TimeoutException e) {
-                ffmpegFn.stop();
-                ffprobeFn.stop();
-                future.cancel(true);
-
-                log.error("FFmpeg завис (таймаут 3 минуты) для файла: {}", inputPathStr);
-                throw new RuntimeException("FFmpeg timeout exceeded", e);
-            }
+            future.get(3, TimeUnit.MINUTES);
 
             return outputPath;
 
-        } catch (Exception e) {
-            if (e instanceof InterruptedException || e.getCause() instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
+        } catch (TimeoutException e) {
+            ffmpegFn.stop();
+            ffprobeFn.stop();
+            log.error("FFmpeg timeout (3 min) for file: {}", inputPathStr);
 
-            log.error("Ошибка при конвертации в FFmpeg: {}", e.getMessage(), e);
-            throw new RuntimeException("FFmpeg conversion failed", e);
+            throw new RuntimeException("FFmpeg timeout exceeded", e);
+
+        } catch (InterruptedException e) {
+
+            ffmpegFn.stop();
+            ffprobeFn.stop();
+            Thread.currentThread().interrupt();
+            log.error("Conversion interrupted for file: {}", inputPathStr);
+
+            throw new RuntimeException("Conversion interrupted", e);
+
+        } catch (ExecutionException e) {
+
+            Throwable actualError = e.getCause() != null ? e.getCause() : e;
+            log.error("FFmpeg internal error: {}", actualError.getMessage());
+
+            throw new RuntimeException("FFmpeg execution failed", actualError);
+
+        } catch (Exception e) {
+
+            ffmpegFn.stop();
+            ffprobeFn.stop();
+            log.error("Unexpected error during conversion: {}", e.getMessage(), e);
+
+            throw new RuntimeException("Pipeline failed", e);
         }
     }
 

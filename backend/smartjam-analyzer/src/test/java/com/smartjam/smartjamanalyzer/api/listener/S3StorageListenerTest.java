@@ -57,11 +57,14 @@ class S3StorageListenerTest {
     void shouldAckOnEmptyEvents() {
         Acknowledgment ack = mock(Acknowledgment.class);
 
+        listener.onFileUploaded(null, ack);
+
         listener.onFileUploaded(S3EventDto.builder().records(null).build(), ack);
+
         listener.onFileUploaded(
                 S3EventDto.builder().records(Collections.emptyList()).build(), ack);
 
-        verify(ack, times(2)).acknowledge();
+        verify(ack, times(3)).acknowledge();
         verifyNoInteractions(analysisUseCase);
     }
 

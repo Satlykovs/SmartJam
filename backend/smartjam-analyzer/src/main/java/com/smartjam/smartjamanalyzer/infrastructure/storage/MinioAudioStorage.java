@@ -3,7 +3,7 @@ package com.smartjam.smartjamanalyzer.infrastructure.storage;
 import java.nio.file.Path;
 
 import com.smartjam.smartjamanalyzer.domain.port.AudioStorage;
-import com.smartjam.smartjamanalyzer.infrastructure.utils.TempWorkspace;
+import com.smartjam.smartjamanalyzer.domain.port.Workspace;
 import io.minio.DownloadObjectArgs;
 import io.minio.MinioClient;
 import lombok.RequiredArgsConstructor;
@@ -18,12 +18,12 @@ class MinioAudioStorage implements AudioStorage {
     private final MinioClient minioClient;
 
     @Override
-    public Path downloadAudioFile(String bucketName, String fileKey, TempWorkspace workspace) {
+    public Path downloadAudioFile(String bucketName, String fileKey, Workspace workspace) {
         log.info("Начинаем скачивание файла [{}] из бакета [{}]", fileKey, bucketName);
 
         try {
             String flatFileName = fileKey.replace("/", "_");
-            Path tempFilePath = workspace.createTempFile("smartjam_", flatFileName);
+            Path tempFilePath = workspace.allocate("smartjam_", flatFileName);
 
             minioClient.downloadObject(DownloadObjectArgs.builder()
                     .bucket(bucketName)

@@ -1,4 +1,4 @@
-package com.smartjam.smartjamanalyzer.utils;
+package com.smartjam.smartjamanalyzer.infrastructure.utils;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -6,20 +6,12 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.smartjam.smartjamanalyzer.domain.port.Workspace;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * A short-lived temporary workspace that tracks files created via {@link #createTempFile(String, String)} and deletes
- * them automatically when the workspace is closed.
- *
- * <p>Typical usage with try-with-resources:
- *
- * <pre>{@code
- * try (TempWorkspace workspace = new TempWorkspace()) {
- *     Path file = workspace.createTempFile("prefix_", ".wav");
- *     // use file ...
- * } // all registered files are deleted here
- * }</pre>
+ * A short-lived temporary workspace that tracks files created via {@link #allocate(String, String)} and deletes them
+ * automatically when the workspace is closed.
  *
  * <p><b>Thread-safety:</b> This class is <em>not</em> thread-safe. Instances must not be shared across threads without
  * external synchronisation.
@@ -28,18 +20,17 @@ import lombok.extern.slf4j.Slf4j;
  * and swallowed; no exception is thrown from {@code close()}.
  */
 @Slf4j
-public class TempWorkspace implements AutoCloseable {
+public class FsWorkspace implements Workspace {
     private final List<Path> filesToClean = new ArrayList<>();
 
     /**
-     * Создаёт временный файл в рабочем пространстве, регистрирует его на автоматическое удаление при закрытии
-     * workspace-а.
+     * Creates a temporary file in the workspace and registers it for automatic deletion when the workspace is closed.
      *
-     * @param prefix Префикс пути к файлу.
-     * @param suffix Суффикс пути к файлу.
-     * @return Возвращает зарегистрированный путь.
+     * @param prefix The prefix for the file path.
+     * @param suffix The suffix for the file path.
+     * @return The path to the registered temporary file.
      */
-    public Path createTempFile(String prefix, String suffix) throws IOException {
+    public Path allocate(String prefix, String suffix) throws IOException {
         Path path = Files.createTempFile(prefix, suffix);
         filesToClean.add(path);
         return path;

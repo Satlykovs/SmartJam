@@ -1,8 +1,6 @@
-package com.smartjam.smartjamanalyzer.service;
+package com.smartjam.smartjamanalyzer.domain.port;
 
 import java.nio.file.Path;
-
-import com.smartjam.smartjamanalyzer.utils.TempWorkspace;
 
 /**
  * Service responsible for orchestrating audio file processing using FFmpeg. It standardizes incoming audio to a unified
@@ -17,5 +15,5 @@ public interface AudioConverter {
      * @return A {@link Path} to the successfully processed WAV file.
      * @throws RuntimeException if the process fails or times out.
      */
-    Path convertToStandardWav(Path inputFile, TempWorkspace workspace);
+    Path convertToStandardWav(Path inputFile, Workspace workspace);
 }

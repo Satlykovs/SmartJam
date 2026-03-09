@@ -1,13 +1,16 @@
-package com.smartjam.smartjamanalyzer.service;
+package com.smartjam.smartjamanalyzer.infrastructure.converter;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.smartjam.smartjamanalyzer.utils.TempWorkspace;
+import com.smartjam.smartjamanalyzer.domain.port.AudioConverter;
+import com.smartjam.smartjamanalyzer.domain.port.Workspace;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.bramp.ffmpeg.FFmpeg;
@@ -34,16 +37,18 @@ class FfmpegAudioConverter implements AudioConverter {
     private String audioFilter;
 
     @Override
-    public Path convertToStandardWav(Path inputFile, TempWorkspace workspace) {
+    public Path convertToStandardWav(Path inputFile, Workspace workspace) {
         String inputPathStr = inputFile.toAbsolutePath().toString();
-        log.info("Конвертация с фильтрами: {}", audioFilter);
+        log.info("Starting conversion with filters: {}", audioFilter);
+
+        CompletableFuture<Void> future = null;
+        CapturingProcessFunction ffmpegFn = new CapturingProcessFunction();
+        CapturingProcessFunction ffprobeFn = new CapturingProcessFunction();
+        Path outputPath = null;
 
         try {
-            Path outputPath = workspace.createTempFile("smartjam_clean_", ".wav");
+            outputPath = workspace.allocate("smartjam_clean_", ".wav");
             String outputPathStr = outputPath.toAbsolutePath().toString();
-
-            CapturingProcessFunction ffmpegFn = new CapturingProcessFunction();
-            CapturingProcessFunction ffprobeFn = new CapturingProcessFunction();
 
             FFmpeg boundFfmpeg = new FFmpeg(ffmpeg.getPath(), ffmpegFn);
             FFprobe boundFfprobe = new FFprobe(ffprobe.getPath(), ffprobeFn);
@@ -59,29 +64,30 @@ class FfmpegAudioConverter implements AudioConverter {
                     .done();
 
             FFmpegExecutor executor = new FFmpegExecutor(boundFfmpeg, boundFfprobe);
-            CompletableFuture<Void> future =
+            future =
                     CompletableFuture.runAsync(() -> executor.createJob(builder).run());
 
-            try {
-                future.get(3, TimeUnit.MINUTES);
-            } catch (java.util.concurrent.TimeoutException e) {
-                ffmpegFn.stop();
-                ffprobeFn.stop();
-                future.cancel(true);
-
-                log.error("FFmpeg завис (таймаут 3 минуты) для файла: {}", inputPathStr);
-                throw new RuntimeException("FFmpeg timeout exceeded", e);
-            }
+            future.get(3, TimeUnit.MINUTES);
 
             return outputPath;
 
         } catch (Exception e) {
-            if (e instanceof InterruptedException || e.getCause() instanceof InterruptedException) {
+            if (future != null) {
+                future.cancel(true);
+            }
+            ffmpegFn.stop();
+            ffprobeFn.stop();
+
+            if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
+                log.error("Conversion interrupted: {}", inputPathStr);
+            } else if (e instanceof TimeoutException) {
+                log.error("FFmpeg timeout (3 min) for file: {}", inputPathStr);
+            } else {
+                log.error("FFmpeg error: {}", e.getMessage());
             }
 
-            log.error("Ошибка при конвертации в FFmpeg: {}", e.getMessage(), e);
-            throw new RuntimeException("FFmpeg conversion failed", e);
+            throw new RuntimeException("Conversion failed", e instanceof ExecutionException ? e.getCause() : e);
         }
     }
 

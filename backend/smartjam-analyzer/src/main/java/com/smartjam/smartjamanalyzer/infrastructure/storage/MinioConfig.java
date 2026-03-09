@@ -1,4 +1,4 @@
-package com.smartjam.smartjamanalyzer.config;
+package com.smartjam.smartjamanalyzer.infrastructure.storage;
 
 import jakarta.validation.constraints.NotBlank;
 

@@ -1,8 +1,8 @@
-package com.smartjam.smartjamanalyzer.service;
+package com.smartjam.smartjamanalyzer.infrastructure.storage;
 
 import java.nio.file.Path;
 
-import com.smartjam.smartjamanalyzer.utils.TempWorkspace;
+import com.smartjam.smartjamanalyzer.infrastructure.utils.FsWorkspace;
 import io.minio.DownloadObjectArgs;
 import io.minio.MinioClient;
 import org.junit.jupiter.api.Test;
@@ -28,7 +28,7 @@ class MinioAudioStorageTest {
         String bucket = "submissions";
         String fileKey = "user1/my_audio.mp3";
 
-        try (TempWorkspace workspace = new TempWorkspace()) {
+        try (FsWorkspace workspace = new FsWorkspace()) {
             Path resultPath = audioStorage.downloadAudioFile(bucket, fileKey, workspace);
 
             String fileName = resultPath.getFileName().toString();
@@ -52,7 +52,7 @@ class MinioAudioStorageTest {
                 .when(minioClient)
                 .downloadObject(any(DownloadObjectArgs.class));
 
-        try (TempWorkspace workspace = new TempWorkspace()) {
+        try (FsWorkspace workspace = new FsWorkspace()) {
             RuntimeException exception = assertThrows(RuntimeException.class, () -> {
                 audioStorage.downloadAudioFile("any-bucket", "any-file", workspace);
             });

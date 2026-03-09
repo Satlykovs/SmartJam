@@ -23,6 +23,8 @@ public class AudioAnalysisUseCase {
     public void execute(String bucket, String fileKey) {
         try (Workspace workspace = workspaceFactory.create()) {
 
+            //NOTE: Добавить обработку(проверку типа) входящего файла
+
             // NOTE: Добавить нормальный сбор метрик
             StopWatch watch = new StopWatch(fileKey);
 
@@ -32,7 +34,7 @@ public class AudioAnalysisUseCase {
             Path localFile = audioStorage.downloadAudioFile(bucket, fileKey, workspace);
             watch.stop();
 
-            watch.start("FFpeg convert");
+            watch.start("FFmpeg convert");
             Path cleanWavFile = audioConverter.convertToStandardWav(localFile, workspace);
             watch.stop();
 

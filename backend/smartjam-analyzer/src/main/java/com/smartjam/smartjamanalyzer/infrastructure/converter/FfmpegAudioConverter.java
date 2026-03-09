@@ -88,6 +88,9 @@ class FfmpegAudioConverter implements AudioConverter {
 
         } catch (ExecutionException e) {
 
+            ffmpegFn.stop();
+            ffprobeFn.stop();
+
             Throwable actualError = e.getCause() != null ? e.getCause() : e;
             log.error("FFmpeg internal error: {}", actualError.getMessage());
 

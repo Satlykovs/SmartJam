@@ -13,15 +13,6 @@ import lombok.extern.slf4j.Slf4j;
  * A short-lived temporary workspace that tracks files created via {@link #allocate(String, String)} and deletes them
  * automatically when the workspace is closed.
  *
- * <p>Typical usage with try-with-resources:
- *
- * <pre>{@code
- * try (TempWorkspace workspace = new TempWorkspace()) {
- *     Path file = workspace.createTempFile("prefix_", ".wav");
- *     // use file ...
- * } // all registered files are deleted here
- * }</pre>
- *
  * <p><b>Thread-safety:</b> This class is <em>not</em> thread-safe. Instances must not be shared across threads without
  * external synchronisation.
  *

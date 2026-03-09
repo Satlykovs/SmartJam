@@ -45,7 +45,7 @@ public class S3StorageListener {
 
             try {
 
-                if (!isVaild(s3Record)) continue;
+                if (!isValid(s3Record)) continue;
 
                 String bucket = s3Record.s3().bucket().name();
                 String fileKey = URLDecoder.decode(s3Record.s3().object().key(), StandardCharsets.UTF_8);
@@ -63,7 +63,7 @@ public class S3StorageListener {
         }
     }
 
-    private boolean isVaild(S3EventDto.S3Record r) {
+    private boolean isValid(S3EventDto.S3Record r) {
         return r != null
                 && r.s3() != null
                 && r.s3().bucket() != null

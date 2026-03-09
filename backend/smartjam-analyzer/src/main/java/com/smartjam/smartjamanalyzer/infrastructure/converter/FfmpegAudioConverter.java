@@ -41,6 +41,7 @@ class FfmpegAudioConverter implements AudioConverter {
         String inputPathStr = inputFile.toAbsolutePath().toString();
         log.info("Starting conversion with filters: {}", audioFilter);
 
+        CompletableFuture<Void> future = null;
         CapturingProcessFunction ffmpegFn = new CapturingProcessFunction();
         CapturingProcessFunction ffprobeFn = new CapturingProcessFunction();
         Path outputPath = null;
@@ -63,46 +64,30 @@ class FfmpegAudioConverter implements AudioConverter {
                     .done();
 
             FFmpegExecutor executor = new FFmpegExecutor(boundFfmpeg, boundFfprobe);
-            CompletableFuture<Void> future =
+            future =
                     CompletableFuture.runAsync(() -> executor.createJob(builder).run());
 
             future.get(3, TimeUnit.MINUTES);
 
             return outputPath;
 
-        } catch (TimeoutException e) {
-            ffmpegFn.stop();
-            ffprobeFn.stop();
-            log.error("FFmpeg timeout (3 min) for file: {}", inputPathStr);
-
-            throw new RuntimeException("FFmpeg timeout exceeded", e);
-
-        } catch (InterruptedException e) {
-
-            ffmpegFn.stop();
-            ffprobeFn.stop();
-            Thread.currentThread().interrupt();
-            log.error("Conversion interrupted for file: {}", inputPathStr);
-
-            throw new RuntimeException("Conversion interrupted", e);
-
-        } catch (ExecutionException e) {
-
-            ffmpegFn.stop();
-            ffprobeFn.stop();
-
-            Throwable actualError = e.getCause() != null ? e.getCause() : e;
-            log.error("FFmpeg internal error: {}", actualError.getMessage());
-
-            throw new RuntimeException("FFmpeg execution failed", actualError);
-
         } catch (Exception e) {
-
+            if (future != null) {
+                future.cancel(true);
+            }
             ffmpegFn.stop();
             ffprobeFn.stop();
-            log.error("Unexpected error during conversion: {}", e.getMessage(), e);
 
-            throw new RuntimeException("Pipeline failed", e);
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+                log.error("Conversion interrupted: {}", inputPathStr);
+            } else if (e instanceof TimeoutException) {
+                log.error("FFmpeg timeout (3 min) for file: {}", inputPathStr);
+            } else {
+                log.error("FFmpeg error: {}", e.getMessage());
+            }
+
+            throw new RuntimeException("Conversion failed", e instanceof ExecutionException ? e.getCause() : e);
         }
     }
 

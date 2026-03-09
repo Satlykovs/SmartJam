@@ -17,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
+// NOTE: добавить прокидывание фильтра сюда
 @ExtendWith(MockitoExtension.class)
 class FfmpegAudioConverterTest {
 
@@ -41,7 +42,7 @@ class FfmpegAudioConverterTest {
         RuntimeException ex =
                 assertThrows(RuntimeException.class, () -> converter.convertToStandardWav(inputPath, workspace));
 
-        assertTrue(ex.getMessage().contains("Pipeline failed"));
+        assertTrue(ex.getMessage().contains("Conversion failed"));
         verify(workspace).allocate(anyString(), anyString());
     }
 }

@@ -1,4 +1,4 @@
-package com.smartjam.smartjamanalyzer.utils;
+package com.smartjam.smartjamanalyzer.infrastructure.utils;
 
 import java.io.IOException;
 import java.nio.file.Files;

@@ -1,4 +1,4 @@
-package com.smartjam.smartjamanalyzer.config;
+package com.smartjam.smartjamanalyzer.infrastructure.converter;
 
 import java.io.IOException;
 

@@ -1,8 +1,9 @@
-package com.smartjam.smartjamanalyzer.service;
+package com.smartjam.smartjamanalyzer.infrastructure.storage;
 
 import java.nio.file.Path;
 
-import com.smartjam.smartjamanalyzer.utils.TempWorkspace;
+import com.smartjam.smartjamanalyzer.domain.port.AudioStorage;
+import com.smartjam.smartjamanalyzer.infrastructure.utils.TempWorkspace;
 import io.minio.DownloadObjectArgs;
 import io.minio.MinioClient;
 import lombok.RequiredArgsConstructor;

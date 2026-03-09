@@ -1,4 +1,4 @@
-package com.smartjam.smartjamanalyzer.dto;
+package com.smartjam.smartjamanalyzer.api.kafka.dto;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;

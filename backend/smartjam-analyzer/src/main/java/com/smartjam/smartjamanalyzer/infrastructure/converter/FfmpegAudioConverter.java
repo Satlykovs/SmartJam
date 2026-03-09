@@ -1,4 +1,4 @@
-package com.smartjam.smartjamanalyzer.service;
+package com.smartjam.smartjamanalyzer.infrastructure.converter;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -7,7 +7,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.smartjam.smartjamanalyzer.utils.TempWorkspace;
+import com.smartjam.smartjamanalyzer.domain.port.AudioConverter;
+import com.smartjam.smartjamanalyzer.infrastructure.utils.TempWorkspace;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.bramp.ffmpeg.FFmpeg;

@@ -1,8 +1,8 @@
-package com.smartjam.smartjamanalyzer.service;
+package com.smartjam.smartjamanalyzer.domain.port;
 
 import java.nio.file.Path;
 
-import com.smartjam.smartjamanalyzer.utils.TempWorkspace;
+import com.smartjam.smartjamanalyzer.infrastructure.utils.TempWorkspace;
 
 /**
  * Service responsible for orchestrating audio file processing using FFmpeg. It standardizes incoming audio to a unified

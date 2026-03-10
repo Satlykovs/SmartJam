@@ -1,6 +1,6 @@
 package com.smartjam.app.data.model
 
-data class LoginResponce (
+data class LoginResponse (
     val accessToken: String,
     val refreshToken: String,
     val accessExpiresAt: Long,

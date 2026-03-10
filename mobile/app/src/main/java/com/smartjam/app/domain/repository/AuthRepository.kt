@@ -1,12 +1,11 @@
 package com.smartjam.app.domain.repository
 
-import androidx.compose.animation.core.animateDpAsState
 import com.smartjam.app.data.api.AuthApi
 import com.smartjam.app.data.api.NetworkModule
 import com.smartjam.app.data.local.TokenStorage
-import com.smartjam.app.data.model.LoginResponce
 import com.smartjam.app.data.model.LoginRequest
 import com.smartjam.app.data.model.RefreshRequest
+import com.smartjam.app.data.model.RegisterRequest
 import kotlinx.coroutines.flow.first
 
 class AuthRepository (
@@ -14,16 +13,31 @@ class AuthRepository (
     private val authApi: AuthApi = NetworkModule.authApi
 ) {
 
-
-    suspend fun login(email: String, password: String): Result<Unit> {
+    suspend fun register(email: String, password: String, username: String, role: String): Result<Unit> {
         return try {
-            val responce = authApi.login(LoginRequest(email, password))
+            val response = authApi.register(RegisterRequest(email, password, username, role))
 
             tokenStorage.saveToken(
-                accessToken = responce.accessToken,
-                refreshToken = responce.refreshToken,
-                accessExpiredAt = responce.accessExpiresAt,
-                refreshExpiredAt = responce.refreshExpiredAt
+                accessToken = response.accessToken,
+                refreshToken = response.refreshToken,
+                accessExpiredAt = response.accessExpiresAt,
+                refreshExpiredAt = response.refreshExpiredAt
+            )
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    suspend fun login(email: String, password: String): Result<Unit> {
+        return try {
+            val response = authApi.login(LoginRequest(email, password))
+
+            tokenStorage.saveToken(
+                accessToken = response.accessToken,
+                refreshToken = response.refreshToken,
+                accessExpiredAt = response.accessExpiresAt,
+                refreshExpiredAt = response.refreshExpiredAt
             )
             Result.success(Unit)
         } catch (e: Exception){

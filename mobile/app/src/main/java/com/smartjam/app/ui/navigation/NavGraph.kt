@@ -10,7 +10,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.smartjam.app.data.api.NetworkModule
 import com.smartjam.app.domain.repository.AuthRepository
+import com.smartjam.app.domain.repository.RoomRepository
+import com.smartjam.app.ui.screens.home.HomeScreen
+import com.smartjam.app.ui.screens.home.HomeViewModel
+import com.smartjam.app.ui.screens.home.HomeViewModelFactory
 import com.smartjam.app.ui.screens.login.LoginScreen
 import com.smartjam.app.ui.screens.login.LoginViewModel
 import com.smartjam.app.ui.screens.login.LoginViewModelFactory
@@ -31,7 +36,7 @@ fun SmartJamNavGraph(
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Login.route
+        startDestination = Screen.Home.route
     ) {
 
         composable(route = Screen.Login.route) {
@@ -71,9 +76,20 @@ fun SmartJamNavGraph(
         }
 
         composable(route = Screen.Home.route) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "Добро пожаловать в SmartJam!")
-            }
+            val roomRepo = RoomRepository(NetworkModule.roomApi)
+
+            val viewModel: HomeViewModel = viewModel(
+                factory = HomeViewModelFactory(roomRepo)
+            )
+
+            HomeScreen(
+                viewModel = viewModel,
+                onLogoutClicked = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Home.route) { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }

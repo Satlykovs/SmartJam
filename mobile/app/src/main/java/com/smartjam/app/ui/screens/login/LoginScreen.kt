@@ -281,7 +281,8 @@ fun AppleGlassTextField(
 fun GoldenStringsButton(
     text: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "strings")
     val masterProgress by infiniteTransition.animateFloat(
@@ -297,7 +298,7 @@ fun GoldenStringsButton(
         modifier = modifier
             .height(64.dp)
             .clip(RoundedCornerShape(24.dp))
-            .background(Color.White.copy(alpha = 0.1f))
+            .background(Color.White.copy(alpha = if (enabled) 0.1f else 0.05f))
             .border(
                 width = 1.dp,
                 brush = Brush.linearGradient(
@@ -310,6 +311,7 @@ fun GoldenStringsButton(
                 shape = RoundedCornerShape(24.dp)
             )
             .clickable(
+                enabled = enabled,
                 interactionSource = remember { MutableInteractionSource() },
                 indication = LocalIndication.current,
                 onClick = onClick
@@ -398,7 +400,7 @@ fun GoldenStringsButton(
             text = text,
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
-            color = Color.White,
+            color = if (enabled) Color.White else Color.White.copy(alpha = 0.5f),
             style = TextStyle(
                 shadow = Shadow(
                     color = Color(0xFF000000).copy(alpha = 0.7f),

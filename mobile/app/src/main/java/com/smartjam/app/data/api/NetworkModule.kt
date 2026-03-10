@@ -35,5 +35,14 @@ object NetworkModule {
         }
     }
 
+    val roomApi: RoomApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(RoomApi::class.java)
+    }
+
 
 }

@@ -1,6 +1,5 @@
 package com.smartjam.smartjamapi.config;
 
-
 import com.smartjam.smartjamapi.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -25,17 +24,15 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-//                        .requestMatchers("/secured/**").authenticated().rermitAll()
-                        .anyRequest().authenticated()
-                )
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+        http.csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(auth -> auth.requestMatchers("/api/auth/**")
+                        .permitAll()
+                        .requestMatchers("/api/admin/**")
+                        .hasRole("ADMIN")
+                        //                        .requestMatchers("/secured/**").authenticated().rermitAll()
+                        .anyRequest()
+                        .authenticated())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

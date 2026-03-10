@@ -1,30 +1,23 @@
 package com.smartjam.smartjamapi.security;
 
+import java.util.Collection;
+import java.util.List;
+
 import com.smartjam.smartjamapi.entity.UserEntity;
 import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.Collection;
-import java.util.List;
-
 @AllArgsConstructor
-
 public class UserDetailsImpl implements UserDetails {
     private Long id;
     private String username;
     private String email;
     private String password;
 
-    public static UserDetailsImpl build(UserEntity user){
-        return new UserDetailsImpl(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                user.getPassword());
+    public static UserDetailsImpl build(UserEntity user) {
+        return new UserDetailsImpl(user.getId(), user.getUsername(), user.getEmail(), user.getPassword());
     }
 
     @Override

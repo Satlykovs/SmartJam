@@ -1,5 +1,10 @@
 package com.smartjam.smartjamapi.service;
 
+import java.time.Instant;
+import java.util.NoSuchElementException;
+
+import jakarta.transaction.Transactional;
+
 import com.smartjam.smartjamapi.dto.AuthResponse;
 import com.smartjam.smartjamapi.dto.LoginRequest;
 import com.smartjam.smartjamapi.dto.RegisterRequest;
@@ -12,16 +17,12 @@ import com.smartjam.smartjamapi.repository.RefreshTokenRepository;
 import com.smartjam.smartjamapi.repository.UserRepository;
 import com.smartjam.smartjamapi.security.JwtService;
 import com.smartjam.smartjamapi.security.UserDetailsImpl;
-import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.time.Instant;
-import java.util.NoSuchElementException;
 
 @Service
 public class AuthService {
@@ -36,25 +37,25 @@ public class AuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
-    public AuthService(UserRepository repository,
-                       RefreshTokenRepository refreshTokenRepository,
-                       PasswordEncoder passwordEncoder,
-                       AuthenticationManager authenticationManager,
-                       JwtService jwtService,
-                       UserDetailsService userDetailsService) {
+    public AuthService(
+            UserRepository repository,
+            RefreshTokenRepository refreshTokenRepository,
+            PasswordEncoder passwordEncoder,
+            AuthenticationManager authenticationManager,
+            JwtService jwtService,
+            UserDetailsService userDetailsService) {
         this.repository = repository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
-
     }
 
     public AuthResponse login(LoginRequest request) {
-        UserEntity userEntity = repository.findByEmail(request.email()).orElseThrow(
-                () -> new NoSuchElementException("Login not found, try register, please")
-        );
+        UserEntity userEntity = repository
+                .findByEmail(request.email())
+                .orElseThrow(() -> new NoSuchElementException("Login not found, try register, please"));
         if (!passwordEncoder.matches(request.password(), userEntity.getPasswordHash())) {
             throw new IllegalStateException("Invalid password");
         }
@@ -67,9 +68,7 @@ public class AuthService {
         RefreshTokenEntity refreshTokenEntity = new RefreshTokenEntity();
         refreshTokenEntity.setToken(refreshToken);
         refreshTokenEntity.setUser(userEntity);
-        refreshTokenEntity.setExpiresAt(
-                Instant.now().plusMillis(jwtService.getJwtExpiration())
-        );
+        refreshTokenEntity.setExpiresAt(Instant.now().plusMillis(jwtService.getJwtExpiration()));
 
         refreshTokenRepository.save(refreshTokenEntity);
 
@@ -91,7 +90,6 @@ public class AuthService {
 
         repository.save(userEntity);
 
-
         UserDetailsImpl userDetails = UserDetailsImpl.build(userEntity);
 
         String accessToken = jwtService.generateAccessToken(userDetails);
@@ -100,9 +98,7 @@ public class AuthService {
         RefreshTokenEntity refreshTokenEntity = new RefreshTokenEntity();
         refreshTokenEntity.setToken(refreshToken);
         refreshTokenEntity.setUser(userEntity);
-        refreshTokenEntity.setExpiresAt(
-                Instant.now().plusMillis(jwtService.getJwtExpiration())
-        );
+        refreshTokenEntity.setExpiresAt(Instant.now().plusMillis(jwtService.getJwtExpiration()));
 
         refreshTokenRepository.save(refreshTokenEntity);
 
@@ -111,14 +107,15 @@ public class AuthService {
 
     @Transactional
     public AuthResponse getNewToken(TokenDto tokenDto) {
-        RefreshTokenEntity refreshToken = refreshTokenRepository.findByToken(tokenDto.refresh_token()).orElseThrow(
-                () -> new NoSuchElementException("Token not found, try login, please")
-        );
+        RefreshTokenEntity refreshToken = refreshTokenRepository
+                .findByToken(tokenDto.refresh_token())
+                .orElseThrow(() -> new NoSuchElementException("Token not found, try login, please"));
         if (refreshToken.getExpiresAt().isBefore(Instant.now())) {
             throw new IllegalStateException("Refresh token expired");
         }
 
-        UserEntity userEntity = repository.findById(refreshToken.getUser().getId())
+        UserEntity userEntity = repository
+                .findById(refreshToken.getUser().getId())
                 .orElseThrow(() -> new NoSuchElementException("User not found"));
         UserDetailsImpl userDetails = UserDetailsImpl.build(userEntity);
 
@@ -128,16 +125,11 @@ public class AuthService {
         RefreshTokenEntity refreshTokenEntity = new RefreshTokenEntity();
         refreshTokenEntity.setToken(newRefreshToken);
         refreshTokenEntity.setUser(userEntity);
-        refreshTokenEntity.setExpiresAt(
-                Instant.now().plusMillis(jwtService.getJwtExpiration())
-        );
+        refreshTokenEntity.setExpiresAt(Instant.now().plusMillis(jwtService.getJwtExpiration()));
 
         refreshTokenRepository.save(refreshTokenEntity);
 
         return new AuthResponse(
-                "Token generate successfully",
-                AvailabilityStatus.AVAILABLE,
-                newRefreshToken,
-                accessToken);
+                "Token generate successfully", AvailabilityStatus.AVAILABLE, newRefreshToken, accessToken);
     }
 }

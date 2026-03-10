@@ -1,10 +1,5 @@
 package com.smartjam.smartjamapi.security;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.security.Keys;
-
 import java.security.Key;
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -12,14 +7,16 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+import javax.crypto.SecretKey;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
-
-import javax.crypto.SecretKey;
-
 
 @Service
 public class JwtService {
@@ -30,7 +27,6 @@ public class JwtService {
     @Getter
     @Value("${security.jwt.expiration-time}")
     private long jwtExpiration;
-
 
     private Key getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
@@ -45,11 +41,11 @@ public class JwtService {
 
     public String generateAccessToken(UserDetailsImpl userDetails) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("authorities", userDetails.getAuthorities()
-                .stream()
-                .map(GrantedAuthority::getAuthority)
-                .toList());
-
+        claims.put(
+                "authorities",
+                userDetails.getAuthorities().stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .toList());
 
         return Jwts.builder()
                 .claims(claims)
@@ -79,8 +75,7 @@ public class JwtService {
 
     public boolean isTokenValid(String token, UserDetailsImpl userDetails) {
         final String emailFromToken = extractUsername(token);
-        return emailFromToken.equals(userDetails.getEmail())
-                && !isTokenExpired(token);
+        return emailFromToken.equals(userDetails.getEmail()) && !isTokenExpired(token);
     }
 
     private boolean isTokenExpired(String token) {

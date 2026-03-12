@@ -29,7 +29,6 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/api/admin/**")
                         .hasRole("ADMIN")
-                        //                        .requestMatchers("/secured/**").authenticated().rermitAll()
                         .anyRequest()
                         .authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

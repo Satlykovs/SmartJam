@@ -1,5 +1,12 @@
 package com.smartjam.smartjamapi.dto;
 
+import com.smartjam.smartjamapi.enums.ErrorCode;
+
 import java.time.LocalDateTime;
 
-public record ErrorResponseDto(String message, String detailedMessage, LocalDateTime errorTime) {}
+public record ErrorResponseDto(
+        ErrorCode code,
+        String message,
+        LocalDateTime errorTime
+) {
+}

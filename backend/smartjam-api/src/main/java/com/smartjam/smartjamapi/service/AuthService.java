@@ -17,40 +17,21 @@ import com.smartjam.smartjamapi.repository.RefreshTokenRepository;
 import com.smartjam.smartjamapi.repository.UserRepository;
 import com.smartjam.smartjamapi.security.JwtService;
 import com.smartjam.smartjamapi.security.UserDetailsImpl;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
+@AllArgsConstructor
+@Slf4j
 public class AuthService {
 
     private final UserRepository repository;
     private final RefreshTokenRepository refreshTokenRepository;
 
     private final PasswordEncoder passwordEncoder;
-    private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
-
-    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
-
-    public AuthService(
-            UserRepository repository,
-            RefreshTokenRepository refreshTokenRepository,
-            PasswordEncoder passwordEncoder,
-            AuthenticationManager authenticationManager,
-            JwtService jwtService,
-            UserDetailsService userDetailsService) {
-        this.repository = repository;
-        this.refreshTokenRepository = refreshTokenRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.authenticationManager = authenticationManager;
-        this.jwtService = jwtService;
-        this.userDetailsService = userDetailsService;
-    }
 
     public AuthResponse login(LoginRequest request) {
         UserEntity userEntity = repository

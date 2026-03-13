@@ -2,6 +2,7 @@ package com.smartjam.smartjamapi.security;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
 import com.smartjam.smartjamapi.entity.UserEntity;
 import lombok.AllArgsConstructor;
@@ -15,7 +16,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 @NullMarked
 public class UserDetailsImpl implements UserDetails {
     @Getter
-    private Long id;
+    private UUID id;
 
     private String username;
 
@@ -25,7 +26,7 @@ public class UserDetailsImpl implements UserDetails {
     private String password;
 
     public static UserDetailsImpl build(UserEntity user) {
-        return new UserDetailsImpl(user.getId(), user.getUsername(), user.getEmail(), user.getPassword());
+        return new UserDetailsImpl(user.getId(), user.getUsername(), user.getEmail(), user.getPasswordHash());
     }
 
     @Override

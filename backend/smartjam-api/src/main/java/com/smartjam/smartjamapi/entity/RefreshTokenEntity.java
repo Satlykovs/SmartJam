@@ -1,6 +1,7 @@
 package com.smartjam.smartjamapi.entity;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import jakarta.persistence.*;
 
@@ -13,8 +14,8 @@ import lombok.Setter;
 @Getter
 public class RefreshTokenEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @Column(nullable = false, unique = true)
     private String token;

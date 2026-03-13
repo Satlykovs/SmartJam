@@ -7,8 +7,8 @@ import jakarta.transaction.Transactional;
 
 import com.smartjam.smartjamapi.dto.AuthResponse;
 import com.smartjam.smartjamapi.dto.LoginRequest;
+import com.smartjam.smartjamapi.dto.RefreshTokenRequest;
 import com.smartjam.smartjamapi.dto.RegisterRequest;
-import com.smartjam.smartjamapi.dto.TokenDto;
 import com.smartjam.smartjamapi.entity.RefreshTokenEntity;
 import com.smartjam.smartjamapi.entity.UserEntity;
 import com.smartjam.smartjamapi.enums.AvailabilityStatus;
@@ -33,6 +33,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         UserEntity userEntity = repository
                 .findByEmail(request.email())
@@ -57,9 +58,8 @@ public class AuthService {
     }
 
     public AuthResponse register(RegisterRequest request) {
-        boolean exists = repository.findByEmail(request.email()).isPresent();
 
-        if (exists) {
+        if (repository.existsByEmail(request.email())) {
             throw new IllegalStateException("The account exists, try login, please");
         }
 
@@ -87,9 +87,9 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponse getNewToken(TokenDto tokenDto) {
+    public AuthResponse getNewToken(RefreshTokenRequest refreshTokenRequest) {
         RefreshTokenEntity refreshToken = refreshTokenRepository
-                .findByToken(tokenDto.refresh_token())
+                .findByToken(refreshTokenRequest.refreshToken())
                 .orElseThrow(() -> new NoSuchElementException("Token not found, try login, please"));
         if (refreshToken.getExpiresAt().isBefore(Instant.now())) {
             throw new IllegalStateException("Refresh token expired");

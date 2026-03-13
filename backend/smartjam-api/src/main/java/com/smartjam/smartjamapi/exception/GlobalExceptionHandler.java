@@ -12,63 +12,52 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.server.ResponseStatusException;
-import org.springframework.web.servlet.NoHandlerFoundException;
+
+// TODO: Это базовый шаблон для обработки ошибок
+// TODO: Возможно, некоторые исключения ловятся неправильно
+// TODO: Нужно будет потом уточнить маппинг (какое исключение -> какой статус)
 
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private ResponseEntity<ErrorResponseDto> buildResponse(HttpStatus status, ErrorCode errorCode, String message) {
+
+        var dto = ErrorResponseDto.builder()
+                .code(errorCode)
+                .message(message)
+                .errorTime(LocalDateTime.now())
+                .build();
+
+        return ResponseEntity.status(status).body(dto);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponseDto> handlerGenericException(Exception e) {
         log.error("Unexpected error: ", e);
 
-        var errorDto =
-                new ErrorResponseDto(ErrorCode.INTERNAL_SERVER_ERROR, "Internal server error", LocalDateTime.now());
-
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorDto);
+        return buildResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_SERVER_ERROR, "Internal server error");
     }
 
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<ErrorResponseDto> handlerEntityNotFound(EntityNotFoundException e) {
         log.warn("Entity not found: ", e);
 
-        var errorDto =
-                new ErrorResponseDto(ErrorCode.NON_FOUND_PAGE, "Requested resource not found", LocalDateTime.now());
-
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorDto);
+        return buildResponse(HttpStatus.NOT_FOUND, ErrorCode.NOT_FOUND, "Requested resource not found");
     }
 
-    @ExceptionHandler(NoHandlerFoundException.class)
-    public ResponseEntity<ErrorResponseDto> handleNoHandlerFound(NoHandlerFoundException e) {
-        log.warn("No handler found for request: {}", e.getRequestURL());
-
-        var errorDto =
-                new ErrorResponseDto(ErrorCode.NON_FOUND_PAGE, "Requested resource not found", LocalDateTime.now());
-
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorDto);
-    }
-
-    @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<ErrorResponseDto> handleUnauthenticated(ResponseStatusException e) {
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponseDto> handleUnauthenticated(IllegalArgumentException e) {
         log.warn("Unauthenticated: {}", e.getMessage());
 
-        var errorDto = new ErrorResponseDto(ErrorCode.UNAUTHORIZED, e.getMessage(), LocalDateTime.now());
-
-        return ResponseEntity.status(e.getStatusCode()).body(errorDto);
+        return buildResponse(HttpStatus.UNAUTHORIZED, ErrorCode.UNAUTHORIZED, "Unauthenticated");
     }
 
-    @ExceptionHandler(
-            exception = {
-                IllegalArgumentException.class,
-                IllegalStateException.class,
-                MethodArgumentNotValidException.class
-            })
+    @ExceptionHandler(exception = {IllegalStateException.class, MethodArgumentNotValidException.class})
     public ResponseEntity<ErrorResponseDto> handlerBadRequest(Exception e) {
         log.warn("Bad request: ", e);
 
-        var errorDto = new ErrorResponseDto(ErrorCode.BAD_REQUEST, "Invalid request data", LocalDateTime.now());
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorDto);
+        return buildResponse(HttpStatus.BAD_REQUEST, ErrorCode.BAD_REQUEST, "Invalid request data");
     }
 }

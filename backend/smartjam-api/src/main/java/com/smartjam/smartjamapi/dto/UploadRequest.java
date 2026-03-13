@@ -1,5 +1,5 @@
 package com.smartjam.smartjamapi.dto;
 
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 
-public record UploadRequest(@NotNull String fileName) {}
+public record UploadRequest(@NotBlank String fileName) {}

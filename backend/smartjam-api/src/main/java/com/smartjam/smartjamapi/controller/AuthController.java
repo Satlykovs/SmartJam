@@ -4,8 +4,8 @@ import jakarta.validation.Valid;
 
 import com.smartjam.smartjamapi.dto.AuthResponse;
 import com.smartjam.smartjamapi.dto.LoginRequest;
+import com.smartjam.smartjamapi.dto.RefreshTokenRequest;
 import com.smartjam.smartjamapi.dto.RegisterRequest;
-import com.smartjam.smartjamapi.dto.TokenDto;
 import com.smartjam.smartjamapi.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,8 +33,8 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> getNewToken(@RequestBody @Valid TokenDto tokenDto) {
+    public ResponseEntity<AuthResponse> getNewToken(@RequestBody @Valid RefreshTokenRequest refreshTokenRequest) {
         log.info("Calling getNewToken");
-        return ResponseEntity.status(201).body(authService.getNewToken(tokenDto));
+        return ResponseEntity.status(201).body(authService.getNewToken(refreshTokenRequest));
     }
 }

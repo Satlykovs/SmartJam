@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 @AllArgsConstructor
 public class UploadController {
 
-    UploadService uploadService;
+    private final UploadService uploadService;
 
     @PostMapping("/upload-url")
     public ResponseEntity<UploadUrlResponse> getUploadUrl(@RequestBody @Valid UploadRequest request) {

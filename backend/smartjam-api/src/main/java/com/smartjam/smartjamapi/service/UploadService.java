@@ -29,10 +29,10 @@ public class UploadService {
     public void init() {
         try (S3Client s3Client = S3Client.builder()
                 .endpointOverride(URI.create(S3_ENDPOINT))
-                .region(Region.AP_EAST_1)
+                .region(Region.US_EAST_1)
                 .serviceConfiguration(b -> b.pathStyleAccessEnabled(true))
-                .credentialsProvider(
-                        StaticCredentialsProvider.create(AwsBasicCredentials.create("minioadmin", "minioadmin")))
+                .credentialsProvider(StaticCredentialsProvider.create(
+                        AwsBasicCredentials.create("minioadmin", "minioadmin"))) // пока захардкодил
                 .build()) {
             log.info("Trying to connect to MinIO at {}", s3Client);
             if (s3Client.listBuckets().buckets().stream()

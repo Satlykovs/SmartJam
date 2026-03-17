@@ -33,7 +33,7 @@ class FfmpegAudioConverter implements AudioConverter {
     private final FFmpeg ffmpeg;
     private final FFprobe ffprobe;
 
-    @Value("${analyzer.audio-filter}")
+    @Value("${converter.audio-filter}")
     private String audioFilter;
 
     @Override

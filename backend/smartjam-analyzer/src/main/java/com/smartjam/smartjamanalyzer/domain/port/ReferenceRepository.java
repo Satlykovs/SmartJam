@@ -7,5 +7,5 @@ import com.smartjam.smartjamanalyzer.domain.model.FeatureSequence;
 public interface ReferenceRepository {
     void save(UUID targetId, FeatureSequence features);
 
-    FeatureSequence findById(String targetId);
+    FeatureSequence findById(UUID targetId);
 }

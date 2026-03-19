@@ -85,7 +85,7 @@ public class TarsosFeatureExtractor implements FeatureExtractor {
             return new FeatureSequence(frames, frameRate);
 
         } catch (Exception e) {
-            log.error("Ошибка при извлечении признаков: {}", e.getMessage());
+            log.error("Ошибка при извлечении признаков: {}", e.getMessage(), e);
             throw new RuntimeException("Extraction failed", e);
         }
     }

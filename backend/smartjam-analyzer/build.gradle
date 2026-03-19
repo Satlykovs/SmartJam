@@ -1,7 +1,14 @@
 repositories {
-    maven {
-        name = "TarsosDSP repository"
-        url = "https://mvn.0110.be/releases"
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "TarsosDSP repository"
+                url = "https://mvn.0110.be/releases"
+            }
+        }
+        filter {
+            includeGroup("be.tarsos.dsp")
+        }
     }
 }
 

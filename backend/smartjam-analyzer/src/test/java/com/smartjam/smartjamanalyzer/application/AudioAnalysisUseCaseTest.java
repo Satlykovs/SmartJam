@@ -41,12 +41,12 @@ class AudioAnalysisUseCaseTest {
 
     @Test
     @DisplayName("UseCase должен сначала скачать, потом конвертировать")
-    void shouldProcessInOrder() throws Exception {
+    void shouldProcessInOrder() {
         String bucket = "sub";
         String key = "test.mp3";
         Path mockPath = Path.of("input");
         Path mockClean = Path.of("output");
-        FeatureSequence mockSequence = new FeatureSequence(List.of(), 20f);
+        FeatureSequence mockSequence = new FeatureSequence(List.of(new float[84]), 20f);
 
         when(storage.downloadAudioFile(eq(bucket), eq(key), any())).thenReturn(mockPath);
         when(converter.convertToStandardWav(eq(mockPath), any())).thenReturn(mockClean);
@@ -58,7 +58,7 @@ class AudioAnalysisUseCaseTest {
         InOrder inOrder = inOrder(storage, converter, featureExtractor);
         inOrder.verify(storage).downloadAudioFile(eq(bucket), eq(key), any());
         inOrder.verify(converter).convertToStandardWav(eq(mockPath), any());
-        inOrder.verify(featureExtractor).extract(eq(mockClean));
+        inOrder.verify(featureExtractor).extract(mockClean);
     }
 
     @Test

@@ -2,10 +2,8 @@ package com.smartjam.smartjamanalyzer.application;
 
 import java.nio.file.Path;
 
-import com.smartjam.smartjamanalyzer.domain.port.AudioConverter;
-import com.smartjam.smartjamanalyzer.domain.port.AudioStorage;
-import com.smartjam.smartjamanalyzer.domain.port.Workspace;
-import com.smartjam.smartjamanalyzer.domain.port.WorkspaceFactory;
+import com.smartjam.smartjamanalyzer.domain.model.FeatureSequence;
+import com.smartjam.smartjamanalyzer.domain.port.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,13 +17,14 @@ public class AudioAnalysisUseCase {
     private final AudioStorage audioStorage;
     private final AudioConverter audioConverter;
     private final WorkspaceFactory workspaceFactory;
+    private final FeatureExtractor featureExtractor;
 
     public void execute(String bucket, String fileKey) {
         try (Workspace workspace = workspaceFactory.create()) {
 
-            // NOTE: Добавить обработку(проверку типа) входящего файла
+            // TODO: Добавить обработку(проверку типа) входящего файла
 
-            // NOTE: Добавить нормальный сбор метрик
+            // TODO: Добавить нормальный сбор метрик
             StopWatch watch = new StopWatch(fileKey);
 
             log.info("=== Начало обработки файла: {} из бакета {} ===", fileKey, bucket);
@@ -39,6 +38,11 @@ public class AudioAnalysisUseCase {
             watch.stop();
 
             watch.start("Business Logic (Math)");
+
+            FeatureSequence features = featureExtractor.extract(cleanWavFile);
+
+            log.info("Extracted {} feature frames", features.frames().size());
+
             if ("references".equals(bucket)) {
                 log.info("Действие: Обработка ЭТАЛОНА учителя...");
             } else if ("submissions".equals(bucket)) {

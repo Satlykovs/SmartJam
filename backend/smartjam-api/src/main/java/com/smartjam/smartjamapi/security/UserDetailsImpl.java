@@ -23,24 +23,24 @@ public class UserDetailsImpl implements UserDetails {
     @Getter
     private String email;
 
-    private String password;
+    private String PasswordHash;
 
     public static UserDetailsImpl build(UserEntity user) {
-        return new UserDetailsImpl(user.getId(), user.getUsername(), user.getEmail(), user.getPasswordHash());
+        return new UserDetailsImpl(user.getId(), user.getNickname(), user.getEmail(), user.getPasswordHash());
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+        return List.of(); // пока так, не знаю что сюда пихать
     }
 
     @Override
     public @Nullable String getPassword() {
-        return password;
+        return PasswordHash;
     }
 
     @Override
     public String getUsername() {
-        return username;
+        return email;
     }
 }

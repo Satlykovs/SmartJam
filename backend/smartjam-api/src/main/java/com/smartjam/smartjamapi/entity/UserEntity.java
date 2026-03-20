@@ -1,5 +1,6 @@
 package com.smartjam.smartjamapi.entity;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import jakarta.persistence.*;
@@ -9,6 +10,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 @Setter
 @Getter
@@ -23,7 +26,7 @@ public class UserEntity {
     private UUID id;
 
     @Column(nullable = false)
-    private String username;
+    private String nickname;
 
     @Column(nullable = false, unique = true)
     private String email;
@@ -46,6 +49,14 @@ public class UserEntity {
 
     @Column(name = "fcm_token")
     private String fcmToken;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
 
     //    @Override
     //    public @NonNull Collection<? extends GrantedAuthority> getAuthorities() {

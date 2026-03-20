@@ -4,5 +4,6 @@ public enum ErrorCode {
     INTERNAL_SERVER_ERROR,
     NOT_FOUND,
     BAD_REQUEST,
-    UNAUTHORIZED
+    UNAUTHORIZED,
+    RESOURCE_NOT_FOUND
 }

@@ -25,7 +25,7 @@ public class JwtService {
     private String secretKey;
 
     @Getter
-    @Value("${security.jwt.expiration-time}")
+    @Value("${security.jwt.expiration-time-access}")
     private long jwtExpiration;
 
     private Key getSigningKey() {
@@ -33,11 +33,6 @@ public class JwtService {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String generateRefreshToken() {
-        byte[] randomBytes = new byte[64];
-        new SecureRandom().nextBytes(randomBytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
-    }
 
     public String generateAccessToken(UserDetailsImpl userDetails) {
         Map<String, Object> claims = new HashMap<>();

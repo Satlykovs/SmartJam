@@ -3,6 +3,8 @@ package com.smartjam.smartjamapi.controller;
 import java.security.Principal;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Role;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,11 +18,12 @@ public class MainController {
     public String userAccess(Principal principal) {
         log.info(principal.getName());
 
-        log.info("Call userAccess");
+        log.info("userAccess called for: {}", principal.getName());
         return principal.getName();
     }
 
     @GetMapping("/hello")
+//    @PreAuthorize()
     public String hello() {
         return "You are auth";
     }

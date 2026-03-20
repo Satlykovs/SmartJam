@@ -23,18 +23,41 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequ
 public class UploadService {
 
     private static final String BUCKET_NAME = "music";
-    private static final String S3_ENDPOINT = "http://localhost:9000"; // пока захардкодил ссылку
+    private static final String S3_ENDPOINT = "http://localhost:9000";
+    private static final String ACCESS_KEY = "minioadmin";
+    private static final String SECRET_KEY = "minioadmin";
+
+    private static S3Presigner presigner;
+    private static S3Client s3Client;
 
     @PostConstruct
     public void init() {
-        try (S3Client s3Client = S3Client.builder()
-                .endpointOverride(URI.create(S3_ENDPOINT))
-                .region(Region.US_EAST_1)
-                .serviceConfiguration(b -> b.pathStyleAccessEnabled(true))
-                .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create("minioadmin", "minioadmin"))) // пока захардкодил
-                .build()) {
-            log.info("Trying to connect to MinIO at {}", s3Client);
+        if (s3Client == null) {
+            s3Client = S3Client.builder()
+                    .endpointOverride(URI.create(S3_ENDPOINT))
+                    .region(Region.US_EAST_1)
+                    .serviceConfiguration(b -> b.pathStyleAccessEnabled(true))
+                    .credentialsProvider(StaticCredentialsProvider.create(
+                            AwsBasicCredentials.create(ACCESS_KEY, SECRET_KEY)))
+                    .build();
+            log.info("S3Client initialized");
+        }
+
+        if (presigner == null) {
+            presigner = S3Presigner.builder()
+                    .endpointOverride(URI.create(S3_ENDPOINT))
+                    .region(Region.US_EAST_1)
+                    .serviceConfiguration(S3Configuration.builder()
+                            .pathStyleAccessEnabled(true)
+                            .build())
+                    .credentialsProvider(StaticCredentialsProvider.create(
+                            AwsBasicCredentials.create(ACCESS_KEY, SECRET_KEY)))
+                    .build();
+            log.info("S3Presigner initialized");
+        }
+
+        try {
+            log.info("Trying to connect to MinIO at {}", S3_ENDPOINT);
             if (s3Client.listBuckets().buckets().stream()
                     .noneMatch(b -> b.name().equals(BUCKET_NAME))) {
                 s3Client.createBucket(b -> b.bucket(BUCKET_NAME));
@@ -42,27 +65,24 @@ public class UploadService {
             } else {
                 log.info("Bucket '{}' already exists", BUCKET_NAME);
             }
+        } catch (Exception e) {
+            log.error("Failed to initialize bucket: {}", e.getMessage(), e);
         }
     }
 
     public UploadUrlResponse generateUploadUrl(String fileName) {
-        try (S3Presigner presigner = S3Presigner.builder()
-                .endpointOverride(URI.create(S3_ENDPOINT))
-                .region(Region.US_EAST_1)
-                .serviceConfiguration(
-                        S3Configuration.builder().pathStyleAccessEnabled(true).build())
-                .credentialsProvider(
-                        StaticCredentialsProvider.create(AwsBasicCredentials.create("minioadmin", "minioadmin")))
-                .build()) {
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(BUCKET_NAME)
+                .key(fileName)
+                .build();
 
-            PutObjectRequest putObjectRequest =
-                    PutObjectRequest.builder().bucket(BUCKET_NAME).key(fileName).build();
+        PresignedPutObjectRequest presignedGetObjectRequest = presigner.presignPutObject(
+                r -> r.putObjectRequest(putObjectRequest)
+                        .signatureDuration(Duration.ofMinutes(10)));
 
-            PresignedPutObjectRequest presignedGetObjectRequest = presigner.presignPutObject(
-                    r -> r.putObjectRequest(putObjectRequest).signatureDuration(Duration.ofMinutes(10)));
+        URL presignedUrl = presignedGetObjectRequest.url();
+        log.info("Generated upload URL for file: {}", fileName);
 
-            URL presignedUtl = presignedGetObjectRequest.url();
-            return new UploadUrlResponse(presignedUtl.toString());
-        }
+        return new UploadUrlResponse(presignedUrl.toString());
     }
 }

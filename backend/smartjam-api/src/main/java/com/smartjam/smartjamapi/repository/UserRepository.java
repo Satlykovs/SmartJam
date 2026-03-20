@@ -6,15 +6,10 @@ import java.util.UUID;
 import com.smartjam.smartjamapi.entity.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface UserRepository extends JpaRepository<UserEntity, Long> {
+public interface UserRepository extends JpaRepository<UserEntity, UUID> {
 
     Optional<UserEntity> findByEmail(String login);
 
-    Optional<UserEntity> findById(UUID id);
-
-    Optional<UserEntity> findUserEntitiesByUsername(String username);
-
     boolean existsByEmail(String email);
 
-    boolean existsByUsername(String username);
 }

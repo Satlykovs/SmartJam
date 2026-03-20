@@ -1,3 +1,4 @@
 rootProject.name = 'backend'
 include 'smartjam-api'
 include 'smartjam-analyzer'
+include 'smartjam-common'

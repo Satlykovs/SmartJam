@@ -3,7 +3,7 @@ package com.smartjam.smartjamanalyzer.api.kafka;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
-import com.smartjam.smartjamanalyzer.api.kafka.dto.S3EventDto;
+import com.smartjam.common.dto.s3.S3EventDto;
 import com.smartjam.smartjamanalyzer.application.AudioAnalysisUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,9 +32,7 @@ public class S3StorageListener {
             topics = "s3-events",
             groupId = "smartjam-analyzer-group",
             concurrency = "3",
-            properties = {
-                "spring.json.value.default.type=com.smartjam.smartjamanalyzer.api" + ".kafka.dto" + ".S3EventDto"
-            })
+            properties = {"spring.json.value.default.type=com.smartjam.common.dto.s3.S3EventDto"})
     public void onFileUploaded(S3EventDto event, Acknowledgment ack) {
         if (event == null || event.records() == null || event.records().isEmpty()) {
             if (ack != null) ack.acknowledge();

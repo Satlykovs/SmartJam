@@ -1,9 +1,10 @@
-package com.smartjam.smartjamanalyzer.api.kafka.dto;
+package common.dto.s3;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.smartjam.common.dto.s3.S3EventDto;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class S3EventDtoTest {
     private final ObjectMapper objectMapper = new ObjectMapper();

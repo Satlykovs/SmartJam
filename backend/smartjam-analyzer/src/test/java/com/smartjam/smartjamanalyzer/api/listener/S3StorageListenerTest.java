@@ -3,8 +3,8 @@ package com.smartjam.smartjamanalyzer.api.listener;
 import java.util.Collections;
 import java.util.List;
 
+import com.smartjam.common.dto.s3.S3EventDto;
 import com.smartjam.smartjamanalyzer.api.kafka.S3StorageListener;
-import com.smartjam.smartjamanalyzer.api.kafka.dto.S3EventDto;
 import com.smartjam.smartjamanalyzer.application.AudioAnalysisUseCase;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

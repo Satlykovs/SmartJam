@@ -31,7 +31,6 @@ public class JwtService {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-
     public String generateAccessToken(UserDetailsImpl userDetails) {
         Map<String, Object> claims = new HashMap<>();
         claims.put(

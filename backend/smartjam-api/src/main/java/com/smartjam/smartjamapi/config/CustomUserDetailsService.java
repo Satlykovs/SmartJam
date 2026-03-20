@@ -1,9 +1,10 @@
 package com.smartjam.smartjamapi.config;
 
+import jakarta.validation.constraints.NotBlank;
+
 import com.smartjam.smartjamapi.entity.UserEntity;
 import com.smartjam.smartjamapi.repository.UserRepository;
 import com.smartjam.smartjamapi.security.UserDetailsImpl;
-import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;

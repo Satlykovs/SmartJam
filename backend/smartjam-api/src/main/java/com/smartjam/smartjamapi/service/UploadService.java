@@ -37,8 +37,8 @@ public class UploadService {
                     .endpointOverride(URI.create(S3_ENDPOINT))
                     .region(Region.US_EAST_1)
                     .serviceConfiguration(b -> b.pathStyleAccessEnabled(true))
-                    .credentialsProvider(StaticCredentialsProvider.create(
-                            AwsBasicCredentials.create(ACCESS_KEY, SECRET_KEY)))
+                    .credentialsProvider(
+                            StaticCredentialsProvider.create(AwsBasicCredentials.create(ACCESS_KEY, SECRET_KEY)))
                     .build();
             log.info("S3Client initialized");
         }
@@ -50,8 +50,8 @@ public class UploadService {
                     .serviceConfiguration(S3Configuration.builder()
                             .pathStyleAccessEnabled(true)
                             .build())
-                    .credentialsProvider(StaticCredentialsProvider.create(
-                            AwsBasicCredentials.create(ACCESS_KEY, SECRET_KEY)))
+                    .credentialsProvider(
+                            StaticCredentialsProvider.create(AwsBasicCredentials.create(ACCESS_KEY, SECRET_KEY)))
                     .build();
             log.info("S3Presigner initialized");
         }
@@ -71,14 +71,11 @@ public class UploadService {
     }
 
     public UploadUrlResponse generateUploadUrl(String fileName) {
-        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                .bucket(BUCKET_NAME)
-                .key(fileName)
-                .build();
+        PutObjectRequest putObjectRequest =
+                PutObjectRequest.builder().bucket(BUCKET_NAME).key(fileName).build();
 
         PresignedPutObjectRequest presignedGetObjectRequest = presigner.presignPutObject(
-                r -> r.putObjectRequest(putObjectRequest)
-                        .signatureDuration(Duration.ofMinutes(10)));
+                r -> r.putObjectRequest(putObjectRequest).signatureDuration(Duration.ofMinutes(10)));
 
         URL presignedUrl = presignedGetObjectRequest.url();
         log.info("Generated upload URL for file: {}", fileName);

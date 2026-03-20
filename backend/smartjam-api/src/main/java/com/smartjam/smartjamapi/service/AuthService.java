@@ -3,12 +3,6 @@ package com.smartjam.smartjamapi.service;
 import java.time.Instant;
 import java.util.NoSuchElementException;
 
-import com.smartjam.smartjamapi.enums.StatusRefreshToken;
-import com.smartjam.smartjamapi.exception.TokenExpiredException;
-import com.smartjam.smartjamapi.exception.TokenNotFoundException;
-import com.smartjam.smartjamapi.mapper.UserMapper;
-import com.smartjam.smartjamapi.security.RefreshTokenService;
-
 import com.smartjam.smartjamapi.dto.AuthResponse;
 import com.smartjam.smartjamapi.dto.LoginRequest;
 import com.smartjam.smartjamapi.dto.RefreshTokenRequest;
@@ -16,9 +10,14 @@ import com.smartjam.smartjamapi.dto.RegisterRequest;
 import com.smartjam.smartjamapi.entity.RefreshTokenEntity;
 import com.smartjam.smartjamapi.entity.UserEntity;
 import com.smartjam.smartjamapi.enums.Role;
+import com.smartjam.smartjamapi.enums.StatusRefreshToken;
+import com.smartjam.smartjamapi.exception.TokenExpiredException;
+import com.smartjam.smartjamapi.exception.TokenNotFoundException;
+import com.smartjam.smartjamapi.mapper.UserMapper;
 import com.smartjam.smartjamapi.repository.RefreshTokenRepository;
 import com.smartjam.smartjamapi.repository.UserRepository;
 import com.smartjam.smartjamapi.security.JwtService;
+import com.smartjam.smartjamapi.security.RefreshTokenService;
 import com.smartjam.smartjamapi.security.UserDetailsImpl;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -56,7 +55,8 @@ public class AuthService {
 
         RefreshTokenEntity refreshTokenEntity = refreshTokenService.create(userEntity, refreshToken);
 
-        refreshTokenRepository.setStatusUsedRefreshToken(userEntity, StatusRefreshToken.ACTIVE, StatusRefreshToken.USED);
+        refreshTokenRepository.setStatusUsedRefreshToken(
+                userEntity, StatusRefreshToken.ACTIVE, StatusRefreshToken.USED);
 
         refreshTokenRepository.save(refreshTokenEntity);
 
@@ -86,7 +86,8 @@ public class AuthService {
 
         RefreshTokenEntity refreshTokenEntity = refreshTokenService.create(userEntity, refreshToken);
 
-        refreshTokenRepository.setStatusUsedRefreshToken(userEntity, StatusRefreshToken.ACTIVE, StatusRefreshToken.USED);
+        refreshTokenRepository.setStatusUsedRefreshToken(
+                userEntity, StatusRefreshToken.ACTIVE, StatusRefreshToken.USED);
 
         refreshTokenRepository.save(refreshTokenEntity);
 
@@ -94,7 +95,6 @@ public class AuthService {
 
         return new AuthResponse(refreshToken, accessToken);
     }
-
 
     @Transactional
     protected void revokeToken(String tokenHash) {
@@ -139,7 +139,6 @@ public class AuthService {
 
         RefreshTokenEntity refreshTokenEntity = refreshTokenService.create(userEntity, newRefreshToken);
         refreshTokenRepository.save(refreshTokenEntity);
-
 
         log.info("New tokens successfully created");
 

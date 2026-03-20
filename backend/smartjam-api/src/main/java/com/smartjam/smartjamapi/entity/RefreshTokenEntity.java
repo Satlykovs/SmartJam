@@ -3,9 +3,9 @@ package com.smartjam.smartjamapi.entity;
 import java.time.Instant;
 import java.util.UUID;
 
-import com.smartjam.smartjamapi.enums.StatusRefreshToken;
 import jakarta.persistence.*;
 
+import com.smartjam.smartjamapi.enums.StatusRefreshToken;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 

@@ -21,7 +21,7 @@ public class MainController {
     }
 
     @GetMapping("/hello")
-//    @PreAuthorize()
+    //    @PreAuthorize()
     public String hello() {
         return "You are auth";
     }

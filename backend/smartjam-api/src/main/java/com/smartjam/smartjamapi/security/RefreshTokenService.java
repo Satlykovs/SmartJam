@@ -1,5 +1,12 @@
 package com.smartjam.smartjamapi.security;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.time.Instant;
+import java.util.Base64;
+
 import com.smartjam.smartjamapi.entity.RefreshTokenEntity;
 import com.smartjam.smartjamapi.entity.UserEntity;
 import com.smartjam.smartjamapi.enums.StatusRefreshToken;
@@ -9,13 +16,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.codec.Hex;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.time.Instant;
-import java.util.Base64;
-
 @Service
 @Slf4j
 public class RefreshTokenService {
@@ -23,7 +23,6 @@ public class RefreshTokenService {
     @Getter
     @Value("${security.jwt.expiration-time-refresh}")
     private long refreshExpiration;
-
 
     public String generateRefreshToken() {
         byte[] randomBytes = new byte[64];
@@ -33,8 +32,7 @@ public class RefreshTokenService {
 
     public static String hashRefreshToken(String token) {
         try {
-            byte[] digest = MessageDigest.getInstance("SHA-256")
-                    .digest(token.getBytes(StandardCharsets.UTF_8));
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8));
             return new String(Hex.encode(digest));
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("SHA-256 algorithm not found", e);
@@ -50,6 +48,4 @@ public class RefreshTokenService {
 
         return refreshTokenEntity;
     }
-
-
 }

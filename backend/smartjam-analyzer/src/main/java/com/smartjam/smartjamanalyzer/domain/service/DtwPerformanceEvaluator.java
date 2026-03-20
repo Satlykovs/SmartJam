@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.smartjam.common.dto.FeedbackEvent;
+import com.smartjam.common.model.FeedbackType;
 import com.smartjam.smartjamanalyzer.domain.model.AnalysisResult;
 import com.smartjam.smartjamanalyzer.domain.model.FeatureSequence;
 import com.smartjam.smartjamanalyzer.domain.port.PerformanceEvaluator;
@@ -37,20 +39,17 @@ public class DtwPerformanceEvaluator implements PerformanceEvaluator {
         double[][] dtwMatrix = computeCostMatrix(reference.frames(), student.frames());
         List<int[]> path = findWarpingPath(dtwMatrix);
 
-        List<AnalysisResult.FeedbackEvent> feedbacks = new ArrayList<>();
+        List<FeedbackEvent> feedbacks = new ArrayList<>();
         PathMetrics metrics = analyzePath(path, reference, student, feedbacks);
 
         return buildFinalResult(metrics, dtwMatrix, path, feedbacks);
     }
 
     private PathMetrics analyzePath(
-            List<int[]> path,
-            FeatureSequence reference,
-            FeatureSequence student,
-            List<AnalysisResult.FeedbackEvent> feedbacks) {
+            List<int[]> path, FeatureSequence reference, FeatureSequence student, List<FeedbackEvent> feedbacks) {
 
-        ErrorState pitchES = new ErrorState("Wrong note", reference.frameRate(), student.frameRate());
-        ErrorState rhythmES = new ErrorState("Wrong rhythm", reference.frameRate(), student.frameRate());
+        ErrorState pitchES = new ErrorState(FeedbackType.WRONG_NOTE, reference.frameRate(), student.frameRate());
+        ErrorState rhythmES = new ErrorState(FeedbackType.WRONG_RHYTHM, reference.frameRate(), student.frameRate());
 
         double totalPitchDist = 0;
         double totalRhythmDrift = 0;
@@ -86,7 +85,7 @@ public class DtwPerformanceEvaluator implements PerformanceEvaluator {
 
     private void processErrorState(
             ErrorState state,
-            List<AnalysisResult.FeedbackEvent> feedbacks,
+            List<FeedbackEvent> feedbacks,
             double tRef,
             double tStud,
             double severity,
@@ -97,15 +96,15 @@ public class DtwPerformanceEvaluator implements PerformanceEvaluator {
         }
     }
 
-    private void flushIfActive(ErrorState state, List<AnalysisResult.FeedbackEvent> feedbacks) {
+    private void flushIfActive(ErrorState state, List<FeedbackEvent> feedbacks) {
         if (state.isActive()) {
-            AnalysisResult.FeedbackEvent ev = state.flush();
+            FeedbackEvent ev = state.flush();
             if (ev != null) feedbacks.add(ev);
         }
     }
 
     private AnalysisResult buildFinalResult(
-            PathMetrics metrics, double[][] matrix, List<int[]> path, List<AnalysisResult.FeedbackEvent> feedbacks) {
+            PathMetrics metrics, double[][] matrix, List<int[]> path, List<FeedbackEvent> feedbacks) {
 
         double avgPitchError = metrics.totalPitchDist / path.size();
         double pScore = Math.max(0.0, 100.0 * (1.0 - Math.pow(avgPitchError / 0.5, 2)));
@@ -188,7 +187,7 @@ public class DtwPerformanceEvaluator implements PerformanceEvaluator {
     private record PathMetrics(double totalPitchDist, double totalRhythmDrift) {}
 
     private static class ErrorState {
-        private final String message;
+        private final FeedbackType type;
         private final double refFrameDuration;
         private final double studFrameDuration;
         private double rStart = -1;
@@ -198,8 +197,8 @@ public class DtwPerformanceEvaluator implements PerformanceEvaluator {
         private double maxSev = 0;
         private int graceCounter = 0;
 
-        ErrorState(String message, float refFrameRate, float studFrameRate) {
-            this.message = message;
+        ErrorState(FeedbackType type, float refFrameRate, float studFrameRate) {
+            this.type = type;
             this.refFrameDuration = 1.0 / refFrameRate;
             this.studFrameDuration = 1.0 / studFrameRate;
         }
@@ -230,7 +229,7 @@ public class DtwPerformanceEvaluator implements PerformanceEvaluator {
             return rStart >= 0;
         }
 
-        AnalysisResult.FeedbackEvent flush() {
+        FeedbackEvent flush() {
             double refDuration = (rEnd - rStart) + refFrameDuration;
             double studDuration = (sEnd - sStart) + studFrameDuration;
 
@@ -239,8 +238,8 @@ public class DtwPerformanceEvaluator implements PerformanceEvaluator {
                 return null;
             }
 
-            AnalysisResult.FeedbackEvent event = new AnalysisResult.FeedbackEvent(
-                    rStart, rEnd + refFrameDuration, sStart, sEnd + studFrameDuration, message, maxSev);
+            FeedbackEvent event =
+                    new FeedbackEvent(rStart, rEnd + refFrameDuration, sStart, sEnd + studFrameDuration, type, maxSev);
             reset();
             return event;
         }

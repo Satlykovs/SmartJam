@@ -1,0 +1,20 @@
+
+plugins {
+    id 'java-library'
+}
+
+bootJar {
+    enabled = false
+}
+
+jar {
+    enabled = true
+}
+
+dependencies {
+    api 'com.fasterxml.jackson.core:jackson-annotations'
+    api 'com.fasterxml.jackson.core:jackson-databind'
+}
+
+group = 'com.smartjam'
+version = '0.0.1-SNAPSHOT'

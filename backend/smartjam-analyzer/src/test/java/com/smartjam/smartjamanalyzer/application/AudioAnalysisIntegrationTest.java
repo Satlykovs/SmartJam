@@ -66,7 +66,7 @@ class AudioAnalysisIntegrationTest {
             String feedbackReport = result.feedback().stream()
                     .map(e -> String.format(
                             "-> [%s] с %5.2fs до %5.2fs (Ученик: с %5.2fs до %5.2fs) | Тяжесть: %.2f",
-                            e.message(),
+                            e.type(),
                             e.teacherStartTime(),
                             e.teacherEndTime(),
                             e.studentStartTime(),

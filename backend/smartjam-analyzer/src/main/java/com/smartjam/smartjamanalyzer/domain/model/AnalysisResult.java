@@ -2,6 +2,8 @@ package com.smartjam.smartjamanalyzer.domain.model;
 
 import java.util.List;
 
+import com.smartjam.common.dto.FeedbackEvent;
+
 /**
  * Encapsulates the results of a performance evaluation, including overall scores, time-aligned feedback events, and
  * internal evaluation artifacts (like warping paths).
@@ -41,12 +43,4 @@ public record AnalysisResult(
     public boolean isPassed() {
         return totalScore > 80;
     }
-
-    public record FeedbackEvent(
-            double teacherStartTime,
-            double teacherEndTime,
-            double studentStartTime,
-            double studentEndTime,
-            String message,
-            double severity) {}
 }

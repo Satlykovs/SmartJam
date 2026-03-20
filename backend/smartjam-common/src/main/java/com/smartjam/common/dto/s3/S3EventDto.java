@@ -1,4 +1,4 @@
-package com.smartjam.smartjamanalyzer.api.kafka.dto;
+package com.smartjam.common.dto.s3;
 
 import java.util.List;
 

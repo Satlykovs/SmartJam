@@ -4,8 +4,22 @@ import java.util.UUID;
 
 import com.smartjam.smartjamanalyzer.domain.model.FeatureSequence;
 
+/** Domain port for managing teacher reference features. */
 public interface ReferenceRepository {
-    void save(UUID targetId, FeatureSequence features);
 
-    FeatureSequence findById(UUID targetId);
+    /**
+     * Saves the spectral features of a teacher's reference track.
+     *
+     * @param assignmentId Unique identifier of the assignment.
+     * @param features Extracted features to persist.
+     */
+    void save(UUID assignmentId, FeatureSequence features);
+
+    /**
+     * Retrieves reference features for comparison.
+     *
+     * @param assignmentId Unique identifier of the assignment.
+     * @return The feature sequence or null if not found.
+     */
+    FeatureSequence findById(UUID assignmentId);
 }

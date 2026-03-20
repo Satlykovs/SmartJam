@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-// NOTE: добавить прокидывание фильтра сюда
+// TODO: добавить прокидывание фильтра сюда
 @ExtendWith(MockitoExtension.class)
 class FfmpegAudioConverterTest {
 

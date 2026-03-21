@@ -2,6 +2,7 @@ package com.smartjam.smartjamanalyzer.domain.port;
 
 import java.util.UUID;
 
+import com.smartjam.common.model.AudioProcessingStatus;
 import com.smartjam.smartjamanalyzer.domain.model.FeatureSequence;
 
 /** Domain port for managing teacher reference features. */
@@ -22,4 +23,6 @@ public interface ReferenceRepository {
      * @return The feature sequence or null if not found.
      */
     FeatureSequence findById(UUID assignmentId);
+
+    void updateStatus(UUID id, AudioProcessingStatus status, String errorMessage);
 }

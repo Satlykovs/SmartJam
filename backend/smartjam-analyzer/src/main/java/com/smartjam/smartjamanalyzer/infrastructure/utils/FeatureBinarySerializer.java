@@ -6,10 +6,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/** Binary serializer for spectral feature matrices. Storage format: [int:N frames][int:M bins][N * M raw floats] */
+import com.smartjam.smartjamanalyzer.domain.model.FeatureSequence;
+
+/**
+ * Binary serializer for spectral feature matrices. Storage format: [int:N frames][int:M bins][float: framerate][N * M
+ * raw floats]
+ */
 public class FeatureBinarySerializer {
 
-    private static final int HEADER_SIZE = 8;
+    private static final int HEADER_SIZE = 12;
 
     private FeatureBinarySerializer() {
         // utility class, no need to be constructed
@@ -18,20 +23,22 @@ public class FeatureBinarySerializer {
     /**
      * Serializes a list of equally sized float frames into a byte array.
      *
-     * @param frames list of frames (each frame is an array of floats)
+     * @param sequence list of frames (each frame is an array of floats)
      * @return byte array with little-endian representation
      * @throws IllegalArgumentException if frames are null, empty, or frames have different lengths
      */
-    public static byte[] serialize(List<float[]> frames) {
+    public static byte[] serialize(FeatureSequence sequence) {
 
-        Objects.requireNonNull(frames, "frames list must not be null");
+        Objects.requireNonNull(sequence, "Feature sequence must not be null");
 
-        if (frames.isEmpty()) {
+        if (sequence.frames().isEmpty()) {
             return new byte[0];
         }
 
+        List<float[]> frames = sequence.frames();
         int frameCount = frames.size();
         int binCount = frames.getFirst().length;
+        float frameRate = sequence.frameRate();
 
         for (var frame : frames) {
             if (frame.length != binCount) {
@@ -51,6 +58,7 @@ public class FeatureBinarySerializer {
 
         buffer.putInt(frameCount);
         buffer.putInt(binCount);
+        buffer.putFloat(frameRate);
 
         for (float[] frame : frames) {
             for (float val : frame) {
@@ -64,19 +72,20 @@ public class FeatureBinarySerializer {
     /**
      * Deserializes a byte array back to a list of frames.
      *
-     * @param data byte array produced by {@link #serialize(List)}
-     * @return list of frames, or empty list if data is null or too short
+     * @param data byte array produced by {@link #serialize(FeatureSequence)}
+     * @return FeatureSequence, or null if data is null or too short
      * @throws IllegalArgumentException if the data is malformed (e.g., negative sizes, insufficient length)
      */
-    public static List<float[]> deserialize(byte[] data) {
+    public static FeatureSequence deserialize(byte[] data) {
         if (data == null || data.length < HEADER_SIZE) {
-            return new ArrayList<>();
+            return null;
         }
 
         ByteBuffer buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
 
         int frameCount = buffer.getInt();
         int binCount = buffer.getInt();
+        float frameRate = buffer.getFloat();
 
         if (frameCount < 0 || binCount < 0) {
             throw new IllegalArgumentException("Invalid header: frameCount or binCount is negative");
@@ -102,6 +111,6 @@ public class FeatureBinarySerializer {
             }
             frames.add(frame);
         }
-        return frames;
+        return new FeatureSequence(frames, frameRate);
     }
 }

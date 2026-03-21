@@ -6,13 +6,14 @@ import java.util.UUID;
 import jakarta.persistence.*;
 
 import com.smartjam.smartjamapi.enums.StatusRefreshToken;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
 @Table(name = "refresh_tokens")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
+@AllArgsConstructor
 public class RefreshTokenEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -29,5 +30,6 @@ public class RefreshTokenEntity {
     private Instant expiresAt;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private StatusRefreshToken status;
 }

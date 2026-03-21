@@ -16,12 +16,12 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshTokenEntity
     Optional<RefreshTokenEntity> findByTokenHash(String token);
 
     @Transactional
-    @Modifying(clearAutomatically = true)
-    @Query("UPDATE RefreshTokenEntity r SET r.status = :status  WHERE r.tokenHash = :tokenHash")
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE RefreshTokenEntity r SET r.status = :status WHERE r.tokenHash = :tokenHash")
     void setStatusByRefreshToken(@Param("tokenHash") String tokenHash, @Param("status") StatusRefreshToken status);
 
     @Transactional
-    @Modifying(clearAutomatically = true)
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
     UPDATE RefreshTokenEntity r
     SET r.status = :newStatus

@@ -1,19 +1,29 @@
 package com.smartjam.app.ui.screens.login
 
 import android.widget.Toast
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -21,22 +31,31 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.PI
@@ -46,7 +65,7 @@ import kotlin.math.sin
 @Composable
 fun LoginScreen(
 
-    viewModel: LoginViewModel = viewModel(),
+    viewModel: LoginViewModel,
     onNavigateToHome: () -> Unit = {},
     onNavigateToRegister: () -> Unit = {}
 ) {
@@ -225,14 +244,16 @@ fun AppleGlassTextField(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    keyboardActions: KeyboardActions = KeyboardActions.Default
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    enabled: Boolean = true
 ) {
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
         singleLine = true,
+        enabled = enabled,
         textStyle = TextStyle(
-            color = Color.White,
+            color = if (enabled) Color.White else Color.White.copy(alpha = 0.5f),
             fontSize = 16.sp,
             fontWeight = FontWeight.Medium
         ),
@@ -246,10 +267,10 @@ fun AppleGlassTextField(
                     .fillMaxWidth()
                     .height(60.dp)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(Color.White.copy(alpha = 0.05f))
+                    .background(Color.White.copy(alpha = if (enabled) 0.05f else 0.02f))
                     .border(
                         width = 1.dp,
-                        color = Color.White.copy(alpha = 0.15f),
+                        color = Color.White.copy(alpha = if (enabled) 0.15f else 0.05f),
                         shape = RoundedCornerShape(24.dp)
                     )
                     .padding(horizontal = 20.dp),
@@ -258,7 +279,7 @@ fun AppleGlassTextField(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.5f),
+                    tint = Color.White.copy(alpha = if (enabled) 0.5f else 0.2f),
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(16.dp))
@@ -266,7 +287,7 @@ fun AppleGlassTextField(
                     if (value.isEmpty()) {
                         Text(
                             text = hint,
-                            color = Color.White.copy(alpha = 0.3f),
+                            color = Color.White.copy(alpha = if (enabled) 0.3f else 0.15f),
                             fontSize = 16.sp
                         )
                     }
@@ -438,10 +459,4 @@ fun AppleGlassButton(
             color = Color.White
         )
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun LoginScreenModernPreview() {
-    LoginScreen()
 }

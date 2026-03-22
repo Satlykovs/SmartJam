@@ -1,16 +1,16 @@
 package com.smartjam.app.ui.screens.register
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.smartjam.app.domain.model.UserRole
 import com.smartjam.app.domain.repository.AuthRepository
-import com.smartjam.app.domain.data.UserRole
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import androidx.lifecycle.ViewModelProvider
 
 data class RegisterState(
     val usernameInput: String = "",
@@ -34,7 +34,7 @@ class RegisterViewModel(
     private val _state = MutableStateFlow(RegisterState())
     val state = _state.asStateFlow()
 
-    private val eventChannel = Channel<RegisterEvent>()
+    private val eventChannel = Channel<RegisterEvent>(Channel.BUFFERED)
     val events = eventChannel.receiveAsFlow()
     private val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\$".toRegex()
     private val passwordRegex = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{8,}\$".toRegex()
@@ -66,6 +66,9 @@ class RegisterViewModel(
     }
 
     fun onRegisterClicked() {
+        if (_state.value.isLoading){
+            return;
+        }
         val currentState = _state.value
 
         if (currentState.usernameInput.isBlank()) {
@@ -95,7 +98,7 @@ class RegisterViewModel(
                 email = currentState.emailInput,
                 password = currentState.passwordInput,
                 username = currentState.usernameInput,
-                role = currentState.selectedRole.name
+                role = currentState.selectedRole
             )
 
             _state.update { it.copy(isLoading = false) }

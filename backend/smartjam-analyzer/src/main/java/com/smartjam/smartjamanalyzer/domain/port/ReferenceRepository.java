@@ -1,5 +1,6 @@
 package com.smartjam.smartjamanalyzer.domain.port;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import com.smartjam.common.model.AudioProcessingStatus;
@@ -22,7 +23,14 @@ public interface ReferenceRepository {
      * @param assignmentId Unique identifier of the assignment.
      * @return The feature sequence or null if not found.
      */
-    FeatureSequence findById(UUID assignmentId);
+    Optional<FeatureSequence> findFeaturesById(UUID assignmentId);
 
-    void updateStatus(UUID id, AudioProcessingStatus status, String errorMessage);
+    /**
+     * Performs an optimized status update for an assignment, optionally recording an error message.
+     *
+     * @param assignmentId unique identifier of the submission.
+     * @param status the new processing state.
+     * @param errorMessage description of the failure, if applicable.
+     */
+    void updateStatus(UUID assignmentId, AudioProcessingStatus status, String errorMessage);
 }

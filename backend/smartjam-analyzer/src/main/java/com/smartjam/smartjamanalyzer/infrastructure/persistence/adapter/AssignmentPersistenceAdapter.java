@@ -1,8 +1,7 @@
 package com.smartjam.smartjamanalyzer.infrastructure.persistence.adapter;
 
+import java.util.Optional;
 import java.util.UUID;
-
-import jakarta.transaction.Transactional;
 
 import com.smartjam.common.model.AudioProcessingStatus;
 import com.smartjam.smartjamanalyzer.domain.model.FeatureSequence;
@@ -12,12 +11,21 @@ import com.smartjam.smartjamanalyzer.infrastructure.persistence.repository.JpaAs
 import com.smartjam.smartjamanalyzer.infrastructure.utils.FeatureBinarySerializer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * JPA implementation of {@link ReferenceRepository}. Bridges the domain logic with the database using binary
+ * serialization for spectral data.
+ */
 @Component
 @RequiredArgsConstructor
 public class AssignmentPersistenceAdapter implements ReferenceRepository {
     private final JpaAssignmentRepository repository;
 
+    /**
+     * Packs spectral features into a binary format and saves them to the assignment record. Transition the status to
+     * {@link AudioProcessingStatus#COMPLETED}.
+     */
     @Override
     @Transactional
     public void save(UUID assignmentId, FeatureSequence features) {
@@ -35,12 +43,17 @@ public class AssignmentPersistenceAdapter implements ReferenceRepository {
         repository.save(entity);
     }
 
+    /**
+     * Retrieves and unpacks binary features from the database.
+     *
+     * @return an Optional containing the FeatureSequence, or empty if not found.
+     */
     @Override
-    public FeatureSequence findById(UUID assignmentId) {
+    @Transactional(readOnly = true)
+    public Optional<FeatureSequence> findFeaturesById(UUID assignmentId) {
         return repository
                 .findById(assignmentId)
-                .map(e -> FeatureBinarySerializer.deserialize(e.getReferenceSpectreCache()))
-                .orElse(null);
+                .map(e -> FeatureBinarySerializer.deserialize(e.getReferenceSpectreCache()));
     }
 
     @Override

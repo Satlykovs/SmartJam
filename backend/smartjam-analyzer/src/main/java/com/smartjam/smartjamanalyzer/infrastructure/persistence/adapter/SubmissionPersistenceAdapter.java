@@ -2,8 +2,6 @@ package com.smartjam.smartjamanalyzer.infrastructure.persistence.adapter;
 
 import java.util.UUID;
 
-import jakarta.transaction.Transactional;
-
 import com.smartjam.common.model.AudioProcessingStatus;
 import com.smartjam.smartjamanalyzer.domain.model.AnalysisResult;
 import com.smartjam.smartjamanalyzer.domain.port.ResultRepository;
@@ -11,12 +9,21 @@ import com.smartjam.smartjamanalyzer.infrastructure.persistence.entity.Submissio
 import com.smartjam.smartjamanalyzer.infrastructure.persistence.repository.JpaSubmissionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * JPA implementation of {@link ResultRepository}. Manages storage of evaluation results and coordinates mapping between
+ * domain results and JSONB database columns.
+ */
 @Component
 @RequiredArgsConstructor
 public class SubmissionPersistenceAdapter implements ResultRepository {
     private final JpaSubmissionRepository repository;
 
+    /**
+     * Updates the submission record with scores and feedback. Transition the status to
+     * {@link AudioProcessingStatus#COMPLETED}.
+     */
     @Override
     @Transactional
     public void save(UUID submissionId, AnalysisResult result) {
@@ -35,6 +42,7 @@ public class SubmissionPersistenceAdapter implements ResultRepository {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UUID findAssignmentIdBySubmissionId(UUID submissionId) {
         return repository
                 .findById(submissionId)

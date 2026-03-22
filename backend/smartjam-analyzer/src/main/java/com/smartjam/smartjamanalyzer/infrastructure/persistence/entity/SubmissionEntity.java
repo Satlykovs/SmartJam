@@ -11,6 +11,10 @@ import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+/**
+ * Database model for student submissions. Utilizes Hibernate 6 JSON support to store structured feedback events in a
+ * JSONB column.
+ */
 @Entity
 @Table(name = "submissions")
 @Getter

@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import com.smartjam.common.model.AudioProcessingStatus;
 import lombok.*;
 
+/** Database model for teacher assignments. Stores heavy spectral data as raw bytes (BYTEA) to optimize performance. */
 @Entity
 @Table(name = "assignments")
 @Getter
@@ -24,6 +25,6 @@ public class AssignmentEntity {
     @Column(name = "reference_spectre_cache")
     private byte[] referenceSpectreCache;
 
-    @Column(name = "error_message")
+    @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
 }

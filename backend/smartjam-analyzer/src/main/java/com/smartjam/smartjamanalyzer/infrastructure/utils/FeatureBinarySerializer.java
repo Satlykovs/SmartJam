@@ -25,6 +25,7 @@ public class FeatureBinarySerializer {
      *
      * @param sequence list of frames (each frame is an array of floats)
      * @return byte array with little-endian representation
+     * @throws NullPointerException if sequence is null.
      * @throws IllegalArgumentException if frames are null, empty, or frames have different lengths
      */
     public static byte[] serialize(FeatureSequence sequence) {
@@ -47,12 +48,12 @@ public class FeatureBinarySerializer {
             }
         }
 
-        long totalElements = (long) frameCount * binCount;
-        if (totalElements > Integer.MAX_VALUE / Float.BYTES) {
-            throw new IllegalArgumentException("Too many elements to serialize: " + totalElements);
+        long totalPayloadBytes = (long) frameCount * binCount * Float.BYTES;
+        if (totalPayloadBytes > Integer.MAX_VALUE - HEADER_SIZE) {
+            throw new IllegalArgumentException("Matrix is too large for binary serialization");
         }
 
-        int totalBytes = HEADER_SIZE + frameCount * binCount * Float.BYTES;
+        int totalBytes = HEADER_SIZE + (int) totalPayloadBytes;
 
         ByteBuffer buffer = ByteBuffer.allocate(totalBytes).order(ByteOrder.LITTLE_ENDIAN);
 

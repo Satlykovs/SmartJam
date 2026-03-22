@@ -47,8 +47,8 @@ class FeatureBinarySerializerTest {
     }
 
     @Test
-    @DisplayName("Десериализация слишком короткого массива возвращает пустой список")
-    void deserializeTooShortReturnsEmpty() {
+    @DisplayName("Десериализация слишком короткого массива возвращает null")
+    void deserializeTooShortReturnsNull() {
 
         byte[] shortData = new byte[4];
         assertNull(FeatureBinarySerializer.deserialize(shortData));

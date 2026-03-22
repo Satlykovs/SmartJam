@@ -66,8 +66,13 @@ public class AudioAnalysisUseCase {
             log.info("Результаты обработки {}: \n{}", fileKey, watch.prettyPrint());
 
         } catch (Exception e) {
-            log.error("Ошибка в UseCase для файла {}: {}", fileKey, e.getMessage(), e);
+
+            String errorMsg =
+                    e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+
+            log.error("Ошибка в UseCase для файла {}: {}", fileKey, errorMsg, e);
             updateStatus(bucket, entityId, AudioProcessingStatus.FAILED, e.getMessage());
+
             throw new RuntimeException("Business logic failed", e);
         }
     }
@@ -94,17 +99,20 @@ public class AudioAnalysisUseCase {
 
         UUID assignmentId = resultRepository.findAssignmentIdBySubmissionId(submissionId);
 
-        FeatureSequence teacherFeatures = referenceRepository.findById(assignmentId);
-
-        if (teacherFeatures == null) {
-            throw new IllegalStateException("Reference features not ready for assignment: " + assignmentId);
-        }
+        FeatureSequence teacherFeatures = referenceRepository
+                .findFeaturesById(assignmentId)
+                .orElseThrow((() -> new IllegalArgumentException(
+                        "Teacher reference features not found for assignment: " + assignmentId)));
 
         AnalysisResult result = performanceEvaluator.evaluate(teacherFeatures, studentFeatures);
 
         resultRepository.save(submissionId, result);
 
-        debugVisualizer.generateHeatmap(result, "debug_" + submissionId + ".png");
+        try {
+            debugVisualizer.generateHeatmap(result, "debug_" + submissionId + ".png");
+        } catch (Exception e) {
+            log.error("Не удалось сгенерировать тепловую карту {}: {}", submissionId, e.getMessage());
+        }
 
         log.info("Submission {} evaluation completed.", submissionId);
     }

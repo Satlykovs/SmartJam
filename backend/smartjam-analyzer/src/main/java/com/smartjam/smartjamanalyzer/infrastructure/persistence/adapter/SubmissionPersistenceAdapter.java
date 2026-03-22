@@ -1,5 +1,6 @@
 package com.smartjam.smartjamanalyzer.infrastructure.persistence.adapter;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import com.smartjam.common.model.AudioProcessingStatus;
@@ -43,16 +44,13 @@ public class SubmissionPersistenceAdapter implements ResultRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public UUID findAssignmentIdBySubmissionId(UUID submissionId) {
-        return repository
-                .findById(submissionId)
-                .map(SubmissionEntity::getAssignmentId)
-                .orElseThrow(() -> new RuntimeException("Submission not linked to any assignment: " + submissionId));
+    public Optional<UUID> findAssignmentIdBySubmissionId(UUID submissionId) {
+        return repository.findById(submissionId).map(SubmissionEntity::getAssignmentId);
     }
 
     @Override
     @Transactional
-    public void updateStatus(UUID id, AudioProcessingStatus status, String errorMessage) {
-        repository.updateStatus(id, status, errorMessage);
+    public void updateStatus(UUID submissionId, AudioProcessingStatus status, String errorMessage) {
+        repository.updateStatus(submissionId, status, errorMessage);
     }
 }

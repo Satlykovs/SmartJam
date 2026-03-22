@@ -26,7 +26,7 @@ public class FeatureBinarySerializer {
      * @param sequence list of frames (each frame is an array of floats)
      * @return byte array with little-endian representation
      * @throws NullPointerException if sequence is null.
-     * @throws IllegalArgumentException if frames are null, empty, or frames have different lengths
+     * @throws IllegalArgumentException if frames are null or have different lengths
      */
     public static byte[] serialize(FeatureSequence sequence) {
 
@@ -92,13 +92,12 @@ public class FeatureBinarySerializer {
             throw new IllegalArgumentException("Invalid header: frameCount or binCount is negative");
         }
 
-        long totalElements = (long) frameCount * binCount;
-        if (totalElements > Integer.MAX_VALUE / Float.BYTES) {
-            throw new IllegalArgumentException("Too many elements to deserialize: " + totalElements);
+        long totalPayloadBytes = (long) frameCount * binCount * Float.BYTES;
+        if (totalPayloadBytes > Integer.MAX_VALUE - HEADER_SIZE) {
+            throw new IllegalArgumentException("Too many elements to deserialize: " + totalPayloadBytes);
         }
 
-        int expectedBytes = HEADER_SIZE + frameCount * binCount * Float.BYTES;
-
+        int expectedBytes = HEADER_SIZE + (int) totalPayloadBytes;
         if (data.length < expectedBytes) {
             throw new IllegalArgumentException(
                     "Data too short. Expected " + expectedBytes + " bytes, got " + data.length);

@@ -71,7 +71,7 @@ public class AudioAnalysisUseCase {
                     e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
 
             log.error("Ошибка в UseCase для файла {}: {}", fileKey, errorMsg, e);
-            updateStatus(bucket, entityId, AudioProcessingStatus.FAILED, e.getMessage());
+            updateStatus(bucket, entityId, AudioProcessingStatus.FAILED, errorMsg);
 
             throw new RuntimeException("Business logic failed", e);
         }
@@ -97,12 +97,15 @@ public class AudioAnalysisUseCase {
     private void handleStudentSubmission(UUID submissionId, FeatureSequence studentFeatures) {
         log.info("Evaluating student submission: {}", submissionId);
 
-        UUID assignmentId = resultRepository.findAssignmentIdBySubmissionId(submissionId);
+        UUID assignmentId = resultRepository
+                .findAssignmentIdBySubmissionId(submissionId)
+                .orElseThrow(() ->
+                        new IllegalStateException("Submission " + submissionId + " is not linked to any assignment"));
 
         FeatureSequence teacherFeatures = referenceRepository
                 .findFeaturesById(assignmentId)
-                .orElseThrow((() -> new IllegalArgumentException(
-                        "Teacher reference features not found for assignment: " + assignmentId)));
+                .orElseThrow(() -> new IllegalStateException(
+                        "Teacher reference features not found for assignment: " + assignmentId));
 
         AnalysisResult result = performanceEvaluator.evaluate(teacherFeatures, studentFeatures);
 

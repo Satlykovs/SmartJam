@@ -1,5 +1,6 @@
 package com.smartjam.smartjamanalyzer.domain.port;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import com.smartjam.common.model.AudioProcessingStatus;
@@ -26,7 +27,7 @@ public interface ResultRepository {
      * @return the UUID of the parent assignment.
      * @throws RuntimeException if no linked assignment ID found.
      */
-    UUID findAssignmentIdBySubmissionId(UUID submissionId);
+    Optional<UUID> findAssignmentIdBySubmissionId(UUID submissionId);
 
     /**
      * Update status for a submission, optionally recording an error message.

@@ -21,7 +21,7 @@ public interface ReferenceRepository {
      * Retrieves reference features for comparison.
      *
      * @param assignmentId Unique identifier of the assignment.
-     * @return The feature sequence or null if not found.
+     * @return The feature sequence if presented.
      */
     Optional<FeatureSequence> findFeaturesById(UUID assignmentId);
 

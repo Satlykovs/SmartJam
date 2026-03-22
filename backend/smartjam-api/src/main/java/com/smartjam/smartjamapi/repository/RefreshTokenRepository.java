@@ -5,7 +5,7 @@ import java.util.UUID;
 
 import com.smartjam.smartjamapi.entity.RefreshTokenEntity;
 import com.smartjam.smartjamapi.entity.UserEntity;
-import com.smartjam.smartjamapi.enums.StatusRefreshToken;
+import com.smartjam.smartjamapi.enums.RefreshTokenStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -18,7 +18,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshTokenEntity
     @Transactional
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE RefreshTokenEntity r SET r.status = :status WHERE r.tokenHash = :tokenHash")
-    void setStatusByRefreshToken(@Param("tokenHash") String tokenHash, @Param("status") StatusRefreshToken status);
+    boolean setStatusByTokenHash(@Param("tokenHash") String tokenHash, @Param("status") RefreshTokenStatus status);
 
     @Transactional
     @Modifying(clearAutomatically = true, flushAutomatically = true)
@@ -28,8 +28,8 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshTokenEntity
     WHERE r.user = :user
       AND r.status = :currentStatus
 """)
-    void updateStatusByUserAndCurrentStatus(
-            @Param("user") UserEntity userEntity,
-            @Param("currentStatus") StatusRefreshToken currentStatus,
-            @Param("newStatus") StatusRefreshToken newStatus);
+    boolean updateStatusByUserAndCurrentStatus(
+            @Param("user") UserEntity user,
+            @Param("currentStatus") RefreshTokenStatus currentStatus,
+            @Param("newStatus") RefreshTokenStatus newStatus);
 }

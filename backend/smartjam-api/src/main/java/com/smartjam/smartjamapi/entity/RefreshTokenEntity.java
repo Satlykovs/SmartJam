@@ -5,8 +5,10 @@ import java.util.UUID;
 
 import jakarta.persistence.*;
 
-import com.smartjam.smartjamapi.enums.StatusRefreshToken;
+import com.smartjam.smartjamapi.enums.RefreshTokenStatus;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
 @Table(name = "refresh_tokens")
@@ -31,5 +33,13 @@ public class RefreshTokenEntity {
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    private StatusRefreshToken status;
+    private RefreshTokenStatus status = RefreshTokenStatus.ACTIVE;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
 }

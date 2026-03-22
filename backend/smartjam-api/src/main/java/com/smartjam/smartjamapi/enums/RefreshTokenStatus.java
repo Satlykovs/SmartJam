@@ -1,7 +1,6 @@
 package com.smartjam.smartjamapi.enums;
 
-public enum StatusRefreshToken {
+public enum RefreshTokenStatus {
     ACTIVE,
-    USED,
-    REVOKED
+    INACTIVE
 }

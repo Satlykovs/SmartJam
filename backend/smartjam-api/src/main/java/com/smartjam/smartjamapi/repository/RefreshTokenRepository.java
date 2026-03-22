@@ -18,7 +18,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshTokenEntity
     @Transactional
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE RefreshTokenEntity r SET r.status = :status WHERE r.tokenHash = :tokenHash")
-    boolean setStatusByTokenHash(@Param("tokenHash") String tokenHash, @Param("status") RefreshTokenStatus status);
+    int setStatusByTokenHash(@Param("tokenHash") String tokenHash, @Param("status") RefreshTokenStatus status);
 
     @Transactional
     @Modifying(clearAutomatically = true, flushAutomatically = true)
@@ -28,7 +28,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshTokenEntity
     WHERE r.user = :user
       AND r.status = :currentStatus
 """)
-    boolean updateStatusByUserAndCurrentStatus(
+    int updateStatusByUserAndCurrentStatus(
             @Param("user") UserEntity user,
             @Param("currentStatus") RefreshTokenStatus currentStatus,
             @Param("newStatus") RefreshTokenStatus newStatus);

@@ -15,13 +15,12 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class RefreshTokenEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 64)
     private String tokenHash;
 
     @ManyToOne(fetch = FetchType.LAZY)

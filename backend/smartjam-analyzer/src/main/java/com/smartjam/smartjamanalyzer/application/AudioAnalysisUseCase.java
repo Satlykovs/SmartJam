@@ -17,6 +17,9 @@ import org.springframework.util.StopWatch;
 @RequiredArgsConstructor
 public class AudioAnalysisUseCase {
 
+    private static final String BUCKET_REFERENCES = "references";
+    private static final String BUCKET_SUBMISSIONS = "submissions";
+
     private final AudioStorage audioStorage;
     private final AudioConverter audioConverter;
     private final WorkspaceFactory workspaceFactory;
@@ -28,6 +31,12 @@ public class AudioAnalysisUseCase {
     private final DebugVisualizer debugVisualizer;
 
     public void execute(String bucket, String fileKey) {
+
+        if (!BUCKET_REFERENCES.equals(bucket) && !BUCKET_SUBMISSIONS.equals(bucket)) {
+            log.warn("Неизвестный бакет: {}. Пропускаем", bucket);
+            return;
+        }
+
         UUID entityId = extractUuid(fileKey);
 
         // TODO: Добавить обработку(проверку типа) входящего файла
@@ -53,12 +62,12 @@ public class AudioAnalysisUseCase {
             FeatureSequence features = featureExtractor.extract(cleanWavFile);
             watch.stop();
 
-            log.info("Extracted {} feature frames", features.frames().size());
+            log.info("Извлечено {} кадров признаков", features.frames().size());
 
             watch.start("Evaluation & Persistence");
-            if ("references".equals(bucket)) {
+            if (BUCKET_REFERENCES.equals(bucket)) {
                 handleTeacherReference(entityId, features);
-            } else if ("submissions".equals(bucket)) {
+            } else {
                 handleStudentSubmission(entityId, features);
             }
             watch.stop();
@@ -79,7 +88,7 @@ public class AudioAnalysisUseCase {
 
     private void updateStatus(String bucket, UUID id, AudioProcessingStatus status, String error) {
         try {
-            if ("references".equals(bucket)) {
+            if (BUCKET_REFERENCES.equals(bucket)) {
                 referenceRepository.updateStatus(id, status, error);
             } else {
                 resultRepository.updateStatus(id, status, error);
@@ -90,7 +99,7 @@ public class AudioAnalysisUseCase {
     }
 
     private void handleTeacherReference(UUID assignmentId, FeatureSequence teacherFeatures) {
-        log.info("Saving teacher reference features for assignment: {}", assignmentId);
+        log.info("Сохраняем извлеченные признаки учителя для задания: {}", assignmentId);
         referenceRepository.save(assignmentId, teacherFeatures);
     }
 
@@ -117,12 +126,14 @@ public class AudioAnalysisUseCase {
             log.error("Не удалось сгенерировать тепловую карту {}: {}", submissionId, e.getMessage());
         }
 
-        log.info("Submission {} evaluation completed.", submissionId);
+        log.info("Закончена обработка попытки: {}", submissionId);
     }
 
     private UUID extractUuid(String fileKey) {
         try {
-            String rawUuid = fileKey.contains(".") ? fileKey.substring(0, fileKey.lastIndexOf(".")) : fileKey;
+            String fileName = fileKey.contains("/") ? fileKey.substring(fileKey.lastIndexOf('/') + 1) : fileKey;
+
+            String rawUuid = fileName.contains(".") ? fileName.substring(0, fileName.lastIndexOf('.')) : fileName;
 
             return UUID.fromString(rawUuid);
         } catch (Exception e) {

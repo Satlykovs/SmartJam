@@ -3,3 +3,5 @@ databaseChangeLog:
       file: db/changelog/changes/01-init-schema.sql
   - include:
       file: db/changelog/changes/02-add-indexes.sql
+  - include:
+      file: db/changelog/changes/03-add-missing-audit-columns.sql

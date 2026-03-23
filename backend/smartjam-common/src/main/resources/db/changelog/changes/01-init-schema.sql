@@ -52,6 +52,7 @@ CREATE TABLE assignments (
                              reference_spectre_cache BYTEA,
                              error_message TEXT,
                              created_at TIMESTAMP DEFAULT NOW()
+
 );
 
 -- changeset sanjar:6

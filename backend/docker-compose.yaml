@@ -18,6 +18,23 @@ services:
       start_period: 60s
       start_interval: 2s
 
+  db-init:
+    build:
+      context: .
+      dockerfile: db-init.Dockerfile
+    container_name: smartjam-db-init
+    volumes:
+      - ./smartjam-common/src/main/resources/db:/liquibase/changelog/db
+    command:
+      - --url=jdbc:postgresql://postgres:5432/smartjam
+      - --changelog-file=db/changelog/db.changelog-master.yaml
+      - --username=admin
+      - --password=admin
+      - update
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   pgadmin:
     image: dpage/pgadmin4
     container_name: smartjam-pgadmin

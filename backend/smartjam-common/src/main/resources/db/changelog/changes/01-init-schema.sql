@@ -13,7 +13,7 @@ CREATE TABLE users (
                        last_name VARCHAR(255),
                        avatar_url VARCHAR(500),
                        fcm_token VARCHAR(255),
-                       created_at TIMESTAMP DEFAULT NOW()
+                       created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
 -- changeset sanjar:2
@@ -27,9 +27,12 @@ CREATE TABLE user_roles (
 CREATE TABLE refresh_tokens (
                                 id UUID PRIMARY KEY,
                                 user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                                token VARCHAR(255) UNIQUE NOT NULL,
-                                expires_at TIMESTAMP NOT NULL
+                                token_hash VARCHAR(64) UNIQUE NOT NULL,
+                                status VARCHAR(50) DEFAULT 'ACTIVE' NOT NULL,
+                                expires_at TIMESTAMPTZ NOT NULL,
+                                created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
+
 
 -- changeset sanjar:4
 CREATE TABLE connections (
@@ -38,7 +41,7 @@ CREATE TABLE connections (
                              student_id UUID REFERENCES users(id) ON DELETE CASCADE,
                              invite_code VARCHAR(50) UNIQUE,
                              status VARCHAR(50) NOT NULL,
-                             created_at TIMESTAMP DEFAULT NOW()
+                             created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- changeset sanjar:5
@@ -51,7 +54,7 @@ CREATE TABLE assignments (
                              s3_reference_key VARCHAR(500),
                              reference_spectre_cache BYTEA,
                              error_message TEXT,
-                             created_at TIMESTAMP DEFAULT NOW()
+                             created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 
 );
 
@@ -67,8 +70,8 @@ CREATE TABLE submissions (
                              rhythm_score DOUBLE PRECISION,
                              total_score DOUBLE PRECISION,
                              analysis_feedback JSONB,
-                             created_at TIMESTAMP DEFAULT NOW(),
-                             updated_at TIMESTAMP
+                             created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+                             updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
 -- changeset sanjar:7
@@ -77,5 +80,5 @@ CREATE TABLE comments (
                           assignment_id UUID NOT NULL REFERENCES assignments(id) ON DELETE CASCADE,
                           author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                           text TEXT NOT NULL,
-                          created_at TIMESTAMP DEFAULT NOW()
+                          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );

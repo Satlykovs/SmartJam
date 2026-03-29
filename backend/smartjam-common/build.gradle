@@ -1,7 +1,64 @@
-
 plugins {
     id 'java-library'
+    id 'org.openapi.generator' version '7.21.0'
 }
+
+group = 'com.smartjam'
+version = '0.0.1-SNAPSHOT'
+
+
+dependencies {
+    api 'com.fasterxml.jackson.core:jackson-annotations'
+    api 'com.fasterxml.jackson.core:jackson-databind'
+
+    api 'io.swagger.core.v3:swagger-annotations:2.2.20'
+
+    api 'jakarta.validation:jakarta.validation-api:3.0.2'
+
+    api 'jakarta.annotation:jakarta.annotation-api:2.1.1'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    api 'org.springframework:spring-context'
+}
+
+def generatedSourcesDir = "${layout.getBuildDirectory().get()}/generated/openapi/src/main/java"
+
+
+openApiGenerate {
+    generatorName = "spring"
+    inputSpec = "$projectDir/src/main/resources/openapi/api.yaml"
+    outputDir = "${layout.getBuildDirectory().get()}/generated/openapi"
+
+    modelPackage = "com.smartjam.common.model"
+
+    globalProperties = [
+            models: ""
+    ]
+
+    configOptions = [
+            interfaceOnly         : "true",
+            useSpringBoot3        : "true",
+            useRecords            : "true",
+            useBeanValidation     : "true",
+            openApiNullable       : "false",
+            generateSupportingFiles: "false",
+            documentationProvider : "none",
+            annotationLibrary     : "swagger2"
+    ]
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir generatedSourcesDir
+        }
+    }
+}
+
+compileJava.dependsOn tasks.openApiGenerate
+
 
 bootJar {
     enabled = false
@@ -10,11 +67,3 @@ bootJar {
 jar {
     enabled = true
 }
-
-dependencies {
-    api 'com.fasterxml.jackson.core:jackson-annotations'
-    api 'com.fasterxml.jackson.core:jackson-databind'
-}
-
-group = 'com.smartjam'
-version = '0.0.1-SNAPSHOT'

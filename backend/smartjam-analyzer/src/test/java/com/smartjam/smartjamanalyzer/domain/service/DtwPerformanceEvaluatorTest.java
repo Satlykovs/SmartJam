@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import com.smartjam.common.dto.FeedbackEvent;
+import com.smartjam.common.model.FeedbackEvent;
 import com.smartjam.common.model.FeedbackType;
 import com.smartjam.smartjamanalyzer.domain.model.AnalysisResult;
 import com.smartjam.smartjamanalyzer.domain.model.FeatureSequence;
@@ -105,7 +105,7 @@ class DtwPerformanceEvaluatorTest {
 
         assertTrue(result.totalScore() < 50.0, "Score должен быть низким при обрыве записи");
         boolean hasRhythmError =
-                result.feedback().stream().anyMatch(e -> e.type().equals(FeedbackType.WRONG_RHYTHM));
+                result.feedback().stream().anyMatch(e -> e.getType().equals(FeedbackType.WRONG_RHYTHM));
         assertTrue(hasRhythmError);
     }
 
@@ -131,7 +131,7 @@ class DtwPerformanceEvaluatorTest {
         AnalysisResult result = evaluator.evaluate(new FeatureSequence(ref, 20f), new FeatureSequence(stud, 20f));
 
         List<FeedbackEvent> pitchEvents = result.feedback().stream()
-                .filter(e -> e.type().equals(FeedbackType.WRONG_NOTE))
+                .filter(e -> e.getType().equals(FeedbackType.WRONG_NOTE))
                 .toList();
         assertTrue(pitchEvents.size() < 5, "Ошибки должны склеиваться, лог не должен спамить");
     }
@@ -151,7 +151,7 @@ class DtwPerformanceEvaluatorTest {
                 result.pitchScore() > 20.0 && result.pitchScore() < 80.0,
                 "Оценка должна быть промежуточной при реалистичных признаках");
         boolean hasPitchError =
-                result.feedback().stream().anyMatch(e -> e.type().equals(FeedbackType.WRONG_NOTE));
+                result.feedback().stream().anyMatch(e -> e.getType().equals(FeedbackType.WRONG_NOTE));
         assertTrue(hasPitchError);
     }
 
@@ -168,8 +168,8 @@ class DtwPerformanceEvaluatorTest {
         AnalysisResult result = evaluator.evaluate(new FeatureSequence(ref, 20f), new FeatureSequence(stud, 20f));
 
         result.feedback().stream()
-                .filter(e -> e.type().equals(FeedbackType.WRONG_NOTE))
-                .forEach(e -> assertTrue(e.severity() < 0.9, "Severity должна быть <0.9"));
+                .filter(e -> e.getType().equals(FeedbackType.WRONG_NOTE))
+                .forEach(e -> assertTrue(e.getSeverity() < 0.9, "Severity должна быть <0.9"));
     }
 
     @Test
@@ -209,11 +209,11 @@ class DtwPerformanceEvaluatorTest {
         AnalysisResult result = evaluator.evaluate(refSeq, studSeq);
 
         List<FeedbackEvent> pitchEvents = result.feedback().stream()
-                .filter(e -> e.type().equals(FeedbackType.WRONG_NOTE))
+                .filter(e -> e.getType().equals(FeedbackType.WRONG_NOTE))
                 .toList();
         assertEquals(1, pitchEvents.size(), "Ошибки должны склеиться в одно событие");
         FeedbackEvent event = pitchEvents.getFirst();
-        assertTrue(event.studentEndTime() - event.studentStartTime() > 2.0);
+        assertTrue(event.getStudentEndTime() - event.getStudentStartTime() > 2.0);
     }
 
     @Test
@@ -246,7 +246,7 @@ class DtwPerformanceEvaluatorTest {
 
         List<FeedbackEvent> pitchEvents;
         pitchEvents = result.feedback().stream()
-                .filter(e -> e.type().equals(FeedbackType.WRONG_NOTE))
+                .filter(e -> e.getType().equals(FeedbackType.WRONG_NOTE))
                 .toList();
         assertEquals(2, pitchEvents.size(), "Длинный перерыв должен разделить ошибки");
     }

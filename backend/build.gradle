@@ -41,6 +41,7 @@ subprojects {
 
     spotless {
         java {
+            targetExclude '**/build/generated/**/*.java'
             palantirJavaFormat("2.89.0").formatJavadoc(true)
 
             removeUnusedImports()

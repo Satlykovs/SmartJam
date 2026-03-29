@@ -1,0 +1,76 @@
+openapi: 3.1.0
+info:
+  title: SmartJam API Contract
+  description: SmartJam API Contract
+  version: 1.0.0
+
+
+servers:
+  - url: 'http://localhost:8081'
+    description: Local Development Server
+
+paths: {}
+
+components:
+  schemas:
+    AudioProcessingStatus:
+      type: string
+      description: |
+        Represents the lifecycle stages of an audio processing task. 
+        Used to track the state from the moment a database record is created 
+        until the final analysis result is stored.
+      enum:
+        - AWAITING_UPLOAD
+        - UPLOADED
+        - ANALYZING
+        - COMPLETED
+        - FAILED
+
+    FeedbackType:
+      type: string
+      description: |
+        Categories of musical discrepancies identified during the comparison 
+        of a student's performance against the teacher's reference.
+      enum:
+        - WRONG_NOTE
+        - WRONG_RHYTHM
+
+    FeedbackEvent:
+      type: object
+      description: |
+        A shared contract for a single feedback occurrence. 
+        Used by Analyzer to produce results and by API/Mobile to display them.
+      required:
+        - teacherStartTime
+        - teacherEndTime
+        - studentStartTime
+        - studentEndTime
+        - type
+        - severity
+      properties:
+        teacherStartTime:
+          type: number
+          format: double
+          description: Start time of the event in the teacher's reference track (seconds).
+        teacherEndTime:
+          type: number
+          format: double
+          description: End time of the event in the teacher's reference track (seconds).
+        studentStartTime:
+          type: number
+          format: double
+          description: Start time of the event in the student's submission (seconds).
+        studentEndTime:
+          type: number
+          format: double
+          description: End time of the event in the student's submission (seconds).
+        type:
+          $ref: '#/components/schemas/FeedbackType'
+        severity:
+          type: number
+          format: double
+          description: Error severity score (0.0 to 1.0).
+
+
+
+  

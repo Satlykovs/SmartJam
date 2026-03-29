@@ -2,7 +2,7 @@ package com.smartjam.smartjamanalyzer.domain.model;
 
 import java.util.List;
 
-import com.smartjam.common.dto.FeedbackEvent;
+import com.smartjam.common.model.FeedbackEvent;
 
 /**
  * Encapsulates the results of a performance evaluation, including overall scores, time-aligned feedback events, and

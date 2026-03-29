@@ -18,6 +18,14 @@ public record FeatureSequence(List<float[]> frames, float frameRate) {
             throw new IllegalArgumentException("Frame rate must be positive");
         }
 
+        float[] firstFrame = frames.getFirst();
+        if (firstFrame == null) {
+            throw new IllegalArgumentException("Frame cannot be null");
+        }
+        if (firstFrame.length == 0) {
+            throw new IllegalArgumentException("Frame bin count cannot be zero");
+        }
+
         int firstBinCount = -1;
         for (float[] frame : frames) {
             if (frame == null) throw new IllegalArgumentException("Frame cannot be null");

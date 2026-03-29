@@ -7,8 +7,8 @@ import jakarta.persistence.*;
 
 import com.smartjam.smartjamapi.enums.RefreshTokenStatus;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
 
 /**
  * JPA entity representing a refresh token record in the SmartJam platform.
@@ -69,7 +69,7 @@ public class RefreshTokenEntity {
      * Timestamp of when this refresh token record was first created. Set automatically by Hibernate on insert and never
      * updated afterwards.
      */
-    @CreationTimestamp
+    @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -77,7 +77,7 @@ public class RefreshTokenEntity {
      * Timestamp of the most recent update to this refresh token record. Updated automatically by Hibernate on every
      * merge/flush.
      */
-    @UpdateTimestamp
+    @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 }

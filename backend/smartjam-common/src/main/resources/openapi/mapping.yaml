@@ -1,0 +1,24 @@
+openapi-processor-mapping: v17
+
+options:
+  package-name: com.smartjam.common
+
+  model-type: record
+
+  bean-validation: jakarta
+
+  model-unreferenced: true
+
+  generated: true
+
+  javadoc: true
+
+
+
+  target-dir:
+    layout: standard
+
+map:
+  paths:
+    /**:
+      exclude: true

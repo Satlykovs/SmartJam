@@ -1,6 +1,6 @@
 plugins {
     id 'java-library'
-    id 'org.openapi.generator' version '7.21.0'
+    id 'io.openapiprocessor.openapi-processor' version '2026.1'
 }
 
 group = 'com.smartjam'
@@ -10,55 +10,32 @@ version = '0.0.1-SNAPSHOT'
 dependencies {
     api 'com.fasterxml.jackson.core:jackson-annotations'
     api 'com.fasterxml.jackson.core:jackson-databind'
-
-    api 'io.swagger.core.v3:swagger-annotations:2.2.20'
-
-    api 'jakarta.validation:jakarta.validation-api:3.0.2'
-
-    api 'jakarta.annotation:jakarta.annotation-api:2.1.1'
-
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
-
-    api 'org.springframework:spring-context'
+    api 'jakarta.validation:jakarta.validation-api:3.1.1'
+    api 'jakarta.annotation:jakarta.annotation-api:3.0.0'
 }
 
-def generatedSourcesDir = "${layout.getBuildDirectory().get()}/generated/openapi/src/main/java"
+openapiProcessor {
+    apiPath(layout.projectDirectory.file("src/main/resources/openapi/api.yaml"))
 
+    process("spring") {
+        processor("io.openapiprocessor:openapi-processor-spring:2026.2")
 
-openApiGenerate {
-    generatorName = "spring"
-    inputSpec = "$projectDir/src/main/resources/openapi/api.yaml"
-    outputDir = "${layout.getBuildDirectory().get()}/generated/openapi"
+        targetDir(layout.buildDirectory.dir("generated/openapi"))
 
-    modelPackage = "com.smartjam.common.model"
-
-    globalProperties = [
-            models: ""
-    ]
-
-    configOptions = [
-            interfaceOnly         : "true",
-            useSpringBoot3        : "true",
-            useRecords            : "true",
-            useBeanValidation     : "true",
-            openApiNullable       : "false",
-            generateSupportingFiles: "false",
-            documentationProvider : "none",
-            annotationLibrary     : "swagger2"
-    ]
-}
+        prop("mapping", layout.projectDirectory.file("src/main/resources/openapi/mapping.yaml"))
+    }
+    }
 
 sourceSets {
     main {
         java {
-            srcDir generatedSourcesDir
+            srcDir(tasks.named("processSpring").map { it.getTargetDir().dir("java") })
         }
     }
 }
 
-compileJava.dependsOn tasks.openApiGenerate
-
+// Зависимость: сначала генерим, потом компилируем
+compileJava.dependsOn tasks.named("processSpring")
 
 bootJar {
     enabled = false

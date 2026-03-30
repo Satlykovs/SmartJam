@@ -66,12 +66,12 @@ class AudioAnalysisIntegrationTest {
             String feedbackReport = result.feedback().stream()
                     .map(e -> String.format(
                             "-> [%s] с %5.2fs до %5.2fs (Ученик: с %5.2fs до %5.2fs) | Тяжесть: %.2f",
-                            e.getType(),
-                            e.getTeacherStartTime(),
-                            e.getTeacherEndTime(),
-                            e.getStudentStartTime(),
-                            e.getStudentEndTime(),
-                            e.getSeverity()))
+                            e.type(),
+                            e.teacherStartTime(),
+                            e.teacherEndTime(),
+                            e.studentStartTime(),
+                            e.studentEndTime(),
+                            e.severity()))
                     .collect(Collectors.joining("\n"));
 
             String report = String.format(

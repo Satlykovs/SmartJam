@@ -1,3 +1,7 @@
+plugins {
+    id 'io.openapiprocessor.openapi-processor'
+}
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
@@ -14,3 +18,25 @@ dependencies {
 
     implementation project(':smartjam-common')
 }
+
+openapiProcessor {
+    apiPath("${rootDir}/../openapi-spec/api.yaml")
+
+    process("spring") {
+        processor("io.openapiprocessor:openapi-processor-spring:2026.2")
+
+        targetDir(layout.buildDirectory.dir("generated/openapi"))
+
+        prop("mapping", layout.projectDirectory.file("src/main/resources/openapi/mapping.yaml"))
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir(tasks.named("processSpring").map { it.getTargetDir().dir("java") })
+        }
+    }
+}
+
+compileJava.dependsOn tasks.named("processSpring")

@@ -1,0 +1,160 @@
+openapi: 3.1.0
+info:
+  title: SmartJam API Contract
+  description: SmartJam API Contract
+  version: 1.0.0
+
+
+servers:
+  - url: 'http://localhost:8081'
+    description: Local Development Server
+
+paths:
+  /api/v1/auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Register a new user
+      description: Creates a new user account and returns a pair of JWT tokens (Access & Refresh).
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User successfully registered and authenticated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validation error or user already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Authenticate user
+      description: Authenticates a user using email and password, returning a new pair of JWT tokens.
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Successful authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+
+
+components:
+  schemas:
+    RegisterRequest:
+      type: object
+      description: Payload required to register a new user.
+      required:
+        - email
+        - username
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "rickroll@gmail.com"
+        username:
+          type: string
+          example: "Doom Slayer"
+          minLength: 3
+          maxLength: 20
+          pattern: '^\w+$'
+        password:
+          type: string
+          format: password
+          example: "VeryStrongPassword123!"
+          pattern: '^(?=[^A-Z]*[A-Z])(?=[^a-z]*[a-z])(?=\D*\d)(?=[^#?!@$%^&*-]*[#?!@$%^&*-]).{8,20}$'
+        firstName:
+          type: string
+          example: "John"
+        lastName:
+          type: string
+          example: "Frusciante"
+
+    LoginRequest:
+      type: object
+      description: Payload required for user authentication.
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "rickroll@gmail.com"
+        password:
+          type: string
+          format: password
+          example: "VeryStrongPassword123!"
+
+    AuthResponse:
+      type: object
+      description: Contains the JWT access token and refresh token.
+      required:
+        - accessToken
+        - refreshToken
+      properties:
+        accessToken:
+          type: string
+          description: Short-lived JWT token for API authorization.
+        refreshToken:
+          type: string
+          description: Long-lived JWT token used to obtain a new pair of tokens.
+
+
+    ErrorResponse:
+      type: object
+      description: Standartized error response returned by the API.
+      required:
+        - timestamp
+        - status
+        - error
+        - message
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description:
+            The time the error occurred.
+        status:
+          type: integer
+          format: int32
+          description: HTTP status code.
+          example: 400
+        error:
+          type: string
+          description: Short description of the error.
+          example: "Bad Request"
+        message:
+          type: string
+          description: Detailed error message.
+          example: "Email already in use."
+
+

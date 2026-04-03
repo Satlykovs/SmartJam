@@ -1,6 +1,6 @@
 plugins {
     id 'java-library'
-    id 'io.openapiprocessor.openapi-processor' version '2026.1'
+    id 'io.openapiprocessor.openapi-processor'
 }
 
 group = 'com.smartjam'
@@ -15,7 +15,7 @@ dependencies {
 }
 
 openapiProcessor {
-    apiPath(layout.projectDirectory.file("src/main/resources/openapi/api.yaml"))
+    apiPath(layout.projectDirectory.file("${rootDir}/../openapi-spec/common-models.yaml"))
 
     process("spring") {
         processor("io.openapiprocessor:openapi-processor-spring:2026.2")
@@ -24,7 +24,7 @@ openapiProcessor {
 
         prop("mapping", layout.projectDirectory.file("src/main/resources/openapi/mapping.yaml"))
     }
-    }
+}
 
 sourceSets {
     main {
@@ -34,7 +34,6 @@ sourceSets {
     }
 }
 
-// Зависимость: сначала генерим, потом компилируем
 compileJava.dependsOn tasks.named("processSpring")
 
 bootJar {

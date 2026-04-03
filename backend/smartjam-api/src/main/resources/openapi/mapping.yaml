@@ -1,0 +1,20 @@
+openapi-processor-mapping: v17
+
+options:
+  package-name: com.smartjam.api
+
+  model-type: record
+
+  bean-validation: jakarta
+
+  target-dir:
+    layout: standard
+
+map:
+
+  result: org.springframework.http.ResponseEntity
+
+  types:
+    - type: AudioProcessingStatus => com.smartjam.common.model.AudioProcessingStatus
+    - type: FeedbackType => com.smartjam.common.model.FeedbackType
+    - type: FeedbackEvent => com.smartjam.common.model.FeedbackEvent

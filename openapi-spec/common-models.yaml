@@ -4,13 +4,6 @@ info:
   description: SmartJam API Contract
   version: 1.0.0
 
-
-servers:
-  - url: 'http://localhost:8081'
-    description: Local Development Server
-
-paths: {}
-
 components:
   schemas:
     AudioProcessingStatus:
@@ -73,4 +66,4 @@ components:
 
 
 
-  
+

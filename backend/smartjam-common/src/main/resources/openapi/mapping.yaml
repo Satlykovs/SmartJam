@@ -13,12 +13,5 @@ options:
 
   javadoc: true
 
-
-
   target-dir:
     layout: standard
-
-map:
-  paths:
-    /**:
-      exclude: true

@@ -1,8 +1,21 @@
 openapi: 3.1.0
 info:
-  title: SmartJam API Contract
-  description: SmartJam API Contract
+  title: SmartJam API
   version: 1.0.0
+  contact:
+    name: SmartJam Team
+    email: satlykovs@gmail.com
+    url: https://github.com/Satlykovs/SmartJam
+  description: |
+    Interactive Music Learning and Performance Analysis System.
+    
+    **Development Team:**
+    - Sanjar Satlykov ([satlykovs@gmail.com](mailto:satlykovs@gmail.com))
+    - Anton Podrezov ([toni.podrezov@gmail.com](mailto:toni.podrezov@gmail.com))
+    - Serj Baskov ([baskovs450@gmail.com](mailto:baskovs450@gmail.com))
+    
+    **Supervised by:**
+    - Andrey Sheremeev ([sheremeev.andrey@gmail.com](mailto:sheremeev.andrey@gmail.com))
 
 
 servers:
@@ -64,9 +77,116 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/v1/auth/refresh:
+    post:
+      tags:
+        - Auth
+      summary: Refresh tokens
+      description: Accepts a valid refresh token and issues a new pair of JWT tokens. The old refresh token will be invalidated.
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Tokens successfully refreshed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid or expired refresh token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+
+  /api/v1/users/me:
+    get:
+      tags:
+        - Profile
+      summary: Get current user profile
+      description: Returns info about the logged-in user based on the provided JWT.
+      operationId: getCurrentUserProfile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile data retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/connections/invite:
+    post:
+      tags:
+        - Connections
+      summary: Create invite code
+      description: (Teacher only) Generates a new code for students.
+      operationId: createInvite
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Code created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InviteResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/connections/join:
+    post:
+      tags:
+        - Connections
+      summary: Join a teacher
+      description: (Student only) Connects student to a teacher via code.
+      operationId: joinTeacher
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JoinRequest'
+      responses:
+        '200':
+          description: Joined successfully.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: Invalid code.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+
+
+
 
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Provide your JWT token obtained from the login endpoint.
+
   schemas:
     RegisterRequest:
       type: object
@@ -82,7 +202,7 @@ components:
           example: "rickroll@gmail.com"
         username:
           type: string
-          example: "Doom Slayer"
+          example: "Doomslayer"
           minLength: 3
           maxLength: 20
           pattern: '^\w+$'
@@ -91,12 +211,6 @@ components:
           format: password
           example: "VeryStrongPassword123!"
           pattern: '^(?=[^A-Z]*[A-Z])(?=[^a-z]*[a-z])(?=\D*\d)(?=[^#?!@$%^&*-]*[#?!@$%^&*-]).{8,20}$'
-        firstName:
-          type: string
-          example: "John"
-        lastName:
-          type: string
-          example: "Frusciante"
 
     LoginRequest:
       type: object
@@ -114,6 +228,28 @@ components:
           format: password
           example: "VeryStrongPassword123!"
 
+
+    RefreshRequest:
+      type: object
+      description: Payload required to refresh JWT tokens.
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          description: The valid refresh token previously issued to the user.
+
+    JoinRequest:
+      type: object
+      description: Payload required to join a room using an invitation code.
+      required:
+        - inviteCode
+      properties:
+        inviteCode:
+          type: string
+          example: "ABC-123-XYZ"
+          description: Invitation code provided by the teacher.
+
     AuthResponse:
       type: object
       description: Contains the JWT access token and refresh token.
@@ -128,10 +264,55 @@ components:
           type: string
           description: Long-lived JWT token used to obtain a new pair of tokens.
 
+    UserResponse:
+      type: object
+      description: Detailed user profile data.
+      required:
+        - id
+        - username
+        - email
+        - roles
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+          example: "rickroll@gmail.com"
+        username:
+          type: string
+          example: "Doomslayer"
+        firstName:
+          type: string
+          example: "John"
+        lastName:
+          type: string
+          example: "Frusciante"
+        avatarUrl:
+          type: string
+          format: uri
+          description: "S3 url to the user's avatar image."
+        roles:
+          type: array
+          items:
+            type: string
+          example: ["STUDENT"]
+
+
+    InviteResponse:
+      type: object
+      description: Response containing the generated invitation code.
+      required:
+        - inviteCode
+      properties:
+        inviteCode:
+          type: string
+          example: "ABC-123-XYZ"
 
     ErrorResponse:
       type: object
-      description: Standartized error response returned by the API.
+      description: Standardized error response returned by the API.
       required:
         - timestamp
         - status
@@ -156,5 +337,20 @@ components:
           type: string
           description: Detailed error message.
           example: "Email already in use."
+
+  responses:
+    UnauthorizedError:
+      description: Access token is missing or invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    ForbiddenError:
+      description: You do not have the required role to access this resource.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
 
 

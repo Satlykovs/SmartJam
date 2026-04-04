@@ -40,3 +40,10 @@ sourceSets {
 }
 
 compileJava.dependsOn tasks.named("processSpring")
+
+processResources {
+    from("${rootDir}/../openapi-spec") {
+        include "api.yaml"
+        into "static"
+    }
+}

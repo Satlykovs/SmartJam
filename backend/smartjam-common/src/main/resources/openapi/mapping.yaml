@@ -15,3 +15,10 @@ options:
 
   target-dir:
     layout: standard
+
+
+map:
+  types:
+    - type: string:uuid => java.util.UUID
+    - type: string:date-time => java.time.Instant
+    - type: array => java.util.List

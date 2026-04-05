@@ -43,7 +43,7 @@ compileJava.dependsOn tasks.named("processSpring")
 
 processResources {
     from("${rootDir}/../openapi-spec") {
-        include "api.yaml"
+        include "*.yaml"
         into "static"
     }
 }

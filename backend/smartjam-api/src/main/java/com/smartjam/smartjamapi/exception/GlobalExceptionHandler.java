@@ -93,10 +93,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDto> handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
         log.warn("Validation failed", e);
 
-        return buildResponse(
-                HttpStatus.BAD_REQUEST,
-                ErrorCode.BAD_REQUEST,
-                "Invalid request data");
+        return buildResponse(HttpStatus.BAD_REQUEST, ErrorCode.BAD_REQUEST, "Invalid request data");
     }
 
     /**
@@ -109,10 +106,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDto> handleIllegalArgumentException(IllegalArgumentException e) {
         log.warn("Bad request", e);
 
-        return buildResponse(
-                HttpStatus.BAD_REQUEST,
-                ErrorCode.BAD_REQUEST,
-                "Invalid request data");
+        return buildResponse(HttpStatus.BAD_REQUEST, ErrorCode.BAD_REQUEST, "Invalid request data");
     }
 
     /**

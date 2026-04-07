@@ -1,7 +1,6 @@
 package com.smartjam.smartjamapi.dto;
 
-import java.time.LocalDateTime;
-
+import java.time.Instant;
 import lombok.Builder;
 import org.springframework.http.HttpStatus;
 
@@ -13,4 +12,4 @@ import org.springframework.http.HttpStatus;
  * @param errorTime timestamp when the error response was created
  */
 @Builder
-public record ErrorResponseDto(HttpStatus code, String message, LocalDateTime errorTime) {}
+public record ErrorResponseDto(HttpStatus code, String message, Instant errorTime) {}

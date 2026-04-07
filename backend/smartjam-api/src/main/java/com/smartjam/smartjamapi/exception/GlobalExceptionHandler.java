@@ -1,6 +1,6 @@
 package com.smartjam.smartjamapi.exception;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.NoSuchElementException;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -35,7 +35,7 @@ public class GlobalExceptionHandler {
         var dto = ErrorResponseDto.builder()
                 .code(status)
                 .message(message)
-                .errorTime(LocalDateTime.now())
+                .errorTime(Instant.now())
                 .build();
 
         return ResponseEntity.status(status).body(dto);

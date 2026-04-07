@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+
+    id("org.openapi.generator") version "7.21.0"
 }
 
 android {
@@ -25,8 +27,7 @@ android {
         release {
             isMinifyEnabled = false
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             )
         }
     }
@@ -37,6 +38,14 @@ android {
     buildFeatures {
         compose = true
     }
+
+    sourceSets {
+        getByName("main") {
+
+            java.directories.add("${layout.buildDirectory.get()}/generated/openapi/src/main/kotlin")
+        }
+    }
+
 }
 
 dependencies {
@@ -55,4 +64,39 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+openApiGenerate(
+    {
+        generatorName.set("kotlin")
+        library.set("jvm-retrofit2")
+        inputSpec.set("${rootDir}/../openapi-spec/api.yaml")
+        outputDir.set("${layout.buildDirectory.get()}/generated/openapi")
+        apiPackage.set("com.smartjam.mobile.api")
+        modelPackage.set("com.smartjam.mobile.model")
+
+        typeMappings.set(
+            mapOf(
+                "DateTime" to "Instant",
+                "UUID" to "UUID"
+            )
+        )
+        importMappings.set(
+            mapOf(
+                "Instant" to "java.time.Instant",
+                "UUID" to "java.util.UUID"
+            )
+        )
+
+        configOptions.set(
+            mapOf(
+                "serializationLibrary" to "gson",
+                "useCoroutines" to "true",
+                "enumPropertyNaming" to "original"
+            )
+        )
+    })
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    dependsOn("openApiGenerate")
 }

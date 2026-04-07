@@ -199,6 +199,13 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
 
   /api/v1/connections/{connectionId}/assignments:
+    parameters:
+      - name: connectionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
     get:
       tags:
         - Assignments
@@ -247,18 +254,18 @@ paths:
           $ref: '#/components/responses/ForbiddenError'
 
   /api/v1/assignments/{assignmentId}:
+    parameters:
+      - name: assignmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
     get:
       tags:
         - Assignments
       summary: Get assignment details
       operationId: getAssignment
-      parameters:
-        - name: assignmentId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
       responses:
         '200':
           description: Details of the assignment.
@@ -268,19 +275,19 @@ paths:
                 $ref: '#/components/schemas/AssignmentResponseDetailed'
 
   /api/v1/assignments/{assignmentId}/submissions:
+    parameters:
+      - name: assignmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
     post:
       tags:
         - Submissions
       summary: Submit an exercise attempt
       description: (Student only) Registers a new attempt and returns an S3 presigned URL to upload the attempt audio file.
       operationId: createSubmission
-      parameters:
-        - name: assignmentId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
       responses:
         '201':
           description: Submission registered. Use the uploadUrl to send the audio file via HTTP PUT.
@@ -322,19 +329,19 @@ paths:
           $ref: '#/components/responses/ForbiddenError'
 
   /api/v1/submissions/{submissionId}:
+    parameters:
+      - name: submissionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
     get:
       tags:
         - Submissions
       summary: Get the submission analysis status and result
       description: Returns the analysis status and computed scores with feedback events.
       operationId: getSubmissionResult
-      parameters:
-        - name: submissionId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
       responses:
         '200':
           description: Analysis result.
@@ -346,10 +353,6 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '403':
           $ref: '#/components/responses/ForbiddenError'
-
-
-
-
 
 components:
   securitySchemes:

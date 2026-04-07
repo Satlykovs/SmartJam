@@ -6,7 +6,6 @@ import java.util.NoSuchElementException;
 import jakarta.persistence.EntityNotFoundException;
 
 import com.smartjam.smartjamapi.dto.ErrorResponseDto;
-import com.smartjam.smartjamapi.enums.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,13 +28,12 @@ public class GlobalExceptionHandler {
      * Builds a standardized error response DTO with the provided status, code, and message.
      *
      * @param status HTTP status to return
-     * @param errorCode application-specific error code
      * @param message human-readable error message
      * @return response entity containing the error DTO
      */
-    private ResponseEntity<ErrorResponseDto> buildResponse(HttpStatus status, ErrorCode errorCode, String message) {
+    private ResponseEntity<ErrorResponseDto> buildResponse(HttpStatus status, String message) {
         var dto = ErrorResponseDto.builder()
-                .code(errorCode)
+                .code(status)
                 .message(message)
                 .errorTime(LocalDateTime.now())
                 .build();
@@ -53,7 +51,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDto> handleUsernameNotFound(UsernameNotFoundException e) {
         log.warn("Authentication failed: {}", e.getMessage());
 
-        return buildResponse(HttpStatus.UNAUTHORIZED, ErrorCode.UNAUTHORIZED, "Invalid credentials");
+        return buildResponse(HttpStatus.UNAUTHORIZED, "Invalid credentials");
     }
 
     /**
@@ -66,7 +64,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDto> handleAuthenticationException(AuthenticationException e) {
         log.warn("Unauthenticated: {}", e.getMessage());
 
-        return buildResponse(HttpStatus.UNAUTHORIZED, ErrorCode.UNAUTHORIZED, "Unauthenticated");
+        return buildResponse(HttpStatus.UNAUTHORIZED, "Unauthenticated");
     }
 
     /**
@@ -79,8 +77,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDto> handleIllegalStateException(IllegalStateException e) {
         log.error("Illegal state", e);
 
-        return buildResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_SERVER_ERROR, "Internal server error");
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
     }
 
     /**
@@ -93,7 +90,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDto> handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
         log.warn("Validation failed", e);
 
-        return buildResponse(HttpStatus.BAD_REQUEST, ErrorCode.BAD_REQUEST, "Invalid request data");
+        return buildResponse(HttpStatus.BAD_REQUEST, "Invalid request data");
     }
 
     /**
@@ -106,7 +103,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDto> handleIllegalArgumentException(IllegalArgumentException e) {
         log.warn("Bad request", e);
 
-        return buildResponse(HttpStatus.BAD_REQUEST, ErrorCode.BAD_REQUEST, "Invalid request data");
+        return buildResponse(HttpStatus.BAD_REQUEST, "Invalid request data");
     }
 
     /**
@@ -119,7 +116,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDto> handleNoSuchElement(NoSuchElementException e) {
         log.warn("Resource not found: {}", e.getMessage());
 
-        return buildResponse(HttpStatus.NOT_FOUND, ErrorCode.NOT_FOUND, "Requested resource not found");
+        return buildResponse(HttpStatus.NOT_FOUND, "Requested resource not found");
     }
 
     /**
@@ -132,7 +129,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDto> handleEntityNotFound(EntityNotFoundException e) {
         log.warn("Entity not found", e);
 
-        return buildResponse(HttpStatus.NOT_FOUND, ErrorCode.NOT_FOUND, "Requested resource not found");
+        return buildResponse(HttpStatus.NOT_FOUND, "Requested resource not found");
     }
 
     /**
@@ -145,7 +142,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDto> handleResourceNotFound(NoResourceFoundException e) {
         log.warn("Resource not found: {}", e.getMessage());
 
-        return buildResponse(HttpStatus.NOT_FOUND, ErrorCode.NOT_FOUND, "The requested resource was not found");
+        return buildResponse(HttpStatus.NOT_FOUND, "The requested resource was not found");
     }
 
     /**
@@ -158,7 +155,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDto> handleGenericException(Exception e) {
         log.error("Unexpected error", e);
 
-        return buildResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_SERVER_ERROR, "Internal server error");
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
     }
 }

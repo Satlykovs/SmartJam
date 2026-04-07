@@ -2,8 +2,8 @@ package com.smartjam.smartjamapi.dto;
 
 import java.time.LocalDateTime;
 
-import com.smartjam.smartjamapi.enums.ErrorCode;
 import lombok.Builder;
+import org.springframework.http.HttpStatus;
 
 /**
  * DTO representing a standardized error response returned by the API.
@@ -13,4 +13,4 @@ import lombok.Builder;
  * @param errorTime timestamp when the error response was created
  */
 @Builder
-public record ErrorResponseDto(ErrorCode code, String message, LocalDateTime errorTime) {}
+public record ErrorResponseDto(HttpStatus code, String message, LocalDateTime errorTime) {}

@@ -1,0 +1,38 @@
+otelcol.receiver.otlp "default" {
+    grpc { endpoint = "0.0.0.0:4317" }
+
+    http { endpoint = "0.0.0.0:4318" }
+
+    output {
+        metrics = [otelcol.exporter.prometheus.to_prometheus.input]
+
+        logs =    [otelcol.exporter.loki.to_loki.input]
+
+        traces =  [otelcol.exporter.otlp.to_tempo.input]
+    }
+}
+
+otelcol.exporter.prometheus "to_prometheus" {
+    forward_to = [prometheus.remote_write.local_prom.receiver]
+}
+
+prometheus.remote_write "local_prom" {
+    endpoint { url = "http://prometheus:9090/api/v1/write" }
+}
+
+
+otelcol.exporter.loki "to_loki" {
+    forward_to = [loki.write.local_loki.receiver]
+}
+
+loki.write "local_loki" {
+  endpoint { url = "http://loki:3100/loki/api/v1/push" }
+}
+
+otelcol.exporter.otlp "to_tempo" {
+  client {
+    endpoint = "tempo:4317"
+
+    tls { insecure = true }
+  }
+}

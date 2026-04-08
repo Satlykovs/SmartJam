@@ -25,7 +25,29 @@ services:
     container_name: smartjam-tempo
     ports:
       - "3200:3200"
-      - "4317:4317"
     volumes:
       - ./infra/tempo/tempo.yaml:/etc/tempo.yaml
     command: -config.file=/etc/tempo.yaml
+
+  prometheus:
+    image: prom/prometheus
+    container_name: smartjam-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yaml
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-remote-write-receiver
+
+  alloy:
+    image: grafana/alloy
+    container_name: smartjam-alloy
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "12345:12345"
+    volumes:
+      - ./infra/alloy/config.alloy:/etc/alloy/config.alloy
+    command: run --server.http.listen-addr=0.0.0.0:12345 /etc/alloy/config.alloy

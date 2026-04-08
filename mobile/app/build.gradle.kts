@@ -42,7 +42,7 @@ android {
     sourceSets {
         getByName("main") {
 
-            java.directories.add("${layout.buildDirectory.get()}/generated/openapi/src/main/kotlin")
+            kotlin.directories.add("${layout.buildDirectory.get()}/generated/openapi/src/main/kotlin")
         }
     }
 

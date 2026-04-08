@@ -90,25 +90,35 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
 
-openApiGenerate(
-    {
+
+val generateCommonModels =
+    tasks.register<org.openapitools.generator.gradle.plugin.tasks.GenerateTask>("generateCommonModels") {
+        group = "smartjam" // Группа для панели справа
+        generatorName.set("kotlin")
+        inputSpec.set("${rootDir}/../openapi-spec/common-models.yaml")
+        outputDir.set("${layout.buildDirectory.get()}/generated/openapi")
+        modelPackage.set("com.smartjam.app.model")
+        configOptions.set(
+            mapOf(
+                "serializationLibrary" to "gson",
+                "enumPropertyNaming" to "original"
+            )
+        )
+    }
+
+val generateApiContract =
+    tasks.register<org.openapitools.generator.gradle.plugin.tasks.GenerateTask>("generateApiContract") {
+        group = "smartjam"
         generatorName.set("kotlin")
         library.set("jvm-retrofit2")
         inputSpec.set("${rootDir}/../openapi-spec/api.yaml")
         outputDir.set("${layout.buildDirectory.get()}/generated/openapi")
-        apiPackage.set("com.smartjam.mobile.api")
-        modelPackage.set("com.smartjam.mobile.model")
+        apiPackage.set("com.smartjam.app.api")
+        modelPackage.set("com.smartjam.app.model")
 
-        typeMappings.set(
+        inlineSchemaOptions.set(
             mapOf(
-                "DateTime" to "Instant",
-                "UUID" to "UUID"
-            )
-        )
-        importMappings.set(
-            mapOf(
-                "Instant" to "java.time.Instant",
-                "UUID" to "java.util.UUID"
+                "RESOLVE_INLINE_ENUMS" to "true"
             )
         )
 
@@ -116,11 +126,19 @@ openApiGenerate(
             mapOf(
                 "serializationLibrary" to "gson",
                 "useCoroutines" to "true",
-                "enumPropertyNaming" to "original"
+                "enumPropertyNaming" to "original",
+                "generateAliasAsModel" to "false"
             )
         )
-    })
+        dependsOn(generateCommonModels)
+    }
+
+tasks.register("generateSmartJamSdk") {
+    group = "smartjam"
+    description = "Generates all Kotlin DTOs and API interfaces from OpenAPI specs"
+    dependsOn(generateApiContract)
+}
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    dependsOn("openApiGenerate")
+    dependsOn("generateAll")
 }

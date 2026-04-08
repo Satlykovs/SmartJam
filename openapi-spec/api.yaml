@@ -1,4 +1,4 @@
-openapi: 3.1.0
+openapi: 3.0.3
 info:
   title: SmartJam API
   version: 1.0.0
@@ -26,14 +26,14 @@ servers:
 
 
 security:
-  - bearerAuth: [ ]
+  - bearerAuth: []
 
 paths:
   /api/v1/auth/register:
     post:
       tags:
         - Auth
-      security: [ ]
+      security: []
       summary: Register a new user
       description: Creates a new user account and returns a pair of JWT tokens (Access & Refresh).
       operationId: registerUser
@@ -61,7 +61,7 @@ paths:
     post:
       tags:
         - Auth
-      security: [ ]
+      security: []
       summary: Authenticate user
       description: Authenticates a user using email and password, returning a new pair of JWT tokens.
       operationId: loginUser
@@ -89,7 +89,7 @@ paths:
     post:
       tags:
         - Auth
-      security: [ ]
+      security: []
       summary: Refresh tokens
       description: Accepts a valid refresh token and issues a new pair of JWT tokens. The old refresh token will be invalidated.
       operationId: refreshToken

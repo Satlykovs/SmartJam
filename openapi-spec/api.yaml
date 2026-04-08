@@ -26,14 +26,14 @@ servers:
 
 
 security:
-  - bearerAuth: []
+  - bearerAuth: [ ]
 
 paths:
   /api/v1/auth/register:
     post:
       tags:
         - Auth
-      security: []
+      security: [ ]
       summary: Register a new user
       description: Creates a new user account and returns a pair of JWT tokens (Access & Refresh).
       operationId: registerUser
@@ -61,7 +61,7 @@ paths:
     post:
       tags:
         - Auth
-      security: []
+      security: [ ]
       summary: Authenticate user
       description: Authenticates a user using email and password, returning a new pair of JWT tokens.
       operationId: loginUser
@@ -89,7 +89,7 @@ paths:
     post:
       tags:
         - Auth
-      security: []
+      security: [ ]
       summary: Refresh tokens
       description: Accepts a valid refresh token and issues a new pair of JWT tokens. The old refresh token will be invalidated.
       operationId: refreshToken
@@ -273,6 +273,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AssignmentResponseDetailed'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: Assignment not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/assignments/{assignmentId}/submissions:
     parameters:

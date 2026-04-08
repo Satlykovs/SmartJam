@@ -81,6 +81,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.converter.scalars)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -93,7 +94,7 @@ dependencies {
 
 val generateCommonModels =
     tasks.register<org.openapitools.generator.gradle.plugin.tasks.GenerateTask>("generateCommonModels") {
-        group = "smartjam" // Группа для панели справа
+        group = "smartjam"
         generatorName.set("kotlin")
         inputSpec.set("${rootDir}/../openapi-spec/common-models.yaml")
         outputDir.set("${layout.buildDirectory.get()}/generated/openapi")
@@ -116,6 +117,7 @@ val generateApiContract =
         apiPackage.set("com.smartjam.app.api")
         modelPackage.set("com.smartjam.app.model")
 
+
         inlineSchemaOptions.set(
             mapOf(
                 "RESOLVE_INLINE_ENUMS" to "true"
@@ -127,18 +129,33 @@ val generateApiContract =
                 "serializationLibrary" to "gson",
                 "useCoroutines" to "true",
                 "enumPropertyNaming" to "original",
-                "generateAliasAsModel" to "false"
+                "generateAliasAsModel" to "false",
+                "dateLibrary" to "java8"
             )
         )
+
+        typeMappings.set(
+            mapOf(
+                "DateTime" to "Instant"
+            )
+        )
+
+        importMappings.set(
+            mapOf(
+                "Instant" to "java.time.Instant"
+            )
+        )
+
+
         dependsOn(generateCommonModels)
     }
 
-tasks.register("generateSmartJamSdk") {
+tasks.register("generateAll") {
     group = "smartjam"
     description = "Generates all Kotlin DTOs and API interfaces from OpenAPI specs"
     dependsOn(generateApiContract)
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    dependsOn("generateAll")
+    dependsOn("generateApiContract")
 }

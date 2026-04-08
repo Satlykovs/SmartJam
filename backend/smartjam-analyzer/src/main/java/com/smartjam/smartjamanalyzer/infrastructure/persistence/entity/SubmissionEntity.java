@@ -6,8 +6,8 @@ import java.util.UUID;
 
 import jakarta.persistence.*;
 
-import com.smartjam.common.dto.FeedbackEvent;
 import com.smartjam.common.model.AudioProcessingStatus;
+import com.smartjam.common.model.FeedbackEvent;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;

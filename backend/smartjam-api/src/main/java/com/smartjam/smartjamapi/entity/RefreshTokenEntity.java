@@ -9,6 +9,7 @@ import com.smartjam.smartjamapi.enums.RefreshTokenStatus;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 /**
  * JPA entity representing a refresh token record in the SmartJam platform.
@@ -30,6 +31,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 @Getter
 @Setter
 @NoArgsConstructor
+@EntityListeners(AuditingEntityListener.class)
 public class RefreshTokenEntity {
 
     /** Unique identifier for the refresh token record, generated automatically as a UUID. */

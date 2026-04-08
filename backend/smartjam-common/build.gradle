@@ -1,7 +1,40 @@
-
 plugins {
     id 'java-library'
+    id 'io.openapiprocessor.openapi-processor'
 }
+
+group = 'com.smartjam'
+version = '0.0.1-SNAPSHOT'
+
+
+dependencies {
+    api 'com.fasterxml.jackson.core:jackson-annotations'
+    api 'com.fasterxml.jackson.core:jackson-databind'
+    api 'jakarta.validation:jakarta.validation-api:3.1.1'
+    api 'jakarta.annotation:jakarta.annotation-api:3.0.0'
+}
+
+openapiProcessor {
+    apiPath(layout.projectDirectory.file("${rootDir}/../openapi-spec/common-models.yaml"))
+
+    process("spring") {
+        processor("io.openapiprocessor:openapi-processor-spring:2026.2")
+
+        targetDir(layout.buildDirectory.dir("generated/openapi"))
+
+        prop("mapping", layout.projectDirectory.file("src/main/resources/openapi/mapping.yaml"))
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir(tasks.named("processSpring").map { it.getTargetDir().dir("java") })
+        }
+    }
+}
+
+compileJava.dependsOn tasks.named("processSpring")
 
 bootJar {
     enabled = false
@@ -10,11 +43,3 @@ bootJar {
 jar {
     enabled = true
 }
-
-dependencies {
-    api 'com.fasterxml.jackson.core:jackson-annotations'
-    api 'com.fasterxml.jackson.core:jackson-databind'
-}
-
-group = 'com.smartjam'
-version = '0.0.1-SNAPSHOT'

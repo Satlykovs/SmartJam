@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+
+    id("org.openapi.generator") version "7.21.0"
 }
 
 android {
@@ -25,8 +27,7 @@ android {
         release {
             isMinifyEnabled = false
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             )
         }
     }
@@ -37,6 +38,14 @@ android {
     buildFeatures {
         compose = true
     }
+
+    sourceSets {
+        getByName("main") {
+
+            kotlin.directories.add("${layout.buildDirectory.get()}/generated/openapi/src/main/kotlin")
+        }
+    }
+
 }
 
 dependencies {
@@ -72,6 +81,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.converter.scalars)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -79,4 +89,73 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+
+val generateCommonModels =
+    tasks.register<org.openapitools.generator.gradle.plugin.tasks.GenerateTask>("generateCommonModels") {
+        group = "smartjam"
+        generatorName.set("kotlin")
+        inputSpec.set("${rootDir}/../openapi-spec/common-models.yaml")
+        outputDir.set("${layout.buildDirectory.get()}/generated/openapi")
+        modelPackage.set("com.smartjam.app.model")
+        configOptions.set(
+            mapOf(
+                "serializationLibrary" to "gson",
+                "enumPropertyNaming" to "original"
+            )
+        )
+    }
+
+val generateApiContract =
+    tasks.register<org.openapitools.generator.gradle.plugin.tasks.GenerateTask>("generateApiContract") {
+        group = "smartjam"
+        generatorName.set("kotlin")
+        library.set("jvm-retrofit2")
+        inputSpec.set("${rootDir}/../openapi-spec/api.yaml")
+        outputDir.set("${layout.buildDirectory.get()}/generated/openapi")
+        apiPackage.set("com.smartjam.app.api")
+        modelPackage.set("com.smartjam.app.model")
+
+
+        inlineSchemaOptions.set(
+            mapOf(
+                "RESOLVE_INLINE_ENUMS" to "true"
+            )
+        )
+
+        configOptions.set(
+            mapOf(
+                "serializationLibrary" to "gson",
+                "useCoroutines" to "true",
+                "enumPropertyNaming" to "original",
+                "generateAliasAsModel" to "false",
+                "dateLibrary" to "java8"
+            )
+        )
+
+        typeMappings.set(
+            mapOf(
+                "DateTime" to "Instant"
+            )
+        )
+
+        importMappings.set(
+            mapOf(
+                "Instant" to "java.time.Instant"
+            )
+        )
+
+
+        dependsOn(generateCommonModels)
+    }
+
+tasks.register("generateAll") {
+    group = "smartjam"
+    description = "Generates all Kotlin DTOs and API interfaces from OpenAPI specs"
+    dependsOn(generateApiContract)
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    dependsOn("generateApiContract")
 }

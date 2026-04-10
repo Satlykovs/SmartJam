@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     id("com.google.devtools.ksp")
+
     id("org.openapi.generator") version "7.21.0"
 }
 
@@ -27,8 +28,7 @@ android {
         release {
             isMinifyEnabled = false
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             )
             buildConfigField("String", "BASE_URL", "\"https://api.smartjam.com/\"")
         }
@@ -44,6 +44,13 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    sourceSets {
+        getByName("main") {
+
+            kotlin.directories.add("${layout.buildDirectory.get()}/generated/openapi/src/main/kotlin")
+        }
     }
 
     sourceSets {

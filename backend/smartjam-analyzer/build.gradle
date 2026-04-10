@@ -1,5 +1,44 @@
+repositories {
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "TarsosDSP repository"
+                url = "https://mvn.0110.be/releases"
+            }
+        }
+        filter {
+            includeGroup("be.tarsos.dsp")
+        }
+    }
+}
+
+
+
 dependencies {
-    implementation 'org.springframework.kafka:spring-kafka'
+
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
     runtimeOnly 'org.postgresql:postgresql'
+
+    implementation 'org.springframework.boot:spring-boot-starter-kafka'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+
+
+    implementation 'org.springframework.boot:spring-boot-starter-json'
+
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+    implementation 'io.minio:minio:8.6.0'
+
+    implementation 'net.bramp.ffmpeg:ffmpeg:0.8.0'
+
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+
+    implementation 'be.tarsos.dsp:core:2.5'
+    implementation 'be.tarsos.dsp:jvm:2.5'
+
+
+    implementation project(':smartjam-common')
+
 }

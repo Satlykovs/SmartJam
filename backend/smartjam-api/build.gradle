@@ -1,5 +1,49 @@
+plugins {
+    id 'io.openapiprocessor.openapi-processor'
+}
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
+
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
     runtimeOnly 'org.postgresql:postgresql'
+
+    implementation 'org.springframework.boot:spring-boot-starter-kafka'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+
+
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'
+
+
+    implementation project(':smartjam-common')
+}
+
+openapiProcessor {
+    apiPath("${rootDir}/../openapi-spec/api.yaml")
+
+    process("spring") {
+        processor("io.openapiprocessor:openapi-processor-spring:2026.2")
+
+        targetDir(layout.buildDirectory.dir("generated/openapi"))
+
+        prop("mapping", layout.projectDirectory.file("src/main/resources/openapi/mapping.yaml"))
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir(tasks.named("processSpring").map { it.getTargetDir().dir("java") })
+        }
+    }
+}
+
+compileJava.dependsOn tasks.named("processSpring")
+
+processResources {
+    from("${rootDir}/../openapi-spec") {
+        include "*.yaml"
+        into "static"
+    }
 }

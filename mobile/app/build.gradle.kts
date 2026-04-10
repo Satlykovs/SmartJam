@@ -171,3 +171,10 @@ tasks.register("generateAll") {
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     dependsOn("generateApiContract")
 }
+
+afterEvaluate {
+    tasks.matching { it.name.startsWith("ksp") }.configureEach {
+        dependsOn("generateApiContract")
+        dependsOn("generateCommonModels")
+    }
+}

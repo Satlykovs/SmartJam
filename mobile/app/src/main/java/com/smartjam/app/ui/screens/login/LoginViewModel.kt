@@ -1,7 +1,8 @@
 package com.smartjam.app.ui.screens.login
 
+
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.smartjam.app.domain.repository.AuthRepository
 import kotlinx.coroutines.channels.Channel
@@ -9,10 +10,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-
-import androidx.lifecycle.ViewModelProvider
 
 data class LoginState(
     val emailInput: String = "",
@@ -33,7 +32,7 @@ class LoginViewModel (
     private val _state = MutableStateFlow(LoginState())
     val state : StateFlow<LoginState> = _state.asStateFlow()
 
-    private val eventChannel = Channel<LoginEvent>()
+    private val eventChannel = Channel<LoginEvent>(Channel.BUFFERED)
     val events = eventChannel.receiveAsFlow()
 
     fun onPasswordChanged(newPassword: String){
@@ -51,19 +50,29 @@ class LoginViewModel (
     }
 
     fun onLoginClicked() {
+        if (_state.value.isLoading){
+            return;
+        }
         val currentEmail = _state.value.emailInput
         val currentPassword = _state.value.passwordInput
 
         if (currentPassword.isBlank() || currentEmail.isBlank()){
             _state.value = _state.value.copy(errorMessage = "Fill in all fields")
+            return;
         }
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true, errorMessage = null)
 
             try {
-                authRepository.login(currentEmail, currentPassword)
+                val result = authRepository.login(currentEmail, currentPassword)
 
-                eventChannel.send(LoginEvent.NavigateToHome)
+                if (result.isSuccess){
+                    eventChannel.send(LoginEvent.NavigateToHome)
+                }
+                else{
+                    val error = result.exceptionOrNull()?.message ?: "Error"
+                    _state.update { it.copy(errorMessage = error) }
+                }
             } catch (e: Exception){
                 _state.value = _state.value.copy(
                     errorMessage = e.message?: "Unknown error"

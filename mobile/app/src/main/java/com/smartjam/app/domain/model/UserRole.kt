@@ -1,4 +1,4 @@
-package com.smartjam.app.domain.data
+package com.smartjam.app.domain.model
 
 enum class UserRole {
     STUDENT,

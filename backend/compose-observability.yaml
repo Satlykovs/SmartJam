@@ -6,6 +6,7 @@ services:
       - "3100:3100"
     volumes:
       - ./infra/loki/local-config.yaml:/etc/loki/local-config.yaml
+      - loki_data:/tmp/loki
     command: -config.file=/etc/loki/local-config.yaml
 
 
@@ -19,6 +20,7 @@ services:
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
     volumes:
       - ./infra/grafana/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - grafana_data:/var/lib/grafana
 
   tempo:
     image: grafana/tempo:2.10.0
@@ -27,6 +29,7 @@ services:
       - "3200:3200"
     volumes:
       - ./infra/tempo/tempo.yaml:/etc/tempo.yaml
+      - tempo_data:/tmp/tempo
     command: -config.file=/etc/tempo.yaml
 
   prometheus:
@@ -36,8 +39,9 @@ services:
       - "9090:9090"
     volumes:
       - ./infra/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yaml
+      - prometheus_data:/prometheus
     command:
-      - --config.file=/etc/prometheus/prometheus.yml
+      - --config.file=/etc/prometheus/prometheus.yaml
       - --storage.tsdb.path=/prometheus
       - --web.enable-remote-write-receiver
 
@@ -51,3 +55,10 @@ services:
     volumes:
       - ./infra/alloy/config.alloy:/etc/alloy/config.alloy
     command: run --server.http.listen-addr=0.0.0.0:12345 /etc/alloy/config.alloy
+
+
+volumes:
+  loki_data:
+  tempo_data:
+  prometheus_data:
+  grafana_data:

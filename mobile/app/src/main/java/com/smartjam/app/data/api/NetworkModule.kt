@@ -1,5 +1,6 @@
 package com.smartjam.app.data.api
 
+import org.openapitools.client.auth.HttpBearerAuth
 import com.smartjam.app.BuildConfig
 import com.smartjam.app.data.local.TokenStorage
 import okhttp3.OkHttpClient
@@ -12,10 +13,10 @@ import java.util.concurrent.TimeUnit
 object NetworkModule {
 
     fun createRetrofit(tokenStorage: TokenStorage): Retrofit {
-        val authInterceptor = AuthInterceptor(tokenStorage)
+        val bearerAuth = HttpBearerAuth("bearer")
 
         val okHttpClient = OkHttpClient.Builder()
-            .addInterceptor(authInterceptor)
+            .addInterceptor(bearerAuth)
             .addInterceptor(loggingInterceptor)
             .build()
 

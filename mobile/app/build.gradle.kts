@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-
+    id("com.google.devtools.ksp")
     id("org.openapi.generator") version "7.21.0"
 }
 
@@ -27,8 +27,14 @@ android {
         release {
             isMinifyEnabled = false
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
             )
+            buildConfigField("String", "BASE_URL", "\"https://api.smartjam.com/\"")
+        }
+
+        getByName("debug") {
+            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8000/\"")
         }
     }
     compileOptions {
@@ -37,6 +43,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     sourceSets {
@@ -50,6 +57,7 @@ android {
 
 dependencies {
 
+    implementation(libs.androidx.room.common.jvm)
     val nav_version = "2.9.7"
     // Jetpack Compose integration
     implementation("androidx.navigation:navigation-compose:$nav_version+")
@@ -60,6 +68,10 @@ dependencies {
 
     //serialization
     implementation("com.squareup.retrofit2:converter-gson:2.11.+")
+
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    ksp("androidx.room:room-compiler:2.5.0")
 
     //logging
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.+")

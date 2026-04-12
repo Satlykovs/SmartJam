@@ -1,4 +1,13 @@
 services:
+
+  loki-init:
+    image: busybox
+    container_name: smartjam-loki-init
+    user: root
+    volumes:
+      - loki_data:/tmp/loki
+    command: chown -R 10001:10001 /tmp/loki
+
   loki:
     image: grafana/loki
     container_name: smartjam-loki
@@ -8,7 +17,9 @@ services:
       - ./infra/loki/local-config.yaml:/etc/loki/local-config.yaml
       - loki_data:/tmp/loki
     command: -config.file=/etc/loki/local-config.yaml
-
+    depends_on:
+      loki-init:
+        condition: service_completed_successfully
 
   grafana:
     image: grafana/grafana
@@ -22,6 +33,14 @@ services:
       - ./infra/grafana/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
       - grafana_data:/var/lib/grafana
 
+  tempo-init:
+    image: busybox
+    container_name: smartjam-tempo-init
+    user: root
+    volumes:
+      - tempo_data:/tmp/tempo
+    command: chown -R 10001:10001 /tmp/tempo
+
   tempo:
     image: grafana/tempo:2.10.0
     container_name: smartjam-tempo
@@ -31,6 +50,9 @@ services:
       - ./infra/tempo/tempo.yaml:/etc/tempo.yaml
       - tempo_data:/tmp/tempo
     command: -config.file=/etc/tempo.yaml
+    depends_on:
+      tempo-init:
+        condition: service_completed_successfully
 
   prometheus:
     image: prom/prometheus

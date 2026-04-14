@@ -31,13 +31,18 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartjam.app.domain.model.Connection
 import com.smartjam.app.domain.model.UserRole
-import com.smartjam.app.ui.screens.login.AppleGlassTextField
-import com.smartjam.app.ui.screens.login.AppleLiquidBackground
-import com.smartjam.app.ui.screens.login.GoldenStringsButton
+import com.smartjam.app.ui.components.AppleGlassTextField
+import com.smartjam.app.ui.components.AppleLiquidBackground
+import com.smartjam.app.ui.components.GlassContainer
+import com.smartjam.app.ui.components.GoldenStringsButton
+import com.smartjam.app.ui.theme.BrandCyan
+import com.smartjam.app.ui.theme.BrandGold
+import com.smartjam.app.ui.theme.ErrorRed
 
 @Composable
 fun HomeScreen(
@@ -96,17 +101,6 @@ fun HomeScreen(
                         )
                     }
 
-                    if (state.pendingConnections.isNotEmpty()) {
-                        item { SectionTitle("Новые заявки (${state.pendingConnections.size})") }
-                        items(state.pendingConnections) { connection ->
-                            PendingRequestCard(
-                                connection = connection,
-                                onAccept = { viewModel.onRespondToRequest(it, true) },
-                                onReject = { viewModel.onRespondToRequest(it, false) }
-                            )
-                        }
-                    }
-
                     item { Spacer(modifier = Modifier.height(8.dp)) }
                     item { SectionTitle("Мои ученики") }
 
@@ -127,7 +121,7 @@ fun HomeScreen(
                     item { SectionTitle("Мои преподаватели") }
                 }
 
-                if (state.activeConnections.isEmpty()) {
+                if (state.connections.isEmpty()) {
                     item {
                         Text(
                             text = "Список пуст",
@@ -136,7 +130,7 @@ fun HomeScreen(
                         )
                     }
                 } else {
-                    items(state.activeConnections) { connection ->
+                    items(state.connections) { connection ->
                         ActiveConnectionCard(
                             connection = connection,
                             onClick = { viewModel.onConnectionClicked(connection.id) }
@@ -173,7 +167,7 @@ private fun HomeHeader(
             Text(
                 text = if (role == UserRole.TEACHER) "Режим преподавателя" else "Режим ученика",
                 fontSize = 12.sp,
-                color = Color(0xFF00E5FF)
+                color = BrandCyan
             )
         }
 
@@ -181,10 +175,6 @@ private fun HomeHeader(
             if (isLoading) {
                 CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
                 Spacer(modifier = Modifier.width(16.dp))
-            } else {
-                IconButton(onClick = onSync) {
-                    Icon(Icons.Default.Refresh, contentDescription = "Обновить", tint = Color.White)
-                }
             }
 
             IconButton(onClick = onLogout) {
@@ -212,7 +202,7 @@ private fun TeacherInviteSection(code: String?, isLoading: Boolean, onGenerate: 
             Spacer(modifier = Modifier.height(12.dp))
 
             if (code != null) {
-                Text(text = code, fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFFFD700), letterSpacing = 4.sp)
+                Text(text = code, fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = BrandGold, letterSpacing = 4.sp)
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
@@ -225,6 +215,7 @@ private fun TeacherInviteSection(code: String?, isLoading: Boolean, onGenerate: 
         }
     }
 }
+
 
 @Composable
 private fun StudentJoinSection(inputValue: String, isLoading: Boolean, onInputChange: (String) -> Unit, onJoin: () -> Unit) {
@@ -266,16 +257,16 @@ private fun PendingRequestCard(connection: Connection, onAccept: (String) -> Uni
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text("Новая заявка", color = Color(0xFFFFD700), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text("Новая заявка", color = BrandGold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 Text(connection.peerName, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Medium)
             }
             Row {
-                IconButton(onClick = { onReject(connection.id) }, modifier = Modifier.background(Color(0xFFFF5252).copy(0.2f), RoundedCornerShape(12.dp))) {
-                    Icon(Icons.Default.Close, contentDescription = "Отклонить", tint = Color(0xFFFF5252))
+                IconButton(onClick = { onReject(connection.id) }, modifier = Modifier.background(ErrorRed.copy(0.2f), RoundedCornerShape(12.dp))) {
+                    Icon(Icons.Default.Close, contentDescription = "Отклонить", tint = ErrorRed)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                IconButton(onClick = { onAccept(connection.id) }, modifier = Modifier.background(Color(0xFF00E5FF).copy(0.2f), RoundedCornerShape(12.dp))) {
-                    Icon(Icons.Default.Check, contentDescription = "Принять", tint = Color(0xFF00E5FF))
+                IconButton(onClick = { onAccept(connection.id) }, modifier = Modifier.background(BrandCyan.copy(0.2f), RoundedCornerShape(12.dp))) {
+                    Icon(Icons.Default.Check, contentDescription = "Принять", tint = BrandCyan)
                 }
             }
         }
@@ -306,16 +297,3 @@ private fun ActiveConnectionCard(connection: Connection, onClick: () -> Unit) {
     }
 }
 
-@Composable
-private fun GlassContainer(content: @Composable () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(Color.White.copy(alpha = 0.05f))
-            .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(24.dp))
-            .padding(24.dp)
-    ) {
-        content()
-    }
-}

@@ -17,8 +17,7 @@ import kotlinx.coroutines.launch
 
 data class HomeState(
     val currentRole: UserRole = UserRole.STUDENT,
-    val activeConnections: List<Connection> = emptyList(),
-    val pendingConnections: List<Connection> = emptyList(),
+    val connections: List<Connection> = emptyList(),
     val inviteCodeInput: String = "",
     val teacherGeneratedCode: String? = null,
     val isLoading: Boolean = false,
@@ -57,8 +56,7 @@ class HomeViewModel(
 
         _state.update { it.copy(
             currentRole = newRole,
-            activeConnections = emptyList(),
-            pendingConnections = emptyList(),
+            connections = emptyList(),
             errorMessage = null
         ) }
 
@@ -75,8 +73,7 @@ class HomeViewModel(
                 connectionRepository.getConnectionsFlow(role).collect { connections ->
                     _state.update { currentState ->
                         currentState.copy(
-                            activeConnections = connections.filter { it.status == "ACTIVE" },
-                            pendingConnections = connections.filter { it.status == "PENDING" }
+                            connections = connections
                         )
                     }
                 }

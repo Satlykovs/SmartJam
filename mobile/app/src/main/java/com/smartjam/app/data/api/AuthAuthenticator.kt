@@ -1,0 +1,72 @@
+package com.smartjam.app.data.api
+
+import com.smartjam.app.api.AuthApi
+import com.smartjam.app.data.local.TokenStorage
+import com.smartjam.app.model.RefreshRequest
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import okhttp3.Authenticator
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.Route
+import org.openapitools.client.infrastructure.ApiClient
+
+class AuthAuthenticator(
+    private val tokenStorage: TokenStorage,
+    private val baseUrl: String
+) : Authenticator {
+
+    var apiClient: ApiClient? = null
+
+    override fun authenticate(route: Route?, response: Response): Request? {
+        val refreshToken = runBlocking { tokenStorage.refreshToken.first() } ?: return null
+
+        if (response.responseCount > 2) {
+            return null
+        }
+
+        val authApiClient = ApiClient(baseUrl = baseUrl)
+        val authApi = authApiClient.createService(AuthApi::class.java)
+
+        return try {
+            val refreshResponse = runBlocking {
+                authApi.refreshToken(RefreshRequest(refreshToken))
+            }
+
+            if (refreshResponse.isSuccessful && refreshResponse.body() != null) {
+                val newAuthResponse = refreshResponse.body()!!
+                runBlocking {
+                    tokenStorage.saveToken(
+                        accessToken = newAuthResponse.accessToken,
+                        refreshToken = newAuthResponse.refreshToken
+                    )
+                }
+
+                apiClient?.setBearerToken(newAuthResponse.accessToken)
+
+                response.request.newBuilder()
+                    .header("Authorization", "Bearer ${newAuthResponse.accessToken}")
+                    .build()
+            } else {
+                runBlocking { tokenStorage.clearTokens() }
+                apiClient?.setBearerToken("")
+                null
+            }
+        } catch (e: Exception) {
+            runBlocking { tokenStorage.clearTokens() }
+            apiClient?.setBearerToken("")
+            null
+        }
+    }
+
+    private val Response.responseCount: Int
+        get() {
+            var result = 1
+            var priorResponse = this.priorResponse
+            while (priorResponse != null) {
+                result++
+                priorResponse = priorResponse.priorResponse
+            }
+            return result
+        }
+}

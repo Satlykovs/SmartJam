@@ -91,7 +91,7 @@ paths:
         - Auth
       security: [ ]
       summary: Refresh tokens
-      description: Accepts a valid refresh token and issues a new pair of JWT tokens. The old refresh token will be invalidated.
+      description: Accepts a valid refresh token and issues a new pair of tokens. The old refresh token will be invalidated.
       operationId: refreshToken
       requestBody:
         required: true
@@ -445,6 +445,16 @@ components:
         refreshToken:
           type: string
           description: The valid refresh token previously issued to the user.
+        asRole:
+          $ref: '#/components/schemas/UserRole'
+
+    UserRole:
+      type: string
+      description: User roles in the SmartJam system.
+      enum:
+        - STUDENT
+        - TEACHER
+
 
     JoinRequest:
       type: object
@@ -487,7 +497,7 @@ components:
           description: Short-lived JWT token for API authorization.
         refreshToken:
           type: string
-          description: Long-lived JWT token used to obtain a new pair of tokens.
+          description: Long-lived token used to obtain a new pair of tokens.
 
     UserResponse:
       type: object

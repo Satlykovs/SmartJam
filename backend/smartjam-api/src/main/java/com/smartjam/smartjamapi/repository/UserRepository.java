@@ -6,6 +6,7 @@ import java.util.UUID;
 import com.smartjam.smartjamapi.entity.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+// TODO: fix javadoc
 /**
  * Spring Data JPA repository for {@link UserEntity} persistence operations.
  *

@@ -3,14 +3,14 @@ package com.smartjam.smartjamapi.security.jwt;
 import java.io.IOException;
 import java.util.List;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,7 +49,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-
         try {
             Claims claims = jwtService.parseClaims(jwt);
 
@@ -58,7 +57,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @SuppressWarnings("unchecked")
             List<String> authoritiesClaim = (List<String>) claims.get("authorities");
 
-            var authorities = authoritiesClaim == null ? List.<SimpleGrantedAuthority>of()
+            var authorities = authoritiesClaim == null
+                    ? List.<SimpleGrantedAuthority>of()
                     : authoritiesClaim.stream().map(SimpleGrantedAuthority::new).toList();
 
             var auth = new UsernamePasswordAuthenticationToken(subject, null, authorities);

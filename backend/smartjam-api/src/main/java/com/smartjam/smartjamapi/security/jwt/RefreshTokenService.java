@@ -24,7 +24,7 @@ public class RefreshTokenService {
     @Value("${security.jwt.expiration-time-refresh}")
     private long refreshExpiration;
 
-    //TODO: перенести проверку истечения токена и по ситуации ещё что-то
+    // TODO: перенести проверку истечения токена и по ситуации ещё что-то
 
     public String generateRefreshToken() {
         byte[] randomBytes = new byte[64];

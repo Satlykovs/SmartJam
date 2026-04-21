@@ -70,8 +70,6 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshTokenEntity
      * <p>
      *
      * @param user the owner {@link UserEntity} whose tokens should be updated; must not be {@code null}
-     * @param currentStatus the status that tokens must currently have to be included in the update; must not be
-     *     {@code null}
      * @param newStatus the new {@link RefreshTokenStatus} to assign; must not be {@code null}
      * @return the number of rows affected by the update
      * @throws IllegalArgumentException if any of {@code user}, {@code currentStatus}, or {@code newStatus} is
@@ -86,10 +84,8 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshTokenEntity
     UPDATE RefreshTokenEntity r
     SET r.status = :newStatus
     WHERE r.user = :user
-      AND r.status = :currentStatus
 """)
     int updateStatusByUserAndCurrentStatus(
             @Param("user") UserEntity user,
-            @Param("currentStatus") RefreshTokenStatus currentStatus,
             @Param("newStatus") RefreshTokenStatus newStatus);
 }

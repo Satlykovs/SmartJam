@@ -445,6 +445,15 @@ components:
         refreshToken:
           type: string
           description: The valid refresh token previously issued to the user.
+        asRole:
+          $ref: '#/components/schemas/UserRole'
+
+    UserRole:
+      type: string
+      description: User roles in the SmartJam system.
+      enum:
+        - STUDENT
+        - TEACHER
 
     JoinRequest:
       type: object

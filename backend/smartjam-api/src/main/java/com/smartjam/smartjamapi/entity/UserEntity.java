@@ -5,10 +5,10 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-import com.smartjam.api.model.UserRole;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 
+import com.smartjam.api.model.UserRole;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;

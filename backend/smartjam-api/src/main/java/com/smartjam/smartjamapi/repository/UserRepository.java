@@ -5,7 +5,6 @@ import java.util.UUID;
 
 import com.smartjam.smartjamapi.entity.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
 
 /**
  * Spring Data JPA repository for {@link UserEntity} persistence operations.
@@ -45,6 +44,7 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
      *     query execution error)
      */
     boolean existsByUsername(String username);
+
     boolean existsByEmail(String email);
 
     Optional<UserEntity> findByEmail(String email);

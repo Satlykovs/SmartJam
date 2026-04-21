@@ -30,9 +30,7 @@ public class JwtService {
     }
 
     public String generateAccessToken(UserEntity user, UserRole activeRole) {
-        Map<String, Object> claims = Map.of(
-                "asRole", activeRole.name()
-        );
+        Map<String, Object> claims = Map.of("asRole", activeRole.name());
 
         return Jwts.builder()
                 .claims(claims)

@@ -45,7 +45,8 @@ public class AuthService {
             throw new IllegalStateException("Invalid password");
         }
 
-        String accessToken = jwtService.generateAccessToken(userEntity, UserRole.STUDENT); // INFO: возможно надо будет поменять
+        String accessToken =
+                jwtService.generateAccessToken(userEntity, UserRole.STUDENT); // INFO: возможно надо будет поменять
         String refreshToken = refreshTokenService.generateRefreshToken();
 
         RefreshTokenEntity refreshTokenEntity = refreshTokenService.create(userEntity, refreshToken);
@@ -72,13 +73,15 @@ public class AuthService {
 
         UserEntity userEntity = userMapper.toEntity(request);
 
-        userEntity.setRoles(Set.of(UserRole.STUDENT, UserRole.TEACHER)); // INFO: возможно будет поменяно, но пока сразу две
+        userEntity.setRoles(
+                Set.of(UserRole.STUDENT, UserRole.TEACHER)); // INFO: возможно будет поменяно, но пока сразу две
 
         userEntity.setPasswordHash(passwordEncoder.encode(request.password()));
 
         repository.save(userEntity);
 
-        String accessToken = jwtService.generateAccessToken(userEntity, UserRole.STUDENT); // INFO: возможно надо будет поменять
+        String accessToken =
+                jwtService.generateAccessToken(userEntity, UserRole.STUDENT); // INFO: возможно надо будет поменять
         String refreshToken = refreshTokenService.generateRefreshToken();
 
         RefreshTokenEntity refreshTokenEntity = refreshTokenService.create(userEntity, refreshToken);
@@ -91,18 +94,15 @@ public class AuthService {
         return new AuthResponse(accessToken, refreshToken);
     }
 
-
     protected void revokeToken(String tokenHash) {
         refreshTokenRepository.setStatusByTokenHash(tokenHash, RefreshTokenStatus.INACTIVE);
     }
 
-
     protected void revokeAllToken(UserEntity user) {
-        refreshTokenRepository.updateStatusByUserAndCurrentStatus(
-                user, RefreshTokenStatus.INACTIVE);
+        refreshTokenRepository.updateStatusByUserAndCurrentStatus(user, RefreshTokenStatus.INACTIVE);
     }
 
-    //TODO: подумай как правильно выбрасывать ошибки(про фильтр до ендпоинтах в секьюрити чейн и в бизнес логике)
+    // TODO: подумай как правильно выбрасывать ошибки(про фильтр до ендпоинтах в секьюрити чейн и в бизнес логике)
 
     @Transactional
     public AuthResponse refreshToken(RefreshRequest refreshRequest) {
@@ -128,7 +128,6 @@ public class AuthService {
 
             throw new TokenExpiredException("Refresh token expired");
         }
-
 
         if (!refreshToken.getUser().getRoles().contains(refreshRequest.asRole())) {
             revokeToken(tokenHash);

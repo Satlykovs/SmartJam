@@ -86,6 +86,5 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshTokenEntity
     WHERE r.user = :user
 """)
     int updateStatusByUserAndCurrentStatus(
-            @Param("user") UserEntity user,
-            @Param("newStatus") RefreshTokenStatus newStatus);
+            @Param("user") UserEntity user, @Param("newStatus") RefreshTokenStatus newStatus);
 }

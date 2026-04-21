@@ -19,8 +19,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-
-//TODO: обработать исключения кастомные
+// TODO: обработать исключения кастомные
 
 /**
  * Global REST exception handler that converts server-side exceptions into standardized HTTP responses with
@@ -33,17 +32,12 @@ public class GlobalExceptionHandler {
     /**
      * Builds a standardized error response DTO with the provided status, code, and message.
      *
-     * @param status  HTTP status to return
+     * @param status HTTP status to return
      * @param message human-readable error message
      * @return response entity containing the error DTO
      */
     private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String message) {
-        var dto = new ErrorResponse(
-                Instant.now(),
-                status.value(),
-                status.getReasonPhrase(),
-                message
-        );
+        var dto = new ErrorResponse(Instant.now(), status.value(), status.getReasonPhrase(), message);
 
         return ResponseEntity.status(status).body(dto);
     }
@@ -165,7 +159,7 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
     }
 
-    //INFO: это вообще не работает, не знаю как обрабатывать отдельно каждую аннотацию валидации
+    // INFO: это вообще не работает, не знаю как обрабатывать отдельно каждую аннотацию валидации
     @ExceptionHandler(HandlerMethodValidationException.class)
     public ResponseEntity<ErrorResponse> handleMethodValidation(HandlerMethodValidationException e) {
 

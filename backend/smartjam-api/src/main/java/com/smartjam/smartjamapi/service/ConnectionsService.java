@@ -1,5 +1,8 @@
 package com.smartjam.smartjamapi.service;
 
+import java.security.SecureRandom;
+import java.util.*;
+
 import com.smartjam.api.model.*;
 import com.smartjam.smartjamapi.entity.ConnectionsEntity;
 import com.smartjam.smartjamapi.entity.UserEntity;
@@ -19,10 +22,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.security.SecureRandom;
-import java.util.*;
-
-//TODO: дофига исключений надо поймать ужас просто, подумай какие
+// TODO: дофига исключений надо поймать ужас просто, подумай какие
 
 @Service
 @RequiredArgsConstructor
@@ -65,7 +65,7 @@ public class ConnectionsService {
 
         UUID userUUID = UUID.fromString(userId);
 
-        if(userUUID.equals(connection.getTeacher().getId())){
+        if (userUUID.equals(connection.getTeacher().getId())) {
             throw new CannotJoinSelfException("Teacher cannot join their own connection");
         }
 
@@ -85,18 +85,18 @@ public class ConnectionsService {
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
-
         String[] argsSort = sort.split(", ");
         System.out.println(Arrays.toString(argsSort));
-        Pageable pageable = PageRequest.of(page, size,
-                argsSort[1].equals("asc") ?
-                        Sort.by(argsSort[0]).ascending() :
-                        Sort.by(argsSort[0]).descending());
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                argsSort[1].equals("asc")
+                        ? Sort.by(argsSort[0]).ascending()
+                        : Sort.by(argsSort[0]).descending());
 
-        Page<ConnectionsEntity> pageConnection = authorities.getFirst().equals("ROLE_TEACHER") ?
-                repository.findAllByTeacherIdAndStatus(userId,ConnectionsStatus.ACTIVE, pageable) :
-                repository.findAllByStudentIdAndStatus(userId, ConnectionsStatus.ACTIVE, pageable);
-
+        Page<ConnectionsEntity> pageConnection = authorities.getFirst().equals("ROLE_TEACHER")
+                ? repository.findAllByTeacherIdAndStatus(userId, ConnectionsStatus.ACTIVE, pageable)
+                : repository.findAllByStudentIdAndStatus(userId, ConnectionsStatus.ACTIVE, pageable);
 
         PageInfo pageInfo = new PageInfo(
                 pageConnection.getTotalElements(),
@@ -106,9 +106,8 @@ public class ConnectionsService {
 
         List<ConnectionResponse> responses = pageConnection.stream()
                 .map(entity -> {
-                    UserEntity peer = entity.getTeacher().getId().equals(userId)
-                            ? entity.getStudent()
-                            : entity.getTeacher();
+                    UserEntity peer =
+                            entity.getTeacher().getId().equals(userId) ? entity.getStudent() : entity.getTeacher();
 
                     return new ConnectionResponse(
                             entity.getId(),
@@ -117,8 +116,7 @@ public class ConnectionsService {
                             peer.getFirstName(),
                             peer.getLastName(),
                             peer.getAvatarUrl(),
-                            entity.getCreatedAt()
-                    );
+                            entity.getCreatedAt());
                 })
                 .toList();
 

@@ -200,5 +200,4 @@ public class GlobalExceptionHandler {
         log.warn("Self join attempt: {}", e.getMessage());
         return buildResponse(HttpStatus.BAD_REQUEST, e.getMessage());
     }
-
 }

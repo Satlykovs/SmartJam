@@ -37,6 +37,6 @@ public class ConnectionsController implements ConnectionsApi {
     @Override
     public ResponseEntity<ConnectionPageResponse> getMyConnections(Integer page, Integer size, String sort) {
         log.info("Calling getMyConnections");
-        return  ResponseEntity.status(HttpStatus.OK).body(connectionsService.getMyConnections(page, size, sort));
+        return ResponseEntity.status(HttpStatus.OK).body(connectionsService.getMyConnections(page, size, sort));
     }
 }

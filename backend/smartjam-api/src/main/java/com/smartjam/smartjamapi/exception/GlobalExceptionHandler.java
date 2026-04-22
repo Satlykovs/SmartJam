@@ -188,4 +188,17 @@ public class GlobalExceptionHandler {
         log.warn("Registration conflict: {}", e.getMessage());
         return buildResponse(HttpStatus.CONFLICT, e.getMessage());
     }
+
+    @ExceptionHandler(ConnectionAlreadyActiveException.class)
+    public ResponseEntity<ErrorResponse> handleConnectionAlreadyActiveException(ConnectionAlreadyActiveException e) {
+        log.warn("Connection conflict: {}", e.getMessage());
+        return buildResponse(HttpStatus.CONFLICT, e.getMessage());
+    }
+
+    @ExceptionHandler(CannotJoinSelfException.class)
+    public ResponseEntity<ErrorResponse> handleSelfJoinNotAllowed(CannotJoinSelfException e) {
+        log.warn("Self join attempt: {}", e.getMessage());
+        return buildResponse(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
 }

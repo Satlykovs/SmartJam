@@ -1,0 +1,821 @@
+openapi: 3.0.3
+info:
+  title: SmartJam API
+  version: 1.0.0
+  contact:
+    name: SmartJam Team
+    email: satlykovs@gmail.com
+    url: https://github.com/Satlykovs/SmartJam
+  description: |
+    Interactive Music Learning and Performance Analysis System.
+    
+    **Development Team:**
+    - Sanjar Satlykov ([satlykovs@gmail.com](mailto:satlykovs@gmail.com))
+    - Anton Podrezov ([toni.podrezov@gmail.com](mailto:toni.podrezov@gmail.com))
+    - Serj Baskov ([baskovs450@gmail.com](mailto:baskovs450@gmail.com))
+    
+    **Supervised by:**
+    - Andrey Sheremeev ([sheremeev.andrey@gmail.com](mailto:sheremeev.andrey@gmail.com))
+
+
+servers:
+  - url: 'http://localhost:8081'
+    description: Local Development Server
+  - url: '/'
+    description: Current Environment
+
+
+security:
+  - bearerAuth: [ ]
+
+paths:
+  /api/v1/auth/register:
+    post:
+      tags:
+        - Auth
+      security: [ ]
+      summary: Register a new user
+      description: Creates a new user account and returns a pair of JWT tokens (Access & Refresh).
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User successfully registered and authenticated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validation error or user already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Auth
+      security: [ ]
+      summary: Authenticate user
+      description: Authenticates a user using email and password, returning a new pair of JWT tokens.
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Successful authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/refresh:
+    post:
+      tags:
+        - Auth
+      security: [ ]
+      summary: Refresh tokens
+      description: Accepts a valid refresh token and issues a new pair of JWT tokens. The old refresh token will be invalidated.
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Tokens successfully refreshed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid or expired refresh token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+
+  /api/v1/users/me:
+    get:
+      tags:
+        - Profile
+      summary: Get current user profile
+      description: Returns info about the logged-in user based on the provided JWT.
+      operationId: getCurrentUserProfile
+      responses:
+        '200':
+          description: User profile data retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/connections/invite:
+    post:
+      tags:
+        - Connections
+      summary: Create invite code
+      description: (Teacher only) Generates a new code for students.
+      operationId: createInvite
+      responses:
+        '201':
+          description: Code created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InviteResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/connections/join:
+    post:
+      tags:
+        - Connections
+      summary: Join a teacher
+      description: (Student only) Connects student to a teacher via code.
+      operationId: joinTeacher
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JoinRequest'
+      responses:
+        '200':
+          description: Joined successfully.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: Invalid code.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/connections:
+    get:
+      tags:
+        - Connections
+      summary: Get my active connections
+      description: Returns a paginated list of active student-teacher connections for the authenticated user.
+      operationId: getMyConnections
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - $ref: '#/components/parameters/SortParam'
+      responses:
+        '200':
+          description: List of active connections retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionPageResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/connections/{connectionId}/assignments:
+    parameters:
+      - name: connectionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags:
+        - Assignments
+      summary: List assignments in a connection
+      description: Returns paginated list of exercises created for this teacher-student connection.
+      operationId: getAssignmentsByConnection
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - $ref: '#/components/parameters/SortParam'
+      responses:
+        '200':
+          description: List of assignments retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignmentPageResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/assignments:
+    post:
+      tags:
+        - Assignments
+      summary: Create a new assignment
+      description: (Teacher only) Creates a new task and returns the S3 presigned URL to upload the reference audio file.
+      operationId: createAssignment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAssignmentRequest'
+      responses:
+        '201':
+          description: Assignment created. Use the uploadUrl to send the audio file via HTTP PUT.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignmentUploadResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/assignments/{assignmentId}:
+    parameters:
+      - name: assignmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags:
+        - Assignments
+      summary: Get assignment details
+      operationId: getAssignment
+      responses:
+        '200':
+          description: Details of the assignment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignmentResponseDetailed'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: Assignment not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/assignments/{assignmentId}/submissions:
+    parameters:
+      - name: assignmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags:
+        - Submissions
+      summary: Submit an exercise attempt
+      description: (Student only) Registers a new attempt and returns an S3 presigned URL to upload the attempt audio file.
+      operationId: createSubmission
+      responses:
+        '201':
+          description: Submission registered. Use the uploadUrl to send the audio file via HTTP PUT.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionUploadResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          description: Conflict - Teacher file is not ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Submissions
+      summary: List submissions for an assignment
+      description: Returns a paginated list of all attempts made by the student for this specific exercise.
+      operationId: getSubmissionsByAssignment
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - $ref: '#/components/parameters/SortParam'
+      responses:
+        '200':
+          description: List of submissions retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionPageResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/submissions/{submissionId}:
+    parameters:
+      - name: submissionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags:
+        - Submissions
+      summary: Get the submission analysis status and result
+      description: Returns the analysis status and computed scores with feedback events.
+      operationId: getSubmissionResult
+      responses:
+        '200':
+          description: Analysis result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionResultResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Provide your JWT token obtained from the login endpoint.
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    SizeParam:
+      name: size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    SortParam:
+      name: sort
+      in: query
+      schema:
+        type: string
+        default: "createdAt,desc"
+
+  schemas:
+    RegisterRequest:
+      type: object
+      description: Payload required to register a new user.
+      required:
+        - email
+        - username
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "rickroll@gmail.com"
+        username:
+          type: string
+          example: "Doomslayer"
+          minLength: 3
+          maxLength: 20
+          pattern: '^\w+$'
+        password:
+          type: string
+          format: password
+          example: "VeryStrongPassword123!"
+          pattern: '^(?=[^A-Z]*[A-Z])(?=[^a-z]*[a-z])(?=\D*\d)(?=[^#?!@$%^&*-]*[#?!@$%^&*-]).{8,20}$'
+
+    LoginRequest:
+      type: object
+      description: Payload required for user authentication.
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "rickroll@gmail.com"
+        password:
+          type: string
+          format: password
+          example: "VeryStrongPassword123!"
+
+    RefreshRequest:
+      type: object
+      description: Payload required to refresh JWT tokens.
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          description: The valid refresh token previously issued to the user.
+
+    JoinRequest:
+      type: object
+      description: Payload required to join a room using an invitation code.
+      required:
+        - inviteCode
+      properties:
+        inviteCode:
+          type: string
+          example: "ABC-123-XYZ"
+          description: Invitation code provided by the teacher.
+
+    CreateAssignmentRequest:
+      type: object
+      description: Payload to create a new assignment.
+      required:
+        - connectionId
+        - title
+      properties:
+        connectionId:
+          type: string
+          format: uuid
+          description: ID of the teacher-student connection.
+        title:
+          type: string
+          example: "RHCP Californication solo."
+        description:
+          type: string
+          example: "Try playing it slow with a metronome."
+
+    AuthResponse:
+      type: object
+      description: Contains the JWT access token and refresh token.
+      required:
+        - accessToken
+        - refreshToken
+      properties:
+        accessToken:
+          type: string
+          description: Short-lived JWT token for API authorization.
+        refreshToken:
+          type: string
+          description: Long-lived JWT token used to obtain a new pair of tokens.
+
+    UserResponse:
+      type: object
+      description: Detailed user profile data.
+      required:
+        - id
+        - username
+        - email
+        - roles
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+          example: "rickroll@gmail.com"
+        username:
+          type: string
+          example: "Doomslayer"
+        firstName:
+          type: string
+          example: "John"
+        lastName:
+          type: string
+          example: "Frusciante"
+        avatarUrl:
+          type: string
+          format: uri
+          description: "S3 url to the user's avatar image."
+        roles:
+          type: array
+          items:
+            type: string
+          example: [ "STUDENT" ]
+
+    InviteResponse:
+      type: object
+      description: Response containing the generated invitation code.
+      required:
+        - inviteCode
+      properties:
+        inviteCode:
+          type: string
+          example: "ABC-123-XYZ"
+
+    PageInfo:
+      type: object
+      description: Pagination metadata.
+      required:
+        - totalElements
+        - totalPages
+        - number
+        - size
+      properties:
+        totalElements:
+          type: integer
+          format: int64
+          example: 10
+          description: Total count of items across all pages.
+        totalPages:
+          type: integer
+          example: 1
+        number:
+          type: integer
+          example: 0
+          description: Current page index.
+        size:
+          type: integer
+          example: 20
+          description: Items per page.
+
+    ConnectionResponse:
+      type: object
+      description: Brief information about a teacher-student connection.
+      required:
+        - id
+        - peerId
+        - peerUsername
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Connection ID.
+        peerId:
+          type: string
+          format: uuid
+          description: ID of the student (if you are a teacher) or teacher (if you are a student).
+        peerUsername:
+          type: string
+          example: "Doomslayer"
+        peerFirstName:
+          type: string
+          example: "John"
+        peerLastName:
+          type: string
+          example: "Frusciante"
+        peerAvatarUrl:
+          type: string
+          format: uri
+        createdAt:
+          type: string
+          format: date-time
+
+    AssignmentResponse:
+      type: object
+      description: Brief exercise information for list display.
+      required:
+        - id
+        - title
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          example: "RHCP Californication Solo"
+        status:
+          $ref: './common-models.yaml#/components/schemas/AudioProcessingStatus'
+        createdAt:
+          type: string
+          format: date-time
+
+    SubmissionResponse:
+      type: object
+      description: Brief submission information for list display.
+      required:
+        - id
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          $ref: './common-models.yaml#/components/schemas/AudioProcessingStatus'
+        totalScore:
+          type: number
+          format: double
+        createdAt:
+          type: string
+          format: date-time
+
+    ConnectionPageResponse:
+      type: object
+      required:
+        - content
+        - page
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConnectionResponse'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+
+    AssignmentPageResponse:
+      type: object
+      required:
+        - content
+        - page
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssignmentResponse'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+
+    SubmissionPageResponse:
+      type: object
+      required:
+        - content
+        - page
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubmissionResponse'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+
+    AssignmentResponseDetailed:
+      type: object
+      required:
+        - id
+        - title
+        - status
+        - referenceAudioUrl
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          example: "RHCP Californication solo."
+        description:
+          type: string
+          example: "Try playing it slow with a metronome."
+        status:
+          $ref: './common-models.yaml#/components/schemas/AudioProcessingStatus'
+        referenceAudioUrl:
+          type: string
+          format: uri
+          description: "URL to the teacher audio file."
+    
+    AssignmentUploadResponse:
+      type: object
+      description: Returns the assignment ID and the URL for S3 upload.
+      required:
+        - assignmentId
+        - uploadUrl
+      properties:
+        assignmentId:
+          type: string
+          format: uuid
+        uploadUrl:
+          type: string
+          format: uri
+          description: Temporary S3 URL. Use HTTP PUT to upload audio file here.
+
+    SubmissionUploadResponse:
+      type: object
+      description: Returns the submission ID and the URL for for S3 upload.
+      required:
+        - submissionId
+        - uploadUrl
+      properties:
+        submissionId:
+          type: string
+          format: uuid
+        uploadUrl:
+          type: string
+          format: uri
+
+    SubmissionResultResponse:
+      type: object
+      description: Information about student's attempt on an assignment.
+      required:
+        - id
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          $ref: './common-models.yaml#/components/schemas/AudioProcessingStatus'
+        totalScore:
+          type: number
+          format: double
+        pitchScore:
+          type: number
+          format: double
+        rhythmScore:
+          type: number
+          format: double
+        errorMessage:
+          type: string
+          description: Error message if the analysis failed.
+        referenceAudioUrl:
+          type: string
+          format: uri
+          description: Presigned S3 GET URL for the teacher's reference audio.
+        submissionAudioUrl:
+          type: string
+          format: uri
+          description: Presigned S3 GET URL for the student's submission audio.
+        feedback:
+          type: array
+          description: Array of errors detected during performance.
+          items:
+            $ref: './common-models.yaml#/components/schemas/FeedbackEvent'
+
+    ErrorResponse:
+      type: object
+      description: Standardized error response returned by the API.
+      required:
+        - timestamp
+        - status
+        - error
+        - message
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description:
+            The time the error occurred.
+        status:
+          type: integer
+          format: int32
+          description: HTTP status code.
+          example: 400
+        error:
+          type: string
+          description: Short description of the error.
+          example: "Bad Request"
+        message:
+          type: string
+          description: Detailed error message.
+          example: "Email already in use."
+
+  responses:
+    UnauthorizedError:
+      description: Access token is missing or invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            timestamp: "2026-04-05T12:00:00Z"
+            status: 401
+            error: "Unauthorized"
+            message: "Auth is required to access this resource"
+
+
+    ForbiddenError:
+      description: You do not have the required role to access this resource.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            timestamp: "2026-04-05T12:00:00Z"
+            status: 403
+            error: "Forbidden"
+            message: "Access denied: Teacher role required"
+
+

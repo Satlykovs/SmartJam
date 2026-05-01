@@ -46,7 +46,7 @@ public class UserEntity {
     private UUID id;
 
     /** Unique username of the user shown in the UI. Must not be {@code null}. */
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String username;
 
     /**
@@ -69,14 +69,11 @@ public class UserEntity {
     @Column(name = "last_name")
     private String lastName;
 
-    /** Optional URL pointing to the user's avatar image. Supports long URLs (up to 2048 characters). */
+    /** Optional URL pointing to the user's avatar image. */
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
 
-    /**
-     * The role of the user, determining their permissions within the platform. Defaults to {@link Role#STUDENT} for all
-     * newly created users. Persisted as a {@link String} in the database.
-     */
+    /** Set of user Roles {@link Role} */
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
     @Enumerated(EnumType.STRING)

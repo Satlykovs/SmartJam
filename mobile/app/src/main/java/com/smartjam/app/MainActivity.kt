@@ -9,10 +9,16 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.navigation.compose.rememberNavController
+import androidx.room.Room
+import com.smartjam.app.data.api.AuthApi
 import com.smartjam.app.data.api.NetworkModule
+import com.smartjam.app.data.api.SmartJamApi
+import com.smartjam.app.data.local.SmartJamDatabase
 import com.smartjam.app.data.local.TokenStorage
 import com.smartjam.app.domain.repository.AuthRepository
+import com.smartjam.app.domain.repository.ConnectionRepository
 import com.smartjam.app.ui.navigation.SmartJamNavGraph
+import kotlin.jvm.java
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,8 +26,20 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val tokenStorage = TokenStorage(context = this)
-        val authApi = NetworkModule.authApi
+
+        val appDatabase = Room.databaseBuilder(
+            applicationContext,
+            SmartJamDatabase::class.java,
+            "smartjam_database"
+        ).build()
+
+
+        val retrofit = NetworkModule.createRetrofit(tokenStorage)
+        val smartJamApi = retrofit.create(SmartJamApi::class.java)
+        val authApi = retrofit.create(AuthApi::class.java)
+
         val authRepository = AuthRepository(tokenStorage, authApi)
+        val connectionRepository = ConnectionRepository(smartJamApi, appDatabase.connectionDao())
 
         setContent {
             val navController = rememberNavController()
@@ -30,9 +48,12 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxSize(),
                 color = Color(0xFF05050A)
             ) {
+
                 SmartJamNavGraph(
                     navController = navController,
-                    authRepository = authRepository
+                    authRepository = authRepository,
+                    connectionRepository = connectionRepository,
+                    tokenStorage = tokenStorage
                 )
             }
         }

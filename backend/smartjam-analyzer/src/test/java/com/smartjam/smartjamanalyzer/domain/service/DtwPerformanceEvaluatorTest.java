@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import com.smartjam.common.dto.FeedbackEvent;
+import com.smartjam.common.model.FeedbackEvent;
 import com.smartjam.common.model.FeedbackType;
 import com.smartjam.smartjamanalyzer.domain.model.AnalysisResult;
 import com.smartjam.smartjamanalyzer.domain.model.FeatureSequence;

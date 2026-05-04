@@ -455,7 +455,6 @@ components:
         - STUDENT
         - TEACHER
 
-
     JoinRequest:
       type: object
       description: Payload required to join a room using an invitation code.

@@ -91,7 +91,7 @@ paths:
         - Auth
       security: [ ]
       summary: Refresh tokens
-      description: Accepts a valid refresh token and issues a new pair of JWT tokens. The old refresh token will be invalidated.
+      description: Accepts a valid refresh token and issues a new pair of tokens. The old refresh token will be invalidated.
       operationId: refreshToken
       requestBody:
         required: true
@@ -455,6 +455,7 @@ components:
         - STUDENT
         - TEACHER
 
+
     JoinRequest:
       type: object
       description: Payload required to join a room using an invitation code.
@@ -496,7 +497,7 @@ components:
           description: Short-lived JWT token for API authorization.
         refreshToken:
           type: string
-          description: Long-lived JWT token used to obtain a new pair of tokens.
+          description: Long-lived token used to obtain a new pair of tokens.
 
     UserResponse:
       type: object

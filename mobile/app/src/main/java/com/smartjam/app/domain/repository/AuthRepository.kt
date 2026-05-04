@@ -6,14 +6,16 @@ import com.smartjam.app.data.local.TokenStorage
 import com.smartjam.app.data.model.LoginRequest
 import com.smartjam.app.data.model.RefreshRequest
 import com.smartjam.app.data.model.RegisterRequest
+import com.smartjam.app.domain.model.UserRole
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 
 class AuthRepository (
     private val tokenStorage: TokenStorage,
-    private val authApi: AuthApi = NetworkModule.authApi
+    private val authApi: AuthApi
 ) {
 
-    suspend fun register(email: String, password: String, username: String, role: String): Result<Unit> {
+    suspend fun register(email: String, password: String, username: String, role: UserRole): Result<Unit> {
         return try {
             val response = authApi.register(RegisterRequest(email, password, username, role))
 
@@ -26,6 +28,7 @@ class AuthRepository (
 
             Result.success(Unit)
         } catch (e: Exception) {
+            if (e is CancellationException) throw e;
             Result.failure(e)
         }
     }
@@ -41,6 +44,7 @@ class AuthRepository (
             )
             Result.success(Unit)
         } catch (e: Exception){
+            if (e is CancellationException) throw e;
             Result.failure(e)
         }
     }
@@ -69,8 +73,14 @@ class AuthRepository (
             return true
 
         } catch (e: Exception){
-            tokenStorage.clearTokens()
-            return false
+            if (e is CancellationException) {
+                throw e
+            }
+            else{
+                tokenStorage.clearTokens()
+                return false
+            }
+
         }
     }
 

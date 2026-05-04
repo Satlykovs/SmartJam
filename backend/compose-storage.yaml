@@ -1,0 +1,128 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: smartjam-postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: smartjam
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U admin -d smartjam" ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+      start_interval: 2s
+
+  db-init:
+    build:
+      context: .
+      dockerfile: db-init.Dockerfile
+    container_name: smartjam-db-init
+    volumes:
+      - ./smartjam-common/src/main/resources/db:/liquibase/changelog/db
+    command:
+      - --url=jdbc:postgresql://postgres:5432/smartjam
+      - --changelog-file=db/changelog/db.changelog-master.yaml
+      - --username=admin
+      - --password=admin
+      - update
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: smartjam-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  redis:
+    image: redis:latest
+    container_name: smartjam-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+      start_interval: 2s
+
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: smartjam-redis-ui
+    ports:
+      - "5540:5540"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  minio:
+    image: minio/minio:RELEASE.2024-03-26T22-10-45Z
+    container_name: smartjam-minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_NOTIFY_KAFKA_ENABLE_primary: "on"
+      MINIO_NOTIFY_KAFKA_BROKERS_primary: kafka:9092
+      MINIO_NOTIFY_KAFKA_TOPIC_primary: s3-events
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+
+  minio-init:
+    image: minio/mc
+    container_name: smartjam-minio-init
+    depends_on:
+      minio:
+        condition: service_started
+      kafka-init:
+        condition: service_completed_successfully
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -euo pipefail
+        until /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin; do
+          echo 'Waiting for MinIO server...'
+          sleep 1
+        done
+        
+        provision_bucket() {
+          BUCKET_NAME=$$1
+          echo "Provisioning bucket: $$BUCKET_NAME"
+        
+          /usr/bin/mc mb --ignore-existing myminio/$$BUCKET_NAME
+        
+        
+          echo "Resetting Kafka events for $$BUCKET_NAME..."
+          /usr/bin/mc event remove myminio/$$BUCKET_NAME arn:minio:sqs::primary:kafka --event put || true
+          /usr/bin/mc event add myminio/$$BUCKET_NAME arn:minio:sqs::primary:kafka --event put
+        }
+        
+        provision_bucket references
+        provision_bucket submissions
+        
+        echo "MinIO infrastructure setup complete."
+
+volumes:
+  postgres_data:
+  minio_data:

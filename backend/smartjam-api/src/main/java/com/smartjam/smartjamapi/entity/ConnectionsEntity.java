@@ -36,6 +36,7 @@ public class ConnectionsEntity {
     @Column(name = "invite_code", unique = true)
     private String inviteCode;
 
+    @Builder.Default
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private ConnectionsStatus status = ConnectionsStatus.PENDING;

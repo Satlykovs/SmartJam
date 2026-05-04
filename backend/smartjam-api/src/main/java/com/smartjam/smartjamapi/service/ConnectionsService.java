@@ -22,8 +22,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-// TODO: дофига исключений надо поймать ужас просто, подумай какие
-
 @Service
 @RequiredArgsConstructor
 public class ConnectionsService {
@@ -37,11 +35,10 @@ public class ConnectionsService {
         new SecureRandom().nextBytes(randomBytes);
         String inviteCode = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        UUID userUUID = UUID.fromString(
+                SecurityContextHolder.getContext().getAuthentication().getName());
 
-        String userId = auth.getName();
-
-        UserEntity teacher = userRepository.getReferenceById(UUID.fromString(userId));
+        UserEntity teacher = userRepository.getReferenceById(userUUID);
 
         ConnectionsEntity connection = new ConnectionsEntity();
         connection.setTeacher(teacher);
@@ -53,24 +50,22 @@ public class ConnectionsService {
 
     @Transactional
     public void joinTeacher(JoinRequest request) {
-        ConnectionsEntity connection = repository.findByInviteCode(request.inviteCode());
+        ConnectionsEntity connection = repository
+                .findByInviteCode(request.inviteCode())
+                .orElseThrow(() -> new NoSuchElementException("Invite code not found"));
 
         if (connection.getStatus() == ConnectionsStatus.ACTIVE) {
             throw new ConnectionAlreadyActiveException("Cannot join, connection is already active");
         }
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        String userId = auth.getName();
-
-        UUID userUUID = UUID.fromString(userId);
+        UUID userUUID = UUID.fromString(
+                SecurityContextHolder.getContext().getAuthentication().getName());
 
         if (userUUID.equals(connection.getTeacher().getId())) {
             throw new CannotJoinSelfException("Teacher cannot join their own connection");
         }
 
         UserEntity student = userRepository.getReferenceById(userUUID);
-
         connection.setStudent(student);
         connection.setStatus(ConnectionsStatus.ACTIVE);
 

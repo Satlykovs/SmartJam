@@ -1,7 +1,6 @@
 package com.smartjam.smartjamapi.service;
 
 import java.time.Instant;
-import java.util.NoSuchElementException;
 import java.util.Set;
 
 import com.smartjam.api.model.*;
@@ -9,15 +8,15 @@ import com.smartjam.smartjamapi.entity.RefreshTokenEntity;
 import com.smartjam.smartjamapi.entity.UserEntity;
 import com.smartjam.smartjamapi.enums.RefreshTokenStatus;
 import com.smartjam.smartjamapi.exception.TokenExpiredException;
-import com.smartjam.smartjamapi.exception.TokenNotFoundException;
-import com.smartjam.smartjamapi.exception.UserAlreadyExistsException;
+import com.smartjam.smartjamapi.exception.TokenReuseException;
 import com.smartjam.smartjamapi.mapper.UserMapper;
-import com.smartjam.smartjamapi.repository.RefreshTokenRepository;
 import com.smartjam.smartjamapi.repository.UserRepository;
 import com.smartjam.smartjamapi.security.jwt.JwtService;
 import com.smartjam.smartjamapi.security.jwt.RefreshTokenService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,11 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private final UserRepository repository;
-    private final RefreshTokenRepository refreshTokenRepository;
-
     private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
+    private final JwtService jwtService;
 
     private final UserMapper userMapper;
 
@@ -40,9 +37,9 @@ public class AuthService {
     public AuthResponse login(LoginRequest request) {
         UserEntity userEntity = repository
                 .findByEmail(request.email())
-                .orElseThrow(() -> new NoSuchElementException("Login not found, try register, please"));
+                .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
         if (!passwordEncoder.matches(request.password(), userEntity.getPasswordHash())) {
-            throw new IllegalStateException("Invalid password");
+            throw new BadCredentialsException("Invalid credentials");
         }
 
         String accessToken =
@@ -51,9 +48,9 @@ public class AuthService {
 
         RefreshTokenEntity refreshTokenEntity = refreshTokenService.create(userEntity, refreshToken);
 
-        revokeAllToken(userEntity);
+        refreshTokenService.revokeAllToken(userEntity);
 
-        refreshTokenRepository.save(refreshTokenEntity);
+        refreshTokenService.save(refreshTokenEntity);
 
         log.info("Login successful");
 
@@ -63,18 +60,13 @@ public class AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request) {
 
-        if (repository.existsByEmail(request.email())) {
-            throw new UserAlreadyExistsException("This email is already registered");
-        }
-
-        if (repository.existsByUsername(request.username())) {
-            throw new UserAlreadyExistsException("This username is already registered");
+        if (repository.existsByEmail(request.email()) || repository.existsByUsername(request.username())) {
+            throw new BadCredentialsException("Invalid credentials");
         }
 
         UserEntity userEntity = userMapper.toEntity(request);
 
-        userEntity.setRoles(
-                Set.of(UserRole.STUDENT, UserRole.TEACHER)); // INFO: возможно будет поменяно, но пока сразу две
+        userEntity.setRoles(Set.of(UserRole.STUDENT, UserRole.TEACHER)); // INFO: возможно надо будет поменять
 
         userEntity.setPasswordHash(passwordEncoder.encode(request.password()));
 
@@ -86,23 +78,13 @@ public class AuthService {
 
         RefreshTokenEntity refreshTokenEntity = refreshTokenService.create(userEntity, refreshToken);
 
-        revokeAllToken(userEntity);
-        refreshTokenRepository.save(refreshTokenEntity);
+        refreshTokenService.revokeAllToken(userEntity);
+        refreshTokenService.save(refreshTokenEntity);
 
         log.info("Register successful");
 
         return new AuthResponse(accessToken, refreshToken);
     }
-
-    protected void revokeToken(String tokenHash) {
-        refreshTokenRepository.setStatusByTokenHash(tokenHash, RefreshTokenStatus.INACTIVE);
-    }
-
-    protected void revokeAllToken(UserEntity user) {
-        refreshTokenRepository.updateStatusByUserAndCurrentStatus(user, RefreshTokenStatus.INACTIVE);
-    }
-
-    // TODO: подумай как правильно выбрасывать ошибки(про фильтр до ендпоинтах в секьюрити чейн и в бизнес логике)
 
     @Transactional
     public AuthResponse refreshToken(RefreshRequest refreshRequest) {
@@ -111,31 +93,26 @@ public class AuthService {
 
         log.debug(tokenHash);
 
-        RefreshTokenEntity refreshToken = refreshTokenRepository
-                .findByTokenHash(tokenHash)
-                .orElseThrow(() -> new TokenNotFoundException("Token not found, try login, please"));
+        RefreshTokenEntity refreshToken = refreshTokenService.findByTokenHash(tokenHash);
 
         if (refreshToken.getStatus() == RefreshTokenStatus.INACTIVE) {
-            revokeAllToken(refreshToken.getUser());
-            log.error(tokenHash);
-
-            throw new SecurityException("Token reuse detected");
+            refreshTokenService.revokeAllToken(refreshToken.getUser());
+            throw new TokenReuseException("Token reuse detected");
         }
 
         if (refreshToken.getExpiresAt().isBefore(Instant.now())) {
-            revokeToken(tokenHash);
-            log.error(tokenHash);
+            refreshTokenService.revokeToken(tokenHash);
 
             throw new TokenExpiredException("Refresh token expired");
         }
 
         if (!refreshToken.getUser().getRoles().contains(refreshRequest.asRole())) {
-            revokeToken(tokenHash);
+            refreshTokenService.revokeToken(tokenHash);
             log.error(refreshToken.getUser().getRoles().toString());
-            throw new SecurityException("User haven't this role");
+            throw new AccessDeniedException("User haven't this role");
         }
 
-        revokeToken(tokenHash);
+        refreshTokenService.revokeToken(tokenHash);
 
         UserEntity userEntity = refreshToken.getUser();
 
@@ -143,7 +120,7 @@ public class AuthService {
         String newRefreshToken = refreshTokenService.generateRefreshToken();
 
         RefreshTokenEntity refreshTokenEntity = refreshTokenService.create(userEntity, newRefreshToken);
-        refreshTokenRepository.save(refreshTokenEntity);
+        refreshTokenService.save(refreshTokenEntity);
 
         log.info("New tokens successfully created");
 

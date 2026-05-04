@@ -8,6 +8,7 @@ import com.smartjam.api.model.RegisterRequest;
 import com.smartjam.smartjamapi.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,7 +22,7 @@ public class AuthController implements AuthApi {
     @Override
     public ResponseEntity<AuthResponse> registerUser(RegisterRequest body) {
         log.info("Calling register");
-        return ResponseEntity.status(201).body(authService.register(body));
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(body));
     }
 
     @Override

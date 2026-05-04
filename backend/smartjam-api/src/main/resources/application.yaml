@@ -1,0 +1,51 @@
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/smartjam
+    username: admin
+    password: admin
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  kafka:
+    bootstrap-servers: localhost:29092
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+
+    consumer:
+      group-id: smartjam-api-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+
+
+
+springdoc:
+  swagger-ui:
+    path: /swagger
+    operations-sorter: alpha
+    tags-sorter: alpha
+    persist-authorization: true
+    url: /api.yaml
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  show-actuator: false
+
+security:
+  jwt:
+    secret-key: 9aycyLmiqbP9CrxjEad6YEZJkLBwMOIqeY0VI53Ih5l
+    expiration-time-access: 3600000
+    expiration-time-refresh: 604800000

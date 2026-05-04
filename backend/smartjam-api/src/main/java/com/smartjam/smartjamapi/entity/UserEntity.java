@@ -8,7 +8,7 @@ import java.util.UUID;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 
-import com.smartjam.smartjamapi.enums.Role;
+import com.smartjam.api.model.UserRole;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -53,12 +53,12 @@ public class UserEntity {
      * The user's email address, used as the unique login identifier. Must be a valid email format, non-null, and unique
      * across all users.
      */
-    @Column(nullable = false, unique = true, length = 255)
+    @Column(nullable = false, unique = true)
     @Email
     private String email;
 
     /** Bcrypt (or equivalent) hash of the user's password. The plain-text password is never stored. */
-    @Column(name = "password_hash", nullable = false, length = 255)
+    @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
     /** Optional first name of the user. */
@@ -73,12 +73,12 @@ public class UserEntity {
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
 
-    /** Set of user Roles {@link Role} */
+    /** Set of user Roles {@link UserRole} */
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
-    private Set<Role> roles = new HashSet<>();
+    private Set<UserRole> roles = new HashSet<>();
 
     /** Optional Firebase Cloud Messaging token used to send push notifications to the user's device. */
     @Column(name = "fcm_token")
@@ -86,7 +86,7 @@ public class UserEntity {
 
     /**
      * Timestamp of when the user record was first created. Set automatically by Hibernate on insert and never updated
-     * afterwards.
+     * afterward.
      */
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

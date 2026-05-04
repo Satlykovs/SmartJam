@@ -53,7 +53,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             Claims claims = jwtService.parseClaims(jwt);
             String subject = claims.getSubject();
 
-            String asRole = (String) claims.get("asRole");
+            String asRole = claims.get("asRole", String.class);
+
+            if (asRole == null || asRole.isBlank()) {
+                log.debug("JWT missing asRole claim for subject: {}", subject);
+                filterChain.doFilter(request, response);
+                return;
+            }
 
             List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + asRole));
 

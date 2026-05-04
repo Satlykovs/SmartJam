@@ -10,7 +10,10 @@ import com.smartjam.api.model.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -18,8 +21,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
-
-// TODO: обработать исключения кастомные
 
 /**
  * Global REST exception handler that converts server-side exceptions into standardized HTTP responses with
@@ -40,6 +41,45 @@ public class GlobalExceptionHandler {
         var dto = new ErrorResponse(Instant.now(), status.value(), status.getReasonPhrase(), message);
 
         return ResponseEntity.status(status).body(dto);
+    }
+
+    /**
+     * Handles cases where a refresh token has already been used (potential theft).
+     *
+     * @param e thrown exception
+     * @return unauthorized response with reuse message
+     */
+    @ExceptionHandler(TokenReuseException.class)
+    public ResponseEntity<ErrorResponse> handleTokenReuse(TokenReuseException e) {
+        log.error("CRITICAL SECURITY ISSUE: {}", e.getMessage());
+
+        return buildResponse(HttpStatus.UNAUTHORIZED, e.getMessage());
+    }
+
+    /**
+     * Handles expired refresh tokens.
+     *
+     * @param e thrown exception
+     * @return unauthorized response with expiration message
+     */
+    @ExceptionHandler(TokenExpiredException.class)
+    public ResponseEntity<ErrorResponse> handleTokenExpired(TokenExpiredException e) {
+        log.warn("Token expired: {}", e.getMessage());
+
+        return buildResponse(HttpStatus.UNAUTHORIZED, e.getMessage());
+    }
+
+    /**
+     * Handles cases where a refresh token is not found in the database.
+     *
+     * @param e thrown exception
+     * @return unauthorized response with not found message
+     */
+    @ExceptionHandler(TokenNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleTokenNotFound(TokenNotFoundException e) {
+        log.warn("Token not found: {}", e.getMessage());
+
+        return buildResponse(HttpStatus.UNAUTHORIZED, e.getMessage());
     }
 
     /**
@@ -89,9 +129,16 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
-        log.warn("Validation failed", e);
+        String detailedErrors = e.getBindingResult().getFieldErrors().stream()
+                .map(fe -> "Field '" + fe.getField() + "': " + fe.getDefaultMessage())
+                .collect(Collectors.joining("; "));
 
-        return buildResponse(HttpStatus.BAD_REQUEST, "Invalid request data");
+        if (detailedErrors.isEmpty()) {
+            detailedErrors = "Invalid request data";
+        }
+
+        log.warn("DTO validation failed: {}", detailedErrors);
+        return buildResponse(HttpStatus.BAD_REQUEST, detailedErrors);
     }
 
     /**
@@ -105,19 +152,6 @@ public class GlobalExceptionHandler {
         log.warn("Bad request", e);
 
         return buildResponse(HttpStatus.BAD_REQUEST, "Invalid request data");
-    }
-
-    /**
-     * Handles missing elements requested from collections or services.
-     *
-     * @param e thrown exception
-     * @return not found response
-     */
-    @ExceptionHandler(NoSuchElementException.class)
-    public ResponseEntity<ErrorResponse> handleNoSuchElement(NoSuchElementException e) {
-        log.warn("Resource not found: {}", e.getMessage());
-
-        return buildResponse(HttpStatus.UNAUTHORIZED, "Invalid credentials");
     }
 
     /**
@@ -141,9 +175,24 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFound(NoResourceFoundException e) {
-        log.warn("Resource not found: {}", e.getMessage());
-
+        log.warn("URL not found: {}", e.getMessage());
         return buildResponse(HttpStatus.NOT_FOUND, "The requested resource was not found");
+    }
+
+    /**
+     * Handles cases where an authenticated user attempts to access a restricted resource.
+     *
+     * @return forbidden response
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied() {
+        log.warn(
+                "Access denied for user: {}",
+                SecurityContextHolder.getContext().getAuthentication() != null
+                        ? SecurityContextHolder.getContext().getAuthentication().getName()
+                        : "anonymous");
+
+        return buildResponse(HttpStatus.FORBIDDEN, "You don't have permission to perform this action");
     }
 
     /**
@@ -159,7 +208,12 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
     }
 
-    // INFO: это вообще не работает, не знаю как обрабатывать отдельно каждую аннотацию валидации
+    /**
+     * Handles validation errors from controller method parameters.
+     *
+     * @param e thrown exception
+     * @return bad request response
+     */
     @ExceptionHandler(HandlerMethodValidationException.class)
     public ResponseEntity<ErrorResponse> handleMethodValidation(HandlerMethodValidationException e) {
 
@@ -183,9 +237,63 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, detailedErrors);
     }
 
+    /**
+     * Handles conflicts when trying to register a user that already exists.
+     *
+     * @param e thrown exception
+     * @return conflict response
+     */
     @ExceptionHandler(UserAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleUserAlreadyExists(UserAlreadyExistsException e) {
         log.warn("Registration conflict: {}", e.getMessage());
         return buildResponse(HttpStatus.CONFLICT, e.getMessage());
+    }
+
+    /**
+     * Handles cases where a connection is already established and active.
+     *
+     * @param e thrown exception
+     * @return conflict response
+     */
+    @ExceptionHandler(ConnectionAlreadyActiveException.class)
+    public ResponseEntity<ErrorResponse> handleConnectionAlreadyActiveException(ConnectionAlreadyActiveException e) {
+        log.warn("Connection conflict: {}", e.getMessage());
+        return buildResponse(HttpStatus.CONFLICT, e.getMessage());
+    }
+
+    /**
+     * Handles business logic violations where a user tries to join their own entity.
+     *
+     * @param e thrown exception
+     * @return bad request response
+     */
+    @ExceptionHandler(CannotJoinSelfException.class)
+    public ResponseEntity<ErrorResponse> handleSelfJoinNotAllowed(CannotJoinSelfException e) {
+        log.warn("Self join attempt: {}", e.getMessage());
+        return buildResponse(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    /**
+     * Handles cases where a requested element is missing in the data source.
+     *
+     * @param e thrown exception
+     * @return not found response
+     */
+    @ExceptionHandler(NoSuchElementException.class)
+    public ResponseEntity<ErrorResponse> handleNoSuchElement(NoSuchElementException e) {
+        log.warn("Data not found: {}", e.getMessage());
+        return buildResponse(HttpStatus.NOT_FOUND, "Requested element not found");
+    }
+
+    /**
+     * Handles login failures due to wrong password or email.
+     *
+     * @param e thrown exception
+     * @return unauthorized response
+     */
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ErrorResponse> handleBadCredentials(BadCredentialsException e) {
+        log.warn("Login failed: {}", e.getMessage());
+        return buildResponse(HttpStatus.UNAUTHORIZED, "Invalid credentials");
     }
 }

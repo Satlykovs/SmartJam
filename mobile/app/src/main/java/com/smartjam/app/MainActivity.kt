@@ -24,6 +24,11 @@ import com.smartjam.app.domain.repository.AuthRepository
 import com.smartjam.app.domain.repository.ConnectionRepository
 import com.smartjam.app.ui.navigation.Screen
 import com.smartjam.app.ui.navigation.SmartJamNavGraph
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -64,38 +69,37 @@ class MainActivity : ComponentActivity() {
         val authRepository = AuthRepository(tokenStorage, authApi, apiClient)
         val connectionRepository = ConnectionRepository(connectionsApi, appDatabase.connectionDao())
 
-        val startDestination = runBlocking {
-            if (tokenStorage.isAuthenticated()) {
-                val isValid = try {
-                    authRepository.verifyAuthentication()
-                } catch (e: Exception) {
-                    false
-                }
-                if (isValid) {
-                    Screen.Home.route
+        setContent {
+            val navController = rememberNavController()
+            var startDestination by remember { mutableStateOf<String?>(null) }
+
+            LaunchedEffect(Unit) {
+                val tokenExists = tokenStorage.isAuthenticated()
+                startDestination = if (tokenExists) {
+                    val isValid = try {
+                        authRepository.verifyAuthentication()
+                    } catch (e: Exception) {
+                        false
+                    }
+                    if (isValid) Screen.Home.route else Screen.Login.route
                 } else {
                     Screen.Login.route
                 }
-            } else {
-                Screen.Login.route
             }
-        }
-
-        setContent {
-            val navController = rememberNavController()
 
             Surface(
                 modifier = Modifier.fillMaxSize(),
                 color = Color(0xFF05050A)
             ) {
-
-                SmartJamNavGraph(
-                    navController = navController,
-                    authRepository = authRepository,
-                    connectionRepository = connectionRepository,
-                    tokenStorage = tokenStorage,
-                    startDestination = startDestination
-                )
+                if (startDestination != null) {
+                    SmartJamNavGraph(
+                        navController = navController,
+                        authRepository = authRepository,
+                        connectionRepository = connectionRepository,
+                        tokenStorage = tokenStorage,
+                        startDestination = startDestination!!
+                    )
+                }
             }
         }
     }

@@ -34,7 +34,7 @@ android {
         }
 
         getByName("debug") {
-            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8000/\"")
+            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8081/\"")
         }
     }
     compileOptions {

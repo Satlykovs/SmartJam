@@ -5,6 +5,8 @@ import com.smartjam.app.data.local.TokenStorage
 import com.smartjam.app.model.RefreshRequest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import okhttp3.Authenticator
 import okhttp3.Request
 import okhttp3.Response
@@ -16,46 +18,53 @@ class AuthAuthenticator(
     private val baseUrl: String
 ) : Authenticator {
 
+    private val mutex = Mutex()
     var apiClient: ApiClient? = null
 
     override fun authenticate(route: Route?, response: Response): Request? {
-        val refreshToken = runBlocking { tokenStorage.refreshToken.first() } ?: return null
+        if (response.responseCount > 2) return null
 
-        if (response.responseCount > 2) {
-            return null
-        }
-
-        val authApiClient = ApiClient(baseUrl = baseUrl)
-        val authApi = authApiClient.createService(AuthApi::class.java)
-
-        return try {
-            val refreshResponse = runBlocking {
-                authApi.refreshToken(RefreshRequest(refreshToken))
-            }
-
-            if (refreshResponse.isSuccessful && refreshResponse.body() != null) {
-                val newAuthResponse = refreshResponse.body()!!
-                runBlocking {
-                    tokenStorage.saveToken(
-                        accessToken = newAuthResponse.accessToken,
-                        refreshToken = newAuthResponse.refreshToken
-                    )
+        return runBlocking {
+            mutex.withLock {
+                val currentToken = tokenStorage.accessToken.first()
+                val requestToken = response.request.header("Authorization")?.removePrefix("Bearer ")
+                if (currentToken != null && currentToken != requestToken) {
+                    return@runBlocking response.request.newBuilder()
+                        .header("Authorization", "Bearer $currentToken")
+                        .build()
                 }
 
-                apiClient?.setBearerToken(newAuthResponse.accessToken)
+                val refreshToken = tokenStorage.refreshToken.first() ?: return@runBlocking null
 
-                response.request.newBuilder()
-                    .header("Authorization", "Bearer ${newAuthResponse.accessToken}")
-                    .build()
-            } else {
-                runBlocking { tokenStorage.clearTokens() }
-                apiClient?.setBearerToken("")
-                null
+                val authApiClient = ApiClient(baseUrl = baseUrl)
+                val authApi = authApiClient.createService(AuthApi::class.java)
+
+                try {
+                    val refreshResponse = authApi.refreshToken(RefreshRequest(refreshToken))
+
+                    if (refreshResponse.isSuccessful && refreshResponse.body() != null) {
+                        val newAuthResponse = refreshResponse.body()!!
+                        tokenStorage.saveToken(
+                            accessToken = newAuthResponse.accessToken,
+                            refreshToken = newAuthResponse.refreshToken
+                        )
+
+                        apiClient?.setBearerToken(newAuthResponse.accessToken)
+
+                        response.request.newBuilder()
+                            .header("Authorization", "Bearer ${newAuthResponse.accessToken}")
+                            .build()
+                    } else {
+                        tokenStorage.clearTokens()
+                        apiClient?.setBearerToken("")
+                        null
+                    }
+                } catch (e: Exception) {
+                    tokenStorage.clearTokens()
+                    apiClient?.setBearerToken("")
+                    null
+                }
             }
-        } catch (e: Exception) {
-            runBlocking { tokenStorage.clearTokens() }
-            apiClient?.setBearerToken("")
-            null
         }
     }
 

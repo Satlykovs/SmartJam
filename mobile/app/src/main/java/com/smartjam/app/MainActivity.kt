@@ -10,15 +10,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.navigation.compose.rememberNavController
 import androidx.room.Room
-import com.smartjam.app.data.api.AuthApi
-import com.smartjam.app.data.api.NetworkModule
-import com.smartjam.app.data.api.SmartJamApi
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import org.openapitools.client.infrastructure.ApiClient
+import okhttp3.OkHttpClient
+import com.smartjam.app.api.AuthApi
+import com.smartjam.app.api.ConnectionsApi
+import com.smartjam.app.data.api.AuthAuthenticator
+
 import com.smartjam.app.data.local.SmartJamDatabase
 import com.smartjam.app.data.local.TokenStorage
 import com.smartjam.app.domain.repository.AuthRepository
 import com.smartjam.app.domain.repository.ConnectionRepository
+import com.smartjam.app.ui.navigation.Screen
 import com.smartjam.app.ui.navigation.SmartJamNavGraph
-import kotlin.jvm.java
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,30 +41,65 @@ class MainActivity : ComponentActivity() {
             applicationContext,
             SmartJamDatabase::class.java,
             "smartjam_database"
-        ).build()
+        )
+            .fallbackToDestructiveMigration(dropAllTables = true)
+            .build()
 
+        val baseUrl = BuildConfig.BASE_URL
+        val authenticator = AuthAuthenticator(tokenStorage, baseUrl)
 
-        val retrofit = NetworkModule.createRetrofit(tokenStorage)
-        val smartJamApi = retrofit.create(SmartJamApi::class.java)
-        val authApi = retrofit.create(AuthApi::class.java)
+        val okHttpClientBuilder = OkHttpClient.Builder()
+            .authenticator(authenticator)
 
-        val authRepository = AuthRepository(tokenStorage, authApi)
-        val connectionRepository = ConnectionRepository(smartJamApi, appDatabase.connectionDao())
+        val apiClient = ApiClient(
+            baseUrl = baseUrl,
+            okHttpClientBuilder = okHttpClientBuilder,
+            authNames = arrayOf("bearerAuth")
+        )
+        authenticator.apiClient = apiClient
+
+        val token = runBlocking { tokenStorage.accessToken.first() }
+        if (token != null) {
+            apiClient.setBearerToken(token)
+        }
+
+        val authApi = apiClient.createService(AuthApi::class.java)
+        val connectionsApi = apiClient.createService(ConnectionsApi::class.java)
+
+        val authRepository = AuthRepository(tokenStorage, authApi, apiClient)
+        val connectionRepository = ConnectionRepository(connectionsApi, appDatabase.connectionDao())
 
         setContent {
             val navController = rememberNavController()
+            var startDestination by remember { mutableStateOf<String?>(null) }
+
+            LaunchedEffect(Unit) {
+                val tokenExists = tokenStorage.isAuthenticated()
+                startDestination = if (tokenExists) {
+                    val isValid = try {
+                        authRepository.verifyAuthentication()
+                    } catch (e: Exception) {
+                        false
+                    }
+                    if (isValid) Screen.Home.route else Screen.Login.route
+                } else {
+                    Screen.Login.route
+                }
+            }
 
             Surface(
                 modifier = Modifier.fillMaxSize(),
                 color = Color(0xFF05050A)
             ) {
-
-                SmartJamNavGraph(
-                    navController = navController,
-                    authRepository = authRepository,
-                    connectionRepository = connectionRepository,
-                    tokenStorage = tokenStorage
-                )
+                if (startDestination != null) {
+                    SmartJamNavGraph(
+                        navController = navController,
+                        authRepository = authRepository,
+                        connectionRepository = connectionRepository,
+                        tokenStorage = tokenStorage,
+                        startDestination = startDestination!!
+                    )
+                }
             }
         }
     }

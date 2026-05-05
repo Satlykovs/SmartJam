@@ -32,9 +32,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartjam.app.domain.model.UserRole
-import com.smartjam.app.ui.screens.login.AppleGlassTextField
-import com.smartjam.app.ui.screens.login.AppleLiquidBackground
-import com.smartjam.app.ui.screens.login.GoldenStringsButton
+import com.smartjam.app.ui.components.AppleGlassTextField
+import com.smartjam.app.ui.components.AppleLiquidBackground
+import com.smartjam.app.ui.components.GoldenStringsButton
+import com.smartjam.app.ui.theme.BrandGold
+import com.smartjam.app.ui.theme.CoreBackground
+import com.smartjam.app.ui.theme.ErrorRed
 
 @Composable
 fun RegisterScreen(
@@ -57,7 +60,7 @@ fun RegisterScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF05050A))
+            .background(CoreBackground)
     ) {
         AppleLiquidBackground()
 
@@ -151,7 +154,7 @@ fun RegisterScreen(
                 if (state.errorMessage != null) {
                     Text(
                         text = state.errorMessage!!,
-                        color = Color(0xFFFF5252),
+                        color = ErrorRed,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -222,11 +225,11 @@ fun RoleButton(
     modifier: Modifier = Modifier
 ) {
     val backgroundColor by animateColorAsState(
-        targetValue = if (isSelected) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.Transparent,
+        targetValue = if (isSelected) BrandGold.copy(alpha = 0.2f) else Color.Transparent,
         label = "RoleColorAnimation"
     )
 
-    val textColor = if (isSelected) Color(0xFFFFD700) else Color.White.copy(alpha = 0.5f)
+    val textColor = if (isSelected) BrandGold else Color.White.copy(alpha = 0.5f)
 
     Box(
         modifier = modifier

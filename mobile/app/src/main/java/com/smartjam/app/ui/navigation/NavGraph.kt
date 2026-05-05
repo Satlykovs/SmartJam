@@ -32,11 +32,12 @@ fun SmartJamNavGraph(
     navController: NavHostController,
     authRepository: AuthRepository,
     connectionRepository: ConnectionRepository,
-    tokenStorage: TokenStorage
+    tokenStorage: TokenStorage,
+    startDestination: String = Screen.Login.route
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Home.route
+        startDestination = startDestination
     ) {
 
         composable(route = Screen.Login.route) {

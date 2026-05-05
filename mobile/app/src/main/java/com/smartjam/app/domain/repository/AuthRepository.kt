@@ -1,48 +1,67 @@
 package com.smartjam.app.domain.repository
 
-import com.smartjam.app.data.api.AuthApi
-import com.smartjam.app.data.api.NetworkModule
+import com.smartjam.app.api.AuthApi
+import com.smartjam.app.model.LoginRequest
+import com.smartjam.app.model.RefreshRequest
+import com.smartjam.app.model.RegisterRequest
 import com.smartjam.app.data.local.TokenStorage
-import com.smartjam.app.data.model.LoginRequest
-import com.smartjam.app.data.model.RefreshRequest
-import com.smartjam.app.data.model.RegisterRequest
 import com.smartjam.app.domain.model.UserRole
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
+import org.openapitools.client.infrastructure.ApiClient
+import com.smartjam.app.BuildConfig
 
 class AuthRepository (
     private val tokenStorage: TokenStorage,
-    private val authApi: AuthApi
+    private val authApi: AuthApi,
+    private val apiClient: ApiClient
 ) {
 
     suspend fun register(email: String, password: String, username: String, role: UserRole): Result<Unit> {
         return try {
-            val response = authApi.register(RegisterRequest(email, password, username, role))
+            val response = authApi.registerUser(RegisterRequest(email, username, password))
 
-            tokenStorage.saveToken(
-                accessToken = response.accessToken,
-                refreshToken = response.refreshToken,
-                accessExpiredAt = response.accessExpiresAt,
-                refreshExpiredAt = response.refreshExpiredAt
-            )
-
-            Result.success(Unit)
+            if (response.isSuccessful && response.body() != null) {
+                val authResponse = response.body()!!
+                tokenStorage.saveToken(
+                    accessToken = authResponse.accessToken,
+                    refreshToken = authResponse.refreshToken
+                )
+                apiClient.setBearerToken(authResponse.accessToken)
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Registration failed: ${response.code()}"))
+            }
         } catch (e: Exception) {
             if (e is CancellationException) throw e;
             Result.failure(e)
         }
     }
+
     suspend fun login(email: String, password: String): Result<Unit> {
         return try {
-            val response = authApi.login(LoginRequest(email, password))
+            if (BuildConfig.DEBUG && email == "admin" && password == "admin") {
+                tokenStorage.saveToken(
+                    accessToken = "mock_admin_access_token",
+                    refreshToken = "mock_admin_refresh_token"
+                )
+                apiClient.setBearerToken("mock_admin_access_token")
+                return Result.success(Unit)
+            }
 
-            tokenStorage.saveToken(
-                accessToken = response.accessToken,
-                refreshToken = response.refreshToken,
-                accessExpiredAt = response.accessExpiresAt,
-                refreshExpiredAt = response.refreshExpiredAt
-            )
-            Result.success(Unit)
+            val response = authApi.loginUser(LoginRequest(email, password))
+
+            if (response.isSuccessful && response.body() != null) {
+                val authResponse = response.body()!!
+                tokenStorage.saveToken(
+                    accessToken = authResponse.accessToken,
+                    refreshToken = authResponse.refreshToken
+                )
+                apiClient.setBearerToken(authResponse.accessToken)
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Login failed: ${response.code()}"))
+            }
         } catch (e: Exception){
             if (e is CancellationException) throw e;
             Result.failure(e)
@@ -51,26 +70,26 @@ class AuthRepository (
 
     suspend fun refreshToken(): Boolean {
         return try{
-            if (tokenStorage.isRefreshTokenExpired()){
+            val refreshTokenStr = tokenStorage.refreshToken.first()
+
+            if (refreshTokenStr == null){
+                return false
+            }
+            val response = authApi.refreshToken(RefreshRequest(refreshTokenStr))
+
+            if (response.isSuccessful && response.body() != null) {
+                val authResponse = response.body()!!
+                tokenStorage.saveToken(
+                    accessToken = authResponse.accessToken,
+                    refreshToken = authResponse.refreshToken
+                )
+                apiClient.setBearerToken(authResponse.accessToken)
+                return true
+            } else {
                 tokenStorage.clearTokens()
+                apiClient.setBearerToken("")
                 return false
             }
-
-            val refreshToken = tokenStorage.refreshToken.first()
-
-            if (refreshToken == null){
-                return false
-            }
-            val responce = authApi.refresh(RefreshRequest(refreshToken))
-
-            tokenStorage.saveToken(
-                accessToken = responce.accessToken,
-                refreshToken = responce.refreshToken,
-                accessExpiredAt = responce.accessExpiresAt,
-                refreshExpiredAt = responce.refreshExpiredAt
-            )
-
-            return true
 
         } catch (e: Exception){
             if (e is CancellationException) {
@@ -78,6 +97,7 @@ class AuthRepository (
             }
             else{
                 tokenStorage.clearTokens()
+                apiClient.setBearerToken("")
                 return false
             }
 
@@ -86,6 +106,7 @@ class AuthRepository (
 
     suspend fun logout() {
         tokenStorage.clearTokens()
+        apiClient.setBearerToken("")
     }
 
     suspend fun isAuthenticated(): Boolean{
@@ -100,26 +121,17 @@ class AuthRepository (
         return tokenStorage.refreshToken.first()
     }
 
-    suspend fun getAccessTokenExpiredIn(): Long?{
-        val accessExpires = tokenStorage.accessExpiredAt.first()
-
-        if (accessExpires == null){
-            return null
+    suspend fun verifyAuthentication(): Boolean {
+        if (BuildConfig.DEBUG) {
+            val token = tokenStorage.accessToken.first()
+            if (token == "mock_admin_access_token") {
+                return true
+            }
         }
-
-        val currTime = System.currentTimeMillis()
-        return accessExpires - currTime
-    }
-
-    suspend fun getRefreshTokenExpiredIn(): Long?{
-        val refreshExpires = tokenStorage.refreshExpiredAt.first()
-
-        if (refreshExpires == null){
-            return null
+        val token = tokenStorage.refreshToken.first()
+        if (token.isNullOrEmpty()) {
+            return false
         }
-
-        val currTime = System.currentTimeMillis()
-        return refreshExpires - currTime
+        return refreshToken()
     }
-
 }

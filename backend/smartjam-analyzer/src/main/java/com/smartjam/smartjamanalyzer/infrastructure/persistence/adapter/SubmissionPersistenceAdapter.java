@@ -4,6 +4,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import com.smartjam.common.model.AudioProcessingStatus;
+import com.smartjam.smartjamanalyzer.domain.exception.AnalysisFatalException;
 import com.smartjam.smartjamanalyzer.domain.model.AnalysisResult;
 import com.smartjam.smartjamanalyzer.domain.port.ResultRepository;
 import com.smartjam.smartjamanalyzer.infrastructure.persistence.entity.SubmissionEntity;
@@ -30,7 +31,7 @@ public class SubmissionPersistenceAdapter implements ResultRepository {
     public void save(UUID submissionId, AnalysisResult result) {
         SubmissionEntity entity = repository
                 .findById(submissionId)
-                .orElseThrow(() -> new IllegalStateException("Submission record missing for ID: " + submissionId));
+                .orElseThrow(() -> new AnalysisFatalException("Submission record missing for ID: " + submissionId));
 
         entity.setTotalScore(result.totalScore());
         entity.setPitchScore(result.pitchScore());

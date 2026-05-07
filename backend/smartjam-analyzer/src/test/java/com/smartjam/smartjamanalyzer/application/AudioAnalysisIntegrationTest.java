@@ -43,7 +43,7 @@ class AudioAnalysisIntegrationTest {
     @DisplayName("Полный цикл анализа с замером производительности")
     void shouldPerformFullAnalysisCycle() throws Exception {
         Path teacherPath = Path.of("src/test/resources/californication_teacher.m4a");
-        Path studentPath = Path.of("src/test/resources/californication_stud.m4a");
+        Path studentPath = Path.of("src/test/resources/cant_stop_bad.m4a");
 
         StopWatch sw = new StopWatch("Audio Pipeline Benchmark");
 
@@ -80,7 +80,7 @@ class AudioAnalysisIntegrationTest {
                 ===========================================================
                 АНАЛИЗ ЗАВЕРШЕН: %s vs %s
                 ===========================================================
-                МЕТРИКИ КАЧЕСТВА:
+                МЕТРИКИ:
                 -> Общий балл:    %6.2f%%
                 -> Точность нот:  %6.2f%%
                 -> Ритм и темп:   %6.2f%%

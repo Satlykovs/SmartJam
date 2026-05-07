@@ -3,7 +3,7 @@ package com.smartjam.smartjamanalyzer.api.kafka;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
-import com.smartjam.common.dto.s3.S3EventDto;
+import com.smartjam.common.dto.s3.S3Event;
 import com.smartjam.smartjamanalyzer.application.AudioAnalysisUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,14 +32,14 @@ public class S3StorageListener {
             topics = "s3-events",
             groupId = "smartjam-analyzer-group",
             concurrency = "3",
-            properties = {"spring.json.value.default.type=com.smartjam.common.dto.s3.S3EventDto"})
-    public void onFileUploaded(S3EventDto event, Acknowledgment ack) {
+            properties = {"spring.json.value.default.type=com.smartjam.common.dto.s3.S3Event"})
+    public void onFileUploaded(S3Event event, Acknowledgment ack) {
         if (event == null || event.records() == null || event.records().isEmpty()) {
             if (ack != null) ack.acknowledge();
             return;
         }
 
-        for (S3EventDto.S3Record s3Record : event.records()) {
+        for (S3Event.S3Record s3Record : event.records()) {
 
             try {
 
@@ -61,7 +61,7 @@ public class S3StorageListener {
         }
     }
 
-    private boolean isValid(S3EventDto.S3Record r) {
+    private boolean isValid(S3Event.S3Record r) {
         return r != null
                 && r.s3() != null
                 && r.s3().bucket() != null

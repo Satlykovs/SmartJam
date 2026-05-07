@@ -3,7 +3,10 @@ package com.smartjam.smartjamanalyzer.application;
 import java.nio.file.Path;
 import java.util.UUID;
 
+import com.smartjam.common.dto.analysis.AnalysisFinishedEvent;
+import com.smartjam.common.dto.analysis.AnalysisType;
 import com.smartjam.common.model.AudioProcessingStatus;
+import com.smartjam.smartjamanalyzer.domain.exception.AnalysisFatalException;
 import com.smartjam.smartjamanalyzer.domain.model.AnalysisResult;
 import com.smartjam.smartjamanalyzer.domain.model.FeatureSequence;
 import com.smartjam.smartjamanalyzer.domain.port.*;
@@ -29,6 +32,8 @@ public class AudioAnalysisUseCase {
     private final ReferenceRepository referenceRepository;
     private final ResultRepository resultRepository;
     private final DebugVisualizer debugVisualizer;
+
+    private final AnalysisEventPublisher eventPublisher;
 
     public void execute(String bucket, String fileKey) {
 
@@ -74,15 +79,27 @@ public class AudioAnalysisUseCase {
 
             log.info("Результаты обработки {}: \n{}", fileKey, watch.prettyPrint());
 
+        } catch (AnalysisFatalException e) {
+            log.error("Fatal analysis error for file {}: {}", fileKey, e.getMessage(), e);
+
+            updateStatus(bucket, entityId, AudioProcessingStatus.FAILED, e.getMessage());
+            eventPublisher.publish(AnalysisFinishedEvent.builder()
+                    .targetId(entityId)
+                    .type(BUCKET_REFERENCES.equals(bucket) ? AnalysisType.REFERENCE : AnalysisType.SUBMISSION)
+                    .status(AudioProcessingStatus.FAILED)
+                    .errorMessage(e.getMessage())
+                    .build());
         } catch (Exception e) {
 
             String errorMsg =
                     e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
 
-            log.error("Ошибка в UseCase для файла {}: {}", fileKey, errorMsg, e);
+            log.error("Technical error for file {}: {}\n Retrying...", fileKey, errorMsg, e);
+
             updateStatus(bucket, entityId, AudioProcessingStatus.FAILED, errorMsg);
 
-            throw new RuntimeException("Business logic failed", e);
+            throw new RuntimeException("Technical failure, retrying...", e); // Хотелось бы сюда
+            // DLT и не ходить в базу при каждом ретрае
         }
     }
 
@@ -101,6 +118,12 @@ public class AudioAnalysisUseCase {
     private void handleTeacherReference(UUID assignmentId, FeatureSequence teacherFeatures) {
         log.info("Сохраняем извлеченные признаки учителя для задания: {}", assignmentId);
         referenceRepository.save(assignmentId, teacherFeatures);
+
+        eventPublisher.publish(AnalysisFinishedEvent.builder()
+                .targetId(assignmentId)
+                .type(AnalysisType.REFERENCE)
+                .status(AudioProcessingStatus.COMPLETED)
+                .build());
     }
 
     private void handleStudentSubmission(UUID submissionId, FeatureSequence studentFeatures) {
@@ -109,16 +132,23 @@ public class AudioAnalysisUseCase {
         UUID assignmentId = resultRepository
                 .findAssignmentIdBySubmissionId(submissionId)
                 .orElseThrow(() ->
-                        new IllegalStateException("Submission " + submissionId + " is not linked to any assignment"));
+                        new AnalysisFatalException("Submission " + submissionId + " is not linked to any assignment"));
 
         FeatureSequence teacherFeatures = referenceRepository
                 .findFeaturesById(assignmentId)
-                .orElseThrow(() -> new IllegalStateException(
+                .orElseThrow(() -> new AnalysisFatalException(
                         "Teacher reference features not found for assignment: " + assignmentId));
 
         AnalysisResult result = performanceEvaluator.evaluate(teacherFeatures, studentFeatures);
 
         resultRepository.save(submissionId, result);
+
+        eventPublisher.publish(AnalysisFinishedEvent.builder()
+                .targetId(submissionId)
+                .type(AnalysisType.SUBMISSION)
+                .status(AudioProcessingStatus.COMPLETED)
+                .totalScore(result.totalScore())
+                .build());
 
         try {
             debugVisualizer.generateHeatmap(result, "debug_" + submissionId + ".png");

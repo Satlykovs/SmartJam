@@ -4,6 +4,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import com.smartjam.common.model.AudioProcessingStatus;
+import com.smartjam.smartjamanalyzer.domain.exception.AnalysisFatalException;
 import com.smartjam.smartjamanalyzer.domain.model.FeatureSequence;
 import com.smartjam.smartjamanalyzer.domain.port.ReferenceRepository;
 import com.smartjam.smartjamanalyzer.infrastructure.persistence.entity.AssignmentEntity;
@@ -33,8 +34,7 @@ public class AssignmentPersistenceAdapter implements ReferenceRepository {
 
         AssignmentEntity entity = repository
                 .findById(assignmentId)
-                .orElseThrow(() -> new IllegalStateException("Assignment metadata missing for ID: " + assignmentId
-                        + ". It might have " + "been deleted or not created yet."));
+                .orElseThrow(() -> new AnalysisFatalException("Assignment metadata missing for ID: " + assignmentId));
 
         entity.setReferenceSpectreCache(bytes);
         entity.setStatus(AudioProcessingStatus.COMPLETED);

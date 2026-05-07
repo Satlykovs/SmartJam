@@ -1,12 +1,12 @@
 package common.dto.s3;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.smartjam.common.dto.s3.S3EventDto;
+import com.smartjam.common.dto.s3.S3Event;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class S3EventDtoTest {
+class S3EventTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
@@ -33,7 +33,7 @@ class S3EventDtoTest {
                 }
                 """;
 
-        S3EventDto dto = objectMapper.readValue(json, S3EventDto.class);
+        S3Event dto = objectMapper.readValue(json, S3Event.class);
 
         assertEquals(1, dto.records().size());
         assertEquals("references", dto.records().getFirst().s3().bucket().name());

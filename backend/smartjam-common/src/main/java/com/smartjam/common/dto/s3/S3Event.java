@@ -13,7 +13,7 @@ import lombok.Builder;
  */
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record S3EventDto(@JsonProperty("Records") List<S3Record> records) {
+public record S3Event(@JsonProperty("Records") List<S3Record> records) {
 
     /**
      * Record detail.

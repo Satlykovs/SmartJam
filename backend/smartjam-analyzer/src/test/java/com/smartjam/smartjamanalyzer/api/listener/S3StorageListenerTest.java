@@ -3,7 +3,7 @@ package com.smartjam.smartjamanalyzer.api.listener;
 import java.util.Collections;
 import java.util.List;
 
-import com.smartjam.common.dto.s3.S3EventDto;
+import com.smartjam.common.dto.s3.S3Event;
 import com.smartjam.smartjamanalyzer.api.kafka.S3StorageListener;
 import com.smartjam.smartjamanalyzer.application.AudioAnalysisUseCase;
 import org.junit.jupiter.api.DisplayName;
@@ -26,13 +26,13 @@ class S3StorageListenerTest {
     @InjectMocks
     private S3StorageListener listener;
 
-    private S3EventDto createEvent(String bucket, String key) {
-        return S3EventDto.builder()
-                .records(List.of(S3EventDto.S3Record.builder()
+    private S3Event createEvent(String bucket, String key) {
+        return S3Event.builder()
+                .records(List.of(S3Event.S3Record.builder()
                         .eventName("s3:ObjectCreated:Put")
-                        .s3(S3EventDto.S3Data.builder()
-                                .bucket(S3EventDto.Bucket.builder().name(bucket).build())
-                                .object(S3EventDto.S3Object.builder().key(key).build())
+                        .s3(S3Event.S3Data.builder()
+                                .bucket(S3Event.Bucket.builder().name(bucket).build())
+                                .object(S3Event.S3Object.builder().key(key).build())
                                 .build())
                         .build()))
                 .build();
@@ -43,7 +43,7 @@ class S3StorageListenerTest {
     void shouldCallUseCaseOnEvent() {
         String bucket = "references";
         String key = "teacher_riff.wav";
-        S3EventDto event = createEvent(bucket, key);
+        S3Event event = createEvent(bucket, key);
         Acknowledgment ack = mock(Acknowledgment.class);
 
         listener.onFileUploaded(event, ack);
@@ -59,10 +59,10 @@ class S3StorageListenerTest {
 
         listener.onFileUploaded(null, ack);
 
-        listener.onFileUploaded(S3EventDto.builder().records(null).build(), ack);
+        listener.onFileUploaded(S3Event.builder().records(null).build(), ack);
 
         listener.onFileUploaded(
-                S3EventDto.builder().records(Collections.emptyList()).build(), ack);
+                S3Event.builder().records(Collections.emptyList()).build(), ack);
 
         verify(ack, times(3)).acknowledge();
         verifyNoInteractions(analysisUseCase);
@@ -71,8 +71,8 @@ class S3StorageListenerTest {
     @Test
     @DisplayName("Должен пропускать некорректные записи (skip) и не вызывать UseCase")
     void shouldSkipInvalidRecords() {
-        S3EventDto event = S3EventDto.builder()
-                .records(List.of(S3EventDto.S3Record.builder().s3(null).build()))
+        S3Event event = S3Event.builder()
+                .records(List.of(S3Event.S3Record.builder().s3(null).build()))
                 .build();
         Acknowledgment ack = mock(Acknowledgment.class);
 
@@ -87,7 +87,7 @@ class S3StorageListenerTest {
     void shouldThrowExceptionWhenUseCaseFails() {
         String bucket = "references";
         String key = "fail.wav";
-        S3EventDto event = createEvent(bucket, key);
+        S3Event event = createEvent(bucket, key);
         Acknowledgment ack = mock(Acknowledgment.class);
 
         doThrow(new RuntimeException("Math failed")).when(analysisUseCase).execute(anyString(), anyString());

@@ -33,8 +33,17 @@ public class AssignmentsService {
     @Transactional
     public AssignmentUploadResponse createAssignment(CreateAssignmentRequest request) {
 
+        ConnectionsEntity connection = connectionsService.getUUIDConnection(request.connectionId());
+
+        @SuppressWarnings("ConstantConditions")
+        UUID userId = UUID.fromString(
+                SecurityContextHolder.getContext().getAuthentication().getName());
+        if (!connection.getTeacher().getId().equals(userId)) {
+            throw new AccessDeniedException("Only the connection teacher can create assignments");
+        }
+
         AssignmentEntity newAssignment = AssignmentEntity.builder()
-                .connection(connectionsService.getUUIDConnection(request.connectionId()))
+                .connection(connection)
                 .title(request.title())
                 .description(request.description())
                 .s3ReferenceKey(null)
@@ -52,6 +61,7 @@ public class AssignmentsService {
         return new AssignmentUploadResponse(assignmentId, presignedUrl);
     }
 
+    @Transactional(readOnly = true)
     public AssignmentResponseDetailed getAssignment(UUID assignmentId) {
         AssignmentEntity entity = repository
                 .findById(assignmentId)
@@ -77,7 +87,7 @@ public class AssignmentsService {
                 s3Service.generatePresignedUrlForDownload(entity.getS3ReferenceKey()));
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public AssignmentPageResponse getAssignmentsByConnection(
             UUID connectionId, Integer page, Integer size, String sort) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -93,8 +103,9 @@ public class AssignmentsService {
             throw new AccessDeniedException("You are not a member of this connection");
         }
 
-        String[] argsSort = sort.split(",\\s*");
-        String field = argsSort[0];
+        String sortParam = (sort == null || sort.isBlank()) ? "createdAt,desc" : sort;
+        String[] argsSort = sortParam.split(",\\s*", 2);
+        String field = argsSort[0].isBlank() ? "createdAt" : argsSort[0];
         Sort.Direction direction = Sort.Direction.DESC;
 
         if (argsSort.length > 1 && argsSort[1].equalsIgnoreCase("asc")) {

@@ -15,7 +15,9 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Data
+@Getter
+@Setter
+@ToString(exclude = {"connection", "referenceSpectreCache"})
 @EntityListeners(AuditingEntityListener.class)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Table(name = "assignments")
@@ -27,7 +29,7 @@ public class AssignmentEntity {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "connection_id")
+    @JoinColumn(name = "connection_id", nullable = false)
     private ConnectionsEntity connection;
 
     @Builder.Default

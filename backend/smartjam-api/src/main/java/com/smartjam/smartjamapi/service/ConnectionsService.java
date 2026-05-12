@@ -86,8 +86,9 @@ public class ConnectionsService {
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
-        String[] argsSort = sort.split(",\\s*");
-        String field = argsSort[0];
+        String sortParam = (sort == null || sort.isBlank()) ? "createdAt,desc" : sort;
+        String[] argsSort = sortParam.split(",\\s*", 2);
+        String field = argsSort[0].isBlank() ? "createdAt" : argsSort[0];
         Sort.Direction direction = Sort.Direction.DESC;
 
         if (argsSort.length > 1 && argsSort[1].equalsIgnoreCase("asc")) {

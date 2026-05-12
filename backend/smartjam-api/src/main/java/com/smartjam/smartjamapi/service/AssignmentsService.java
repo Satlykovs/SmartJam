@@ -65,7 +65,7 @@ public class AssignmentsService {
         ConnectionsEntity connection = entity.getConnection();
         if (!connection.getTeacher().getId().equals(userId)
                 && (connection.getStudent() == null
-                || !connection.getStudent().getId().equals(userId))) {
+                        || !connection.getStudent().getId().equals(userId))) {
             throw new AccessDeniedException("You are not a member of this connection");
         }
 
@@ -89,7 +89,7 @@ public class AssignmentsService {
 
         if (!connection.getTeacher().getId().equals(userId)
                 && (connection.getStudent() == null
-                || !connection.getStudent().getId().equals(userId))) {
+                        || !connection.getStudent().getId().equals(userId))) {
             throw new AccessDeniedException("You are not a member of this connection");
         }
 

@@ -2,6 +2,7 @@ package com.smartjam.smartjamapi.config;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -25,6 +26,7 @@ public class MinioProperties {
     private String secretKey;
 
     @Valid
+    @NotNull
     private Buckets buckets;
 
     @Getter

@@ -37,6 +37,7 @@ public class ConnectionsService {
         new SecureRandom().nextBytes(randomBytes);
         String inviteCode = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
 
+        @SuppressWarnings("ConstantConditions")
         UUID userUUID = UUID.fromString(
                 SecurityContextHolder.getContext().getAuthentication().getName());
 
@@ -60,6 +61,7 @@ public class ConnectionsService {
             throw new ConnectionAlreadyActiveException("Cannot join, connection is already active");
         }
 
+        @SuppressWarnings("ConstantConditions")
         UUID userUUID = UUID.fromString(
                 SecurityContextHolder.getContext().getAuthentication().getName());
 
@@ -77,6 +79,8 @@ public class ConnectionsService {
     @Transactional
     public ConnectionPageResponse getMyConnections(Integer page, Integer size, String sort) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        @SuppressWarnings("ConstantConditions")
         UUID userId = UUID.fromString(auth.getName());
         List<String> authorities = auth.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)

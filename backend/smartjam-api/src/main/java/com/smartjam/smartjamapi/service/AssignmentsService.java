@@ -58,12 +58,14 @@ public class AssignmentsService {
                 .orElseThrow(() -> new EntityNotFoundException("Assignment not found"));
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        @SuppressWarnings("ConstantConditions")
         UUID userId = UUID.fromString(auth.getName());
 
         ConnectionsEntity connection = entity.getConnection();
         if (!connection.getTeacher().getId().equals(userId)
                 && (connection.getStudent() == null
-                        || !connection.getStudent().getId().equals(userId))) {
+                || !connection.getStudent().getId().equals(userId))) {
             throw new AccessDeniedException("You are not a member of this connection");
         }
 
@@ -79,13 +81,15 @@ public class AssignmentsService {
     public AssignmentPageResponse getAssignmentsByConnection(
             UUID connectionId, Integer page, Integer size, String sort) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        @SuppressWarnings("ConstantConditions")
         UUID userId = UUID.fromString(auth.getName());
 
         ConnectionsEntity connection = connectionsService.getUUIDConnection(connectionId);
 
         if (!connection.getTeacher().getId().equals(userId)
                 && (connection.getStudent() == null
-                        || !connection.getStudent().getId().equals(userId))) {
+                || !connection.getStudent().getId().equals(userId))) {
             throw new AccessDeniedException("You are not a member of this connection");
         }
 

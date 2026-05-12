@@ -3,6 +3,8 @@ package com.smartjam.smartjamapi.service;
 import java.security.SecureRandom;
 import java.util.*;
 
+import jakarta.persistence.EntityNotFoundException;
+
 import com.smartjam.api.model.*;
 import com.smartjam.smartjamapi.entity.ConnectionsEntity;
 import com.smartjam.smartjamapi.entity.UserEntity;
@@ -52,7 +54,7 @@ public class ConnectionsService {
     public void joinTeacher(JoinRequest request) {
         ConnectionsEntity connection = repository
                 .findByInviteCode(request.inviteCode())
-                .orElseThrow(() -> new NoSuchElementException("Invite code not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Invite code not found"));
 
         if (connection.getStatus() == ConnectionsStatus.ACTIVE) {
             throw new ConnectionAlreadyActiveException("Cannot join, connection is already active");
@@ -80,14 +82,15 @@ public class ConnectionsService {
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
-        String[] argsSort = sort.split(", ");
-        System.out.println(Arrays.toString(argsSort));
-        Pageable pageable = PageRequest.of(
-                page,
-                size,
-                argsSort[1].equals("asc")
-                        ? Sort.by(argsSort[0]).ascending()
-                        : Sort.by(argsSort[0]).descending());
+        String[] argsSort = sort.split(",\\s*");
+        String field = argsSort[0];
+        Sort.Direction direction = Sort.Direction.DESC;
+
+        if (argsSort.length > 1 && argsSort[1].equalsIgnoreCase("asc")) {
+            direction = Sort.Direction.ASC;
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, field));
 
         Page<ConnectionsEntity> pageConnection = authorities.getFirst().equals("ROLE_TEACHER")
                 ? repository.findAllByTeacherIdAndStatus(userId, ConnectionsStatus.ACTIVE, pageable)
@@ -116,5 +119,9 @@ public class ConnectionsService {
                 .toList();
 
         return new ConnectionPageResponse(responses, pageInfo);
+    }
+
+    public ConnectionsEntity getUUIDConnection(UUID id) {
+        return repository.findById(id).orElseThrow(() -> new EntityNotFoundException("Connection not found"));
     }
 }

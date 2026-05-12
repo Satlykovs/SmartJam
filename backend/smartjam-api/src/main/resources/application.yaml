@@ -1,9 +1,19 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: smartjam-api
+  threads:
+    virtual:
+      enabled: true
 
   datasource:
     url: jdbc:postgresql://localhost:5432/smartjam
     username: admin
     password: admin
     driver-class-name: org.postgresql.Driver
+
   jpa:
     open-in-view: false
     hibernate:
@@ -30,8 +40,6 @@
       properties:
         spring.json.trusted.packages: "*"
 
-
-
 springdoc:
   swagger-ui:
     path: /swagger
@@ -49,3 +57,11 @@ security:
     secret-key: 9aycyLmiqbP9CrxjEad6YEZJkLBwMOIqeY0VI53Ih5l
     expiration-time-access: 3600000
     expiration-time-refresh: 604800000
+
+minio:
+  endpoint: http://localhost:9000
+  access-key: ${MINIO_ROOT_USER:minioadmin}
+  secret-key: ${MINIO_ROOT_PASSWORD:minioadmin}
+  buckets:
+    references: references
+    submissions: submissions

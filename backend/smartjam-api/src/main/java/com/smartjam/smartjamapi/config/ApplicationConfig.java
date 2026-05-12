@@ -3,6 +3,7 @@ package com.smartjam.smartjamapi.config;
 import java.net.URI;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -14,6 +15,7 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 @Configuration
 @RequiredArgsConstructor
+@EnableConfigurationProperties(MinioProperties.class)
 public class ApplicationConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {

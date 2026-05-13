@@ -33,7 +33,7 @@ public class AssignmentsService {
     @Transactional
     public AssignmentUploadResponse createAssignment(CreateAssignmentRequest request) {
 
-        ConnectionsEntity connection = connectionsService.getUUIDConnection(request.connectionId());
+        ConnectionsEntity connection = connectionsService.getConnectionsEntityById(request.connectionId());
 
         @SuppressWarnings("ConstantConditions")
         UUID userId = UUID.fromString(
@@ -51,7 +51,7 @@ public class AssignmentsService {
 
         AssignmentEntity saved = repository.save(newAssignment);
         UUID assignmentId = saved.getId();
-        String s3Key = s3Service.getKey(request.connectionId(), assignmentId);
+        String s3Key = s3Service.getAssignmentKey(request.connectionId(), assignmentId);
 
         saved.setS3ReferenceKey(s3Key);
         repository.save(saved);
@@ -95,7 +95,7 @@ public class AssignmentsService {
         @SuppressWarnings("ConstantConditions")
         UUID userId = UUID.fromString(auth.getName());
 
-        ConnectionsEntity connection = connectionsService.getUUIDConnection(connectionId);
+        ConnectionsEntity connection = connectionsService.getConnectionsEntityById(connectionId);
 
         if (!connection.getTeacher().getId().equals(userId)
                 && (connection.getStudent() == null

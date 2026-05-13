@@ -13,16 +13,25 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.13.0'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.13.0'
 
-    implementation 'org.mapstruct:mapstruct:1.5.5.Final'
-    annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
+    implementation 'org.mapstruct:mapstruct:1.6.3'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
 
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'
-    implementation 'software.amazon.awssdk:s3:2.29.22'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3'
+    implementation 'software.amazon.awssdk:s3:2.44.4'
     implementation project(':smartjam-common')
 
     runtimeOnly 'org.postgresql:postgresql'
 
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
+
+    testImplementation 'io.rest-assured:rest-assured:6.0.0'
+    testImplementation 'org.apache.groovy:groovy:5.0.6'
+    testImplementation 'org.apache.groovy:groovy-json:5.0.6'
+    testImplementation 'org.apache.groovy:groovy-xml:5.0.6'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-webflux'
+    testImplementation 'org.awaitility:awaitility:4.3.0'
 }
 
 openapiProcessor {
@@ -30,9 +39,7 @@ openapiProcessor {
 
     process("spring") {
         processor("io.openapiprocessor:openapi-processor-spring:2026.2")
-
         targetDir(layout.buildDirectory.dir("generated/openapi"))
-
         prop("mapping", layout.projectDirectory.file("src/main/resources/openapi/mapping.yaml"))
     }
 }

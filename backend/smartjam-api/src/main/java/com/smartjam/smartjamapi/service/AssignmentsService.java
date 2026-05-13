@@ -111,4 +111,8 @@ public class AssignmentsService {
             throw new AccessDeniedException("You are not a member of this connection");
         }
     }
+
+    public AssignmentEntity getAssignmentEntityById(UUID assignmentId) {
+        return repository.findById(assignmentId).orElseThrow(() -> new EntityNotFoundException("Assignment not found"));
+    }
 }

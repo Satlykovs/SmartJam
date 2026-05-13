@@ -28,6 +28,9 @@ public class ApplicationConfig {
         return S3Presigner.builder()
                 .endpointOverride(URI.create(minioProperties.getEndpoint()))
                 .region(Region.US_EAST_1)
+                .serviceConfiguration(software.amazon.awssdk.services.s3.S3Configuration.builder()
+                        .pathStyleAccessEnabled(true)
+                        .build())
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(minioProperties.getAccessKey(), minioProperties.getSecretKey())))
                 .build();

@@ -29,7 +29,7 @@ public class S3Service {
     public String generatePresignedUrlForTeacher(String key) {
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(minioProperties.getBuckets().getReferences())
-                .key(key)
+                .key(getRelativeKey(key))
                 .build();
 
         PresignedPutObjectRequest presignedPutObjectRequest = presigner.presignPutObject(
@@ -40,8 +40,10 @@ public class S3Service {
 
     public String generatePresignedUrlForDownload(String key) {
         String bucket = determineBucket(key);
-        GetObjectRequest getObjectRequest =
-                GetObjectRequest.builder().bucket(bucket).key(key).build();
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(bucket)
+                .key(getRelativeKey(key))
+                .build();
 
         PresignedGetObjectRequest presignedGetObjectRequest = presigner.presignGetObject(
                 r -> r.getObjectRequest(getObjectRequest).signatureDuration(Duration.ofMinutes(10)));
@@ -54,5 +56,27 @@ public class S3Service {
             return minioProperties.getBuckets().getSubmissions();
         }
         return minioProperties.getBuckets().getReferences();
+    }
+
+    private String getRelativeKey(String key) {
+        if (key == null) return null;
+        int index = key.indexOf("/");
+        return (index != -1) ? key.substring(index + 1) : key;
+    }
+
+    public String getSubmissionKey(UUID assignmentId, UUID submissionId) {
+        return String.format("submissions/%s/%s", assignmentId, submissionId);
+    }
+
+    public String generatePresignedUrlForStudent(String key) {
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(minioProperties.getBuckets().getSubmissions())
+                .key(getRelativeKey(key))
+                .build();
+
+        PresignedPutObjectRequest presignedRequest = presigner.presignPutObject(
+                r -> r.putObjectRequest(putObjectRequest).signatureDuration(Duration.ofMinutes(10)));
+
+        return presignedRequest.url().toString();
     }
 }

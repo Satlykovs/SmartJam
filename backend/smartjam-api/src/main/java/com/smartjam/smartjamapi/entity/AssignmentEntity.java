@@ -38,7 +38,7 @@ public class AssignmentEntity {
     private AudioProcessingStatus status = AudioProcessingStatus.AWAITING_UPLOAD;
 
     @Column(nullable = false)
-    String title;
+    private String title;
 
     @Column(columnDefinition = "TEXT")
     private String description;
@@ -49,6 +49,7 @@ public class AssignmentEntity {
     @Column(name = "reference_spectre_cache", columnDefinition = "BYTEA")
     private byte[] referenceSpectreCache;
 
+    @Column(name = "error_message")
     private String errorMessage;
 
     @CreatedDate

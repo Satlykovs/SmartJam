@@ -22,7 +22,7 @@ public class S3Service {
 
     private final S3Presigner presigner;
 
-    public String getKey(UUID connectionId, UUID assignmentId) {
+    public String getAssignmentKey(UUID connectionId, UUID assignmentId) {
         return String.format("references/%s/%s", connectionId, assignmentId);
     }
 
@@ -39,14 +39,20 @@ public class S3Service {
     }
 
     public String generatePresignedUrlForDownload(String key) {
-        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
-                .bucket(minioProperties.getBuckets().getReferences())
-                .key(key)
-                .build();
+        String bucket = determineBucket(key);
+        GetObjectRequest getObjectRequest =
+                GetObjectRequest.builder().bucket(bucket).key(key).build();
 
         PresignedGetObjectRequest presignedGetObjectRequest = presigner.presignGetObject(
                 r -> r.getObjectRequest(getObjectRequest).signatureDuration(Duration.ofMinutes(10)));
 
         return presignedGetObjectRequest.url().toString();
+    }
+
+    private String determineBucket(String key) {
+        if (key != null && key.startsWith("submissions/")) {
+            return minioProperties.getBuckets().getSubmissions();
+        }
+        return minioProperties.getBuckets().getReferences();
     }
 }

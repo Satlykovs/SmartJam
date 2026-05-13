@@ -126,7 +126,7 @@ public class ConnectionsService {
         return new ConnectionPageResponse(responses, pageInfo);
     }
 
-    public ConnectionsEntity getUUIDConnection(UUID id) {
+    public ConnectionsEntity getConnectionsEntityById(UUID id) {
         return repository.findById(id).orElseThrow(() -> new EntityNotFoundException("Connection not found"));
     }
 }

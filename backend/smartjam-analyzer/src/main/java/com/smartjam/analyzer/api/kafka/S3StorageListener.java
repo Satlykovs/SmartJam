@@ -51,9 +51,9 @@ public class S3StorageListener {
                 analysisUseCase.execute(bucket, fileKey);
 
             } catch (Exception e) {
-                log.error("Ошибка при разборе события S3: {}", e.getMessage());
+                log.error("Ошибка при разборе события S3: {}", e.getMessage(), e);
 
-                throw new RuntimeException(e);
+                throw e;
             }
         }
         if (ack != null) {

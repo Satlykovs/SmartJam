@@ -7,7 +7,6 @@ import com.smartjam.common.dto.analysis.AnalysisType;
 import com.smartjam.common.model.AudioProcessingStatus;
 import com.smartjam.notification.domain.port.PushPublisher;
 import com.smartjam.notification.domain.port.RecipientResolver;
-import com.smartjam.notification.domain.port.UiSignalPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,7 +16,6 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ProcessAnalysisResultUseCase {
     private final RecipientResolver recipientResolver;
-    private final UiSignalPublisher uiSignalPublisher;
     private final PushPublisher pushPublisher;
 
     public void execute(AnalysisFinishedEvent event) {
@@ -26,8 +24,6 @@ public class ProcessAnalysisResultUseCase {
                 event.targetId(),
                 event.type(),
                 event.status());
-
-        uiSignalPublisher.sendRefreshSignal(event.targetId(), event.type());
 
         if (event.status() == AudioProcessingStatus.COMPLETED) {
             try {

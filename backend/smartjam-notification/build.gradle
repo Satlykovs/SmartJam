@@ -1,6 +1,13 @@
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-kafka'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
+    runtimeOnly 'org.postgresql:postgresql'
+
+    implementation 'org.springframework.boot:spring-boot-starter-json'
+
+
     implementation project(':smartjam-common')
 
     testImplementation 'org.springframework.boot:spring-boot-starter-data-redis-test'

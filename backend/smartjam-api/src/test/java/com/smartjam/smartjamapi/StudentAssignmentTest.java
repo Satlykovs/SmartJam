@@ -15,16 +15,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-@SuppressWarnings({
-        "all",
-        "SpellCheckingInspection",
-        "ConstantConditions",
-        "DataFlowIssue",
-        "SameParameterValue"
-})
-
+@SuppressWarnings({"all", "SpellCheckingInspection", "ConstantConditions", "DataFlowIssue", "SameParameterValue"})
 @Disabled("Работает только локально, если хочется запустить, поменяйте FILE_PATH")
 public class StudentAssignmentTest {
 
@@ -71,6 +65,9 @@ public class StudentAssignmentTest {
                 .returnResult()
                 .getResponseBody();
 
+        assertNotNull(connections);
+        assertNotNull(connections.content());
+        assertFalse(connections.content().isEmpty(), "No connections returned for student");
         UUID connectionId = connections.content().get(0).id();
 
         // 4. ЗАДАНИЕ

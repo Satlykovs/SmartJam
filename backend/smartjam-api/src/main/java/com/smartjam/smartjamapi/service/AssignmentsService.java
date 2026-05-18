@@ -8,16 +8,14 @@ import jakarta.persistence.EntityNotFoundException;
 import com.smartjam.api.model.*;
 import com.smartjam.smartjamapi.entity.AssignmentEntity;
 import com.smartjam.smartjamapi.entity.ConnectionsEntity;
+import com.smartjam.smartjamapi.mapper.PageableMapper;
 import com.smartjam.smartjamapi.repository.AssignmentsRepository;
+import com.smartjam.smartjamapi.security.IdentityService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,8 +24,10 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AssignmentsService {
 
-    private final AssignmentsRepository repository;
     private final ConnectionsService connectionsService;
+    private final AssignmentsRepository repository;
+    private final IdentityService identityService;
+    private final PageableMapper pageableMapper;
     private final S3Service s3Service;
 
     @Transactional
@@ -35,9 +35,7 @@ public class AssignmentsService {
 
         ConnectionsEntity connection = connectionsService.getConnectionsEntityById(request.connectionId());
 
-        @SuppressWarnings("ConstantConditions")
-        UUID userId = UUID.fromString(
-                SecurityContextHolder.getContext().getAuthentication().getName());
+        UUID userId = identityService.getCurrentUserId();
         if (!connection.getTeacher().getId().equals(userId)) {
             throw new AccessDeniedException("Only the connection teacher can create assignments");
         }
@@ -67,17 +65,8 @@ public class AssignmentsService {
                 .findById(assignmentId)
                 .orElseThrow(() -> new EntityNotFoundException("Assignment not found"));
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        @SuppressWarnings("ConstantConditions")
-        UUID userId = UUID.fromString(auth.getName());
-
         ConnectionsEntity connection = entity.getConnection();
-        if (!connection.getTeacher().getId().equals(userId)
-                && (connection.getStudent() == null
-                        || !connection.getStudent().getId().equals(userId))) {
-            throw new AccessDeniedException("You are not a member of this connection");
-        }
+        checkConnectionMembership(connection);
 
         return new AssignmentResponseDetailed(
                 entity.getId(),
@@ -90,29 +79,11 @@ public class AssignmentsService {
     @Transactional(readOnly = true)
     public AssignmentPageResponse getAssignmentsByConnection(
             UUID connectionId, Integer page, Integer size, String sort) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        @SuppressWarnings("ConstantConditions")
-        UUID userId = UUID.fromString(auth.getName());
 
         ConnectionsEntity connection = connectionsService.getConnectionsEntityById(connectionId);
+        checkConnectionMembership(connection);
 
-        if (!connection.getTeacher().getId().equals(userId)
-                && (connection.getStudent() == null
-                        || !connection.getStudent().getId().equals(userId))) {
-            throw new AccessDeniedException("You are not a member of this connection");
-        }
-
-        String sortParam = (sort == null || sort.isBlank()) ? "createdAt,desc" : sort;
-        String[] argsSort = sortParam.split(",\\s*", 2);
-        String field = argsSort[0].isBlank() ? "createdAt" : argsSort[0];
-        Sort.Direction direction = Sort.Direction.DESC;
-
-        if (argsSort.length > 1 && argsSort[1].equalsIgnoreCase("asc")) {
-            direction = Sort.Direction.ASC;
-        }
-
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, field));
+        Pageable pageable = pageableMapper.toPageable(page, size, sort);
 
         Page<AssignmentEntity> pageAssignment = repository.findByConnectionId(connectionId, pageable);
 
@@ -128,5 +99,16 @@ public class AssignmentsService {
                 .toList();
 
         return new AssignmentPageResponse(responses, pageInfo);
+    }
+
+    private void checkConnectionMembership(ConnectionsEntity connection) {
+        UUID userId = identityService.getCurrentUserId();
+        boolean isTeacher = connection.getTeacher().getId().equals(userId);
+        boolean isStudent = connection.getStudent() != null
+                && connection.getStudent().getId().equals(userId);
+
+        if (!isTeacher && !isStudent) {
+            throw new AccessDeniedException("You are not a member of this connection");
+        }
     }
 }

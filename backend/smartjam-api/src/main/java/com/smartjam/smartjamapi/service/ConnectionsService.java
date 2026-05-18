@@ -11,16 +11,13 @@ import com.smartjam.smartjamapi.entity.UserEntity;
 import com.smartjam.smartjamapi.enums.ConnectionsStatus;
 import com.smartjam.smartjamapi.exception.CannotJoinSelfException;
 import com.smartjam.smartjamapi.exception.ConnectionAlreadyActiveException;
+import com.smartjam.smartjamapi.mapper.PageableMapper;
 import com.smartjam.smartjamapi.repository.ConnectionsRepository;
 import com.smartjam.smartjamapi.repository.UserRepository;
+import com.smartjam.smartjamapi.security.IdentityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,7 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class ConnectionsService {
 
     private final ConnectionsRepository repository;
+    private final IdentityService identityService;
     private final UserRepository userRepository;
+    private final PageableMapper pageableMapper;
 
     @Transactional
     public InviteResponse createInvite() {
@@ -37,11 +36,8 @@ public class ConnectionsService {
         new SecureRandom().nextBytes(randomBytes);
         String inviteCode = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
 
-        @SuppressWarnings("ConstantConditions")
-        UUID userUUID = UUID.fromString(
-                SecurityContextHolder.getContext().getAuthentication().getName());
-
-        UserEntity teacher = userRepository.getReferenceById(userUUID);
+        UUID userId = identityService.getCurrentUserId();
+        UserEntity teacher = userRepository.getReferenceById(userId);
 
         ConnectionsEntity connection = new ConnectionsEntity();
         connection.setTeacher(teacher);
@@ -61,15 +57,13 @@ public class ConnectionsService {
             throw new ConnectionAlreadyActiveException("Cannot join, connection is already active");
         }
 
-        @SuppressWarnings("ConstantConditions")
-        UUID userUUID = UUID.fromString(
-                SecurityContextHolder.getContext().getAuthentication().getName());
+        UUID userId = identityService.getCurrentUserId();
 
-        if (userUUID.equals(connection.getTeacher().getId())) {
+        if (userId.equals(connection.getTeacher().getId())) {
             throw new CannotJoinSelfException("Teacher cannot join their own connection");
         }
 
-        UserEntity student = userRepository.getReferenceById(userUUID);
+        UserEntity student = userRepository.getReferenceById(userId);
         connection.setStudent(student);
         connection.setStatus(ConnectionsStatus.ACTIVE);
 
@@ -78,26 +72,15 @@ public class ConnectionsService {
 
     @Transactional
     public ConnectionPageResponse getMyConnections(Integer page, Integer size, String sort) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
-        @SuppressWarnings("ConstantConditions")
-        UUID userId = UUID.fromString(auth.getName());
-        List<String> authorities = auth.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .toList();
+        UUID userId = identityService.getCurrentUserId();
+        Set<String> authorities = identityService.getCurrentUserRoles();
 
-        String sortParam = (sort == null || sort.isBlank()) ? "createdAt,desc" : sort;
-        String[] argsSort = sortParam.split(",\\s*", 2);
-        String field = argsSort[0].isBlank() ? "createdAt" : argsSort[0];
-        Sort.Direction direction = Sort.Direction.DESC;
+        boolean isTeacher = authorities.contains("ROLE_TEACHER");
 
-        if (argsSort.length > 1 && argsSort[1].equalsIgnoreCase("asc")) {
-            direction = Sort.Direction.ASC;
-        }
+        Pageable pageable = pageableMapper.toPageable(page, size, sort);
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, field));
-
-        Page<ConnectionsEntity> pageConnection = authorities.getFirst().equals("ROLE_TEACHER")
+        Page<ConnectionsEntity> pageConnection = isTeacher
                 ? repository.findAllByTeacherIdAndStatus(userId, ConnectionsStatus.ACTIVE, pageable)
                 : repository.findAllByStudentIdAndStatus(userId, ConnectionsStatus.ACTIVE, pageable);
 

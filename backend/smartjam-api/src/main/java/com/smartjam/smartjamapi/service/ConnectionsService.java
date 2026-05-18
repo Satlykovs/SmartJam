@@ -3,22 +3,21 @@ package com.smartjam.smartjamapi.service;
 import java.security.SecureRandom;
 import java.util.*;
 
+import jakarta.persistence.EntityNotFoundException;
+
 import com.smartjam.api.model.*;
 import com.smartjam.smartjamapi.entity.ConnectionsEntity;
 import com.smartjam.smartjamapi.entity.UserEntity;
 import com.smartjam.smartjamapi.enums.ConnectionsStatus;
 import com.smartjam.smartjamapi.exception.CannotJoinSelfException;
 import com.smartjam.smartjamapi.exception.ConnectionAlreadyActiveException;
+import com.smartjam.smartjamapi.mapper.PageableMapper;
 import com.smartjam.smartjamapi.repository.ConnectionsRepository;
 import com.smartjam.smartjamapi.repository.UserRepository;
+import com.smartjam.smartjamapi.security.IdentityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class ConnectionsService {
 
     private final ConnectionsRepository repository;
+    private final IdentityService identityService;
     private final UserRepository userRepository;
+    private final PageableMapper pageableMapper;
 
     @Transactional
     public InviteResponse createInvite() {
@@ -35,10 +36,8 @@ public class ConnectionsService {
         new SecureRandom().nextBytes(randomBytes);
         String inviteCode = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
 
-        UUID userUUID = UUID.fromString(
-                SecurityContextHolder.getContext().getAuthentication().getName());
-
-        UserEntity teacher = userRepository.getReferenceById(userUUID);
+        UUID userId = identityService.getCurrentUserId();
+        UserEntity teacher = userRepository.getReferenceById(userId);
 
         ConnectionsEntity connection = new ConnectionsEntity();
         connection.setTeacher(teacher);
@@ -52,20 +51,19 @@ public class ConnectionsService {
     public void joinTeacher(JoinRequest request) {
         ConnectionsEntity connection = repository
                 .findByInviteCode(request.inviteCode())
-                .orElseThrow(() -> new NoSuchElementException("Invite code not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Invite code not found"));
 
         if (connection.getStatus() == ConnectionsStatus.ACTIVE) {
             throw new ConnectionAlreadyActiveException("Cannot join, connection is already active");
         }
 
-        UUID userUUID = UUID.fromString(
-                SecurityContextHolder.getContext().getAuthentication().getName());
+        UUID userId = identityService.getCurrentUserId();
 
-        if (userUUID.equals(connection.getTeacher().getId())) {
+        if (userId.equals(connection.getTeacher().getId())) {
             throw new CannotJoinSelfException("Teacher cannot join their own connection");
         }
 
-        UserEntity student = userRepository.getReferenceById(userUUID);
+        UserEntity student = userRepository.getReferenceById(userId);
         connection.setStudent(student);
         connection.setStatus(ConnectionsStatus.ACTIVE);
 
@@ -74,22 +72,15 @@ public class ConnectionsService {
 
     @Transactional
     public ConnectionPageResponse getMyConnections(Integer page, Integer size, String sort) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        UUID userId = UUID.fromString(auth.getName());
-        List<String> authorities = auth.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .toList();
 
-        String[] argsSort = sort.split(", ");
-        System.out.println(Arrays.toString(argsSort));
-        Pageable pageable = PageRequest.of(
-                page,
-                size,
-                argsSort[1].equals("asc")
-                        ? Sort.by(argsSort[0]).ascending()
-                        : Sort.by(argsSort[0]).descending());
+        UUID userId = identityService.getCurrentUserId();
+        Set<String> authorities = identityService.getCurrentUserRoles();
 
-        Page<ConnectionsEntity> pageConnection = authorities.getFirst().equals("ROLE_TEACHER")
+        boolean isTeacher = authorities.contains("ROLE_TEACHER");
+
+        Pageable pageable = pageableMapper.toPageable(page, size, sort);
+
+        Page<ConnectionsEntity> pageConnection = isTeacher
                 ? repository.findAllByTeacherIdAndStatus(userId, ConnectionsStatus.ACTIVE, pageable)
                 : repository.findAllByStudentIdAndStatus(userId, ConnectionsStatus.ACTIVE, pageable);
 
@@ -116,5 +107,9 @@ public class ConnectionsService {
                 .toList();
 
         return new ConnectionPageResponse(responses, pageInfo);
+    }
+
+    public ConnectionsEntity getConnectionsEntityById(UUID id) {
+        return repository.findById(id).orElseThrow(() -> new EntityNotFoundException("Connection not found"));
     }
 }

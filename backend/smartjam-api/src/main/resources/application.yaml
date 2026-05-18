@@ -10,8 +10,8 @@ spring:
 
   datasource:
     url: jdbc:postgresql://localhost:5432/smartjam
-    username: admin
-    password: admin
+    username: ${DB_USERNAME:admin}
+    password: ${DB_PASSWORD:admin}
     driver-class-name: org.postgresql.Driver
 
   jpa:

@@ -9,5 +9,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface AssignmentsRepository extends JpaRepository<AssignmentEntity, UUID> {
 
-    Page<AssignmentEntity> findByConnectionId(UUID connection_id, Pageable pageable);
+    Page<AssignmentEntity> findByConnectionId(UUID connectionId, Pageable pageable);
 }

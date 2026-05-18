@@ -24,7 +24,7 @@ public class SubmissionsController implements SubmissionsApi {
     @Override
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<SubmissionUploadResponse> createSubmission(UUID assignmentId) {
-        log.info("Calling createAssignment");
+        log.info("Calling createSubmission");
         return ResponseEntity.status(HttpStatus.CREATED).body(submissionsService.createSubmission(assignmentId));
     }
 

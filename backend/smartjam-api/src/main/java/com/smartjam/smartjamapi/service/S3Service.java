@@ -3,6 +3,8 @@ package com.smartjam.smartjamapi.service;
 import java.time.Duration;
 import java.util.UUID;
 
+import jakarta.persistence.EntityNotFoundException;
+
 import com.smartjam.smartjamapi.config.MinioProperties;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +41,9 @@ public class S3Service {
     }
 
     public String generatePresignedUrlForDownload(String key) {
+        if (key == null || key.isBlank()) {
+            throw new EntityNotFoundException("S3 object key is missing");
+        }
         String bucket = determineBucket(key);
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()
                 .bucket(bucket)

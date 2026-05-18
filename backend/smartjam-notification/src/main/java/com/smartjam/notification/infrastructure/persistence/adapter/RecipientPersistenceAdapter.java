@@ -1,4 +1,4 @@
-package com.smartjam.notification.infrastructure.persistance.adapter;
+package com.smartjam.notification.infrastructure.persistence.adapter;
 
 import java.util.UUID;
 
@@ -21,5 +21,10 @@ public class RecipientPersistenceAdapter implements RecipientResolver {
                         + " c.id WHERE a.id = ?";
 
         return jdbcTemplate.queryForObject(query, UUID.class, targetId);
+    }
+
+    @Override
+    public String findFcmToken(UUID userId) {
+        return jdbcTemplate.queryForObject("SELECT fcm_token FROM users WHERE id = ?", String.class, userId);
     }
 }

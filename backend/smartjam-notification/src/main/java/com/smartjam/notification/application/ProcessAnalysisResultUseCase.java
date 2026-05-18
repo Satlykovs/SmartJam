@@ -29,10 +29,17 @@ public class ProcessAnalysisResultUseCase {
             try {
                 UUID userId = recipientResolver.findOwnerId(event.targetId(), event.type());
 
+                String token = recipientResolver.findFcmToken(userId);
+
+                if (token == null || token.isEmpty()) {
+                    log.warn("User {} does not have fcm token, push will not be send", userId);
+                    return;
+                }
+
                 String message = (event.type() == AnalysisType.SUBMISSION)
                         ? "Твоя игра " + "проанализирована! Балл: " + event.totalScore()
                         : "Твоя запись " + "обработана!";
-                pushPublisher.sendPush(userId, message);
+                pushPublisher.sendPush(token, message);
             } catch (Exception e) {
                 log.error("Failed to send push notification for {}: {}", event.targetId(), e.getMessage());
             }

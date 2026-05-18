@@ -10,16 +10,14 @@ import com.smartjam.common.model.AudioProcessingStatus;
 import com.smartjam.smartjamapi.entity.AssignmentEntity;
 import com.smartjam.smartjamapi.entity.ConnectionsEntity;
 import com.smartjam.smartjamapi.entity.SubmissionEntity;
+import com.smartjam.smartjamapi.mapper.PageableMapper;
 import com.smartjam.smartjamapi.repository.SubmissionsRepository;
+import com.smartjam.smartjamapi.security.IdentityService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,16 +26,15 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class SubmissionsService {
 
-    private final SubmissionsRepository repository;
     private final AssignmentsService assignmentsService;
+    private final IdentityService identityService;
+    private final SubmissionsRepository repository;
+    private final PageableMapper pageableMapper;
     private final S3Service s3Service;
 
     @Transactional
     public SubmissionUploadResponse createSubmission(UUID assignmentId) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        @SuppressWarnings("ConstantConditions")
-        UUID userId = UUID.fromString(auth.getName());
+        UUID userId = identityService.getCurrentUserId();
 
         AssignmentEntity assignment = assignmentsService.getAssignmentEntityById(assignmentId);
         ConnectionsEntity connection = assignment.getConnection();
@@ -71,20 +68,10 @@ public class SubmissionsService {
                 .findById(submissionId)
                 .orElseThrow(() -> new EntityNotFoundException("Submission not found"));
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        @SuppressWarnings("ConstantConditions")
-        UUID userId = UUID.fromString(auth.getName());
-
         AssignmentEntity assignment = submission.getAssignment();
         ConnectionsEntity connection = assignment.getConnection();
 
-        boolean isTeacher = connection.getTeacher().getId().equals(userId);
-        boolean isStudent = submission.getStudent().getId().equals(userId);
-
-        if (!isTeacher && !isStudent) {
-            throw new AccessDeniedException("You are not allowed to view this submission");
-        }
+        assignmentsService.checkConnectionMembership(connection);
 
         String referenceAudioUrl = null;
         if (assignment.getS3ReferenceKey() != null) {
@@ -111,30 +98,13 @@ public class SubmissionsService {
     @Transactional(readOnly = true)
     public SubmissionPageResponse getSubmissionsByAssignment(
             UUID assignmentId, Integer page, Integer size, String sort) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        @SuppressWarnings("ConstantConditions")
-        UUID userId = UUID.fromString(auth.getName());
 
         AssignmentEntity assignment = assignmentsService.getAssignmentEntityById(assignmentId);
         ConnectionsEntity connection = assignment.getConnection();
 
-        boolean isTeacher = connection.getTeacher().getId().equals(userId);
-        boolean isStudent = connection.getStudent() != null
-                && connection.getStudent().getId().equals(userId);
-        if (!isTeacher && !isStudent) {
-            throw new AccessDeniedException("You are not a member of this connection");
-        }
+        assignmentsService.checkConnectionMembership(connection);
 
-        String sortParam = (sort == null || sort.isBlank()) ? "createdAt,desc" : sort;
-        String[] argsSort = sortParam.split(",\\s*", 2);
-        String field = argsSort[0].isBlank() ? "createdAt" : argsSort[0];
-        Sort.Direction direction = Sort.Direction.DESC;
-
-        if (argsSort.length > 1 && argsSort[1].equalsIgnoreCase("asc")) {
-            direction = Sort.Direction.ASC;
-        }
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, field));
+        Pageable pageable = pageableMapper.toPageable(page, size, sort);
 
         Page<SubmissionEntity> pageSubmission = repository.findByAssignmentId(assignmentId, pageable);
 

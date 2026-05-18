@@ -101,7 +101,7 @@ public class AssignmentsService {
         return new AssignmentPageResponse(responses, pageInfo);
     }
 
-    private void checkConnectionMembership(ConnectionsEntity connection) {
+    public void checkConnectionMembership(ConnectionsEntity connection) {
         UUID userId = identityService.getCurrentUserId();
         boolean isTeacher = connection.getTeacher().getId().equals(userId);
         boolean isStudent = connection.getStudent() != null

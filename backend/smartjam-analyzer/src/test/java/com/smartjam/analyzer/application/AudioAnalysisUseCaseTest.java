@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 
+import com.smartjam.analyzer.domain.exception.AnalysisFatalException;
 import com.smartjam.analyzer.domain.model.FeatureSequence;
 import com.smartjam.analyzer.domain.port.*;
 import com.smartjam.common.model.AudioProcessingStatus;
@@ -50,6 +51,9 @@ class AudioAnalysisUseCaseTest {
     private ResultRepository resultRepository;
 
     @Mock
+    private AnalysisEventPublisher eventPublisher;
+
+    @Mock
     private DebugVisualizer debugVisualizer;
 
     @InjectMocks
@@ -71,31 +75,36 @@ class AudioAnalysisUseCaseTest {
 
         useCase.execute(bucket, fileKey);
 
-        InOrder inOrder = inOrder(referenceRepository, storage, converter, featureExtractor);
+        InOrder inOrder = inOrder(referenceRepository, storage, converter, featureExtractor, eventPublisher);
 
         inOrder.verify(referenceRepository).updateStatus(VALID_UUID, AudioProcessingStatus.ANALYZING, null);
-
         inOrder.verify(storage).downloadAudioFile(eq(bucket), eq(fileKey), any());
         inOrder.verify(converter).convertToStandardWav(eq(mockPath), any());
-
         inOrder.verify(featureExtractor).extract(mockWav);
         inOrder.verify(referenceRepository).save(VALID_UUID, mockSeq);
+        inOrder.verify(eventPublisher).publish(any());
     }
 
     @Test
-    @DisplayName("UseCase должен бросать ошибку, если конвертация зависла и писать FAILED в БД")
+    @DisplayName("UseCase должен бросать ошибку ретрая, если конвертация зависла")
     void shouldThrowExceptionWhenConverterTimesOut() {
         when(workspaceFactory.create()).thenReturn(workspace);
         when(storage.downloadAudioFile(any(), any(), any())).thenReturn(Path.of("input"));
-        when(converter.convertToStandardWav(any(), any())).thenThrow(new RuntimeException("FFmpeg timeout exceeded"));
 
-        assertThrows(RuntimeException.class, () -> useCase.execute("submissions", VALID_UUID_STR));
+        String originalError = "FFmpeg timeout exceeded";
+        when(converter.convertToStandardWav(any(), any())).thenThrow(new RuntimeException(originalError));
 
-        verify(resultRepository).updateStatus(VALID_UUID, AudioProcessingStatus.FAILED, "FFmpeg timeout exceeded");
+        RuntimeException exception =
+                assertThrows(RuntimeException.class, () -> useCase.execute("submissions", VALID_UUID_STR));
+
+        assertTrue(exception.getMessage().contains("Technical failure"));
+        verify(resultRepository).updateStatus(VALID_UUID, AudioProcessingStatus.FAILED, originalError);
+
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
-    @DisplayName("UseCase должен оборачивать ошибку скачивания в свою ошибку")
+    @DisplayName("UseCase должен пробрасывать техническую ошибку в RuntimeException для ретрая")
     void shouldWrapStorageException() {
         String errorMessage = "MinIO is down";
 
@@ -105,10 +114,22 @@ class AudioAnalysisUseCaseTest {
         RuntimeException exception =
                 assertThrows(RuntimeException.class, () -> useCase.execute("references", VALID_UUID_STR));
 
-        assertTrue(exception.getMessage().contains("Business logic failed"));
-        assertEquals(errorMessage, exception.getCause().getMessage());
-
+        assertTrue(exception.getMessage().contains("Technical failure"));
         verify(referenceRepository).updateStatus(VALID_UUID, AudioProcessingStatus.FAILED, errorMessage);
+
+        verifyNoInteractions(eventPublisher);
+    }
+
+    @Test
+    @DisplayName("UseCase должен отправить FAILED в Кафку и НЕ ретраить при фатальной ошибке")
+    void shouldHandleFatalExceptionWithoutRetry() {
+        when(workspaceFactory.create()).thenReturn(workspace);
+        when(storage.downloadAudioFile(any(), any(), any())).thenThrow(new AnalysisFatalException("Metadata missing"));
+
+        assertDoesNotThrow(() -> useCase.execute("references", VALID_UUID_STR));
+
+        verify(referenceRepository).updateStatus(eq(VALID_UUID), eq(AudioProcessingStatus.FAILED), anyString());
+        verify(eventPublisher, times(1)).publish(any());
     }
 
     @Test

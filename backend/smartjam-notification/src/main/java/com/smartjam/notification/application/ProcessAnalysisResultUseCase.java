@@ -11,6 +11,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+/**
+ * Core application service (orchestrator) for handling analysis results. Responsible for resolving the recipient's
+ * identity and triggering notification delivery through various channels (e.g., Push notifications).
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -32,7 +36,7 @@ public class ProcessAnalysisResultUseCase {
                 String token = recipientResolver.findFcmToken(userId);
 
                 if (token == null || token.isEmpty()) {
-                    log.warn("User {} does not have fcm token, push will not be send", userId);
+                    log.warn("User {} does not have fcm token, push will not be sent", userId);
                     return;
                 }
 

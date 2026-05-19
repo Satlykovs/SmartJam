@@ -8,6 +8,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+/**
+ * Production implementation of {@link PushPublisher} using Firebase Cloud Messaging (FCM). Communicates with Google's
+ * Firebase Admin SDK to deliver real-time notifications. Active under any profile except 'debug'.
+ */
 @Component
 @Slf4j
 @Profile("!debug")
@@ -31,7 +35,10 @@ public class FcmPushAdapter implements PushPublisher {
             log.info("Successfully sent push notification. Firebase response: {}", response);
 
         } catch (Exception e) {
-            log.error("Firebase cloud messaging error for token {}: {}", fcmToken, e.getMessage(), e);
+
+            String maskedToken =
+                    (fcmToken != null && fcmToken.length() > 10) ? fcmToken.substring(0, 10) + "..." : "***";
+            log.error("Firebase cloud messaging error for token {}: {}", maskedToken, e.getMessage(), e);
         }
     }
 }

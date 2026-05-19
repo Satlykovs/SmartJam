@@ -8,6 +8,10 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 
+/**
+ * Inbound Kafka adapter that listens for analysis completion events. Coordinates the notification process by triggering
+ * the corresponding use case. Uses manual acknowledgment to ensure "At-least-once" delivery semantics.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -18,7 +22,9 @@ public class AnalysisResultListener {
             topics = "analysis-results",
             groupId = "smartjam-notification-group",
             concurrency = "3",
-            properties = {"spring.json.value.default.type=com.smartjam.common.dto" + ".analysis.AnalysisFinishedEvent"})
+            properties = {
+                "spring.json.value.default.type=com.smartjam.common.dto" + ".analysis" + ".AnalysisFinishedEvent"
+            })
     public void onAnalysisFinished(AnalysisFinishedEvent event, Acknowledgment ack) {
         log.info("Received analysis result event from Kafka for ID: {}", event.targetId());
 

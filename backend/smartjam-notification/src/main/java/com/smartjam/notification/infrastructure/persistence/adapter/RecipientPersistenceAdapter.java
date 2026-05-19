@@ -8,6 +8,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
+/**
+ * Persistence adapter implementing {@link RecipientResolver} using high-performance JDBC queries. Bypasses full ORM
+ * overhead for lightweight data retrieval.
+ */
 @Component
 @RequiredArgsConstructor
 public class RecipientPersistenceAdapter implements RecipientResolver {

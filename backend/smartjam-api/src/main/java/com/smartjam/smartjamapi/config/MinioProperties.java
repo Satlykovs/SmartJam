@@ -20,6 +20,9 @@ public class MinioProperties {
     private String endpoint;
 
     @NotBlank
+    private String publicEndpoint;
+
+    @NotBlank
     private String accessKey;
 
     @NotBlank

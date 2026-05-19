@@ -114,34 +114,26 @@ public class StudentAssignmentTest {
 
             assertNotNull(result);
             System.out.println("Текущий статус в БД: " + result.status());
-
-            // Проверка, что статус изменился (не AWAITING_UPLOAD)
-            // Если у тебя еще нет логики смены статуса, временно закомментируй проверку ниже
-            // return result.status() != AudioProcessingStatus.AWAITING_UPLOAD;
         });
     }
 
     private void uploadToS3(String url, String pathStr) {
-        // Исправляем домен для локального запуска
-        String fixedUrl = url.replace("references.localhost", "localhost")
-                .replace("submissions.localhost", "localhost")
-                .replace("127.0.0.1", "localhost");
-
-        System.out.println("Uploading file to: " + fixedUrl);
+        // ИСПРАВЛЕНО: Мы больше не делаем .replace(), так как бэкенд возвращает правильный URL для клиента
+        System.out.println("Uploading file to: " + url);
 
         try {
             HttpClient httpClient = HttpClient.newHttpClient();
             Path path = Paths.get(pathStr);
 
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(fixedUrl))
+                    .uri(URI.create(url))
                     .header("Content-Type", "application/octet-stream")
                     .PUT(HttpRequest.BodyPublishers.ofFile(path))
                     .build();
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-            if (response.statusCode() != 200) {
+            if (response.statusCode() != 200 && response.statusCode() != 204) {
                 System.err.println("S3 ERROR Body: " + response.body());
                 throw new RuntimeException("S3 Upload Failed with status: " + response.statusCode());
             }

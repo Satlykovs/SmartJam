@@ -25,8 +25,13 @@ public class ApplicationConfig {
     @Bean
     public S3Presigner s3Presigner(MinioProperties minioProperties) {
 
+        String effectiveEndpoint = (minioProperties.getPublicEndpoint() != null
+                        && !minioProperties.getPublicEndpoint().isBlank())
+                ? minioProperties.getPublicEndpoint()
+                : minioProperties.getEndpoint();
+
         return S3Presigner.builder()
-                .endpointOverride(URI.create(minioProperties.getEndpoint()))
+                .endpointOverride(URI.create(effectiveEndpoint))
                 .region(Region.US_EAST_1)
                 .serviceConfiguration(software.amazon.awssdk.services.s3.S3Configuration.builder()
                         .pathStyleAccessEnabled(true)

@@ -20,7 +20,7 @@ public final class IdentityService {
         try {
             return UUID.fromString(auth.getName());
         } catch (IllegalArgumentException ex) {
-            throw new AccessDeniedException("Invalid authenticated principal");
+            throw new AccessDeniedException("Invalid authenticated principal", ex);
         }
     }
 

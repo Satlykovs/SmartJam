@@ -101,7 +101,7 @@ public class AssignmentsService {
         return new AssignmentPageResponse(responses, pageInfo);
     }
 
-    private void checkConnectionMembership(ConnectionsEntity connection) {
+    public void checkConnectionMembership(ConnectionsEntity connection) {
         UUID userId = identityService.getCurrentUserId();
         boolean isTeacher = connection.getTeacher().getId().equals(userId);
         boolean isStudent = connection.getStudent() != null
@@ -110,5 +110,9 @@ public class AssignmentsService {
         if (!isTeacher && !isStudent) {
             throw new AccessDeniedException("You are not a member of this connection");
         }
+    }
+
+    public AssignmentEntity getAssignmentEntityById(UUID assignmentId) {
+        return repository.findById(assignmentId).orElseThrow(() -> new EntityNotFoundException("Assignment not found"));
     }
 }

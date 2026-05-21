@@ -21,6 +21,10 @@ data class HomeState(
     val inviteCodeInput: String = "",
     val teacherGeneratedCode: String? = null,
     val isLoading: Boolean = false,
+    val isPaging: Boolean = false,
+    val endReached: Boolean = false,
+    val nextPage: Int = 1,
+    val pageSize: Int = 20,
     val errorMessage: String? = null
 )
 
@@ -42,9 +46,25 @@ class HomeViewModel(
     val events = eventChannel.receiveAsFlow()
 
     private var connectionJob: Job? = null
+    private var pollingJob: Job? = null
+    private var hasStarted = false
 
     init {
-        startObservingConnections()
+        viewModelScope.launch {
+            authRepository.userRole.collect { roleString ->
+                val newRole = try {
+                    UserRole.valueOf(roleString ?: "STUDENT")
+                } catch (e: Exception) {
+                    UserRole.STUDENT
+                }
+
+                if (!hasStarted || _state.value.currentRole != newRole) {
+                    hasStarted = true
+                    _state.update { it.copy(currentRole = newRole) }
+                    startObservingConnections()
+                }
+            }
+        }
     }
 
     fun toggleDebugRole() {
@@ -54,17 +74,19 @@ class HomeViewModel(
             UserRole.STUDENT
         }
 
-        _state.update { it.copy(
-            currentRole = newRole,
-            connections = emptyList(),
-            errorMessage = null
-        ) }
-
-        startObservingConnections()
+        viewModelScope.launch {
+            val refreshed = authRepository.refreshWithRole(newRole)
+            if (!refreshed) {
+                eventChannel.send(HomeEvent.NavigateToLogin)
+            }
+        }
     }
 
     private fun startObservingConnections() {
         connectionJob?.cancel()
+        pollingJob?.cancel()
+
+        _state.update { it.copy(nextPage = 1, endReached = false) }
 
         connectionJob = viewModelScope.launch {
             val role = _state.value.currentRole
@@ -79,15 +101,40 @@ class HomeViewModel(
                 }
             }
 
-            syncNetworkData()
+            refreshFirstPage()
+            startPolling()
         }
     }
 
-    fun syncNetworkData() {
+    private fun startPolling() {
+        pollingJob?.cancel()
+        pollingJob = viewModelScope.launch {
+            while (true) {
+                kotlinx.coroutines.delay(50_000)
+                refreshFirstPage()
+            }
+        }
+    }
+
+    fun onListScrolled(lastVisibleIndex: Int, totalCount: Int) {
+        val state = _state.value
+        if (state.isPaging || state.endReached || totalCount == 0) return
+
+        val threshold = (state.pageSize / 2).coerceAtLeast(1)
+        if (lastVisibleIndex >= totalCount - threshold) {
+            loadNextPage()
+        }
+    }
+
+    private fun refreshFirstPage() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, errorMessage = null) }
 
-            val result = connectionRepository.syncConnections(_state.value.currentRole)
+            val result = connectionRepository.syncConnectionsPage(
+                _state.value.currentRole,
+                page = 0,
+                size = _state.value.pageSize
+            )
 
             if (result.isFailure) {
                 _state.update { it.copy(errorMessage = "Не удалось обновить данные с сервера") }
@@ -95,6 +142,32 @@ class HomeViewModel(
 
             _state.update { it.copy(isLoading = false) }
         }
+    }
+
+    private fun loadNextPage() {
+        viewModelScope.launch {
+            _state.update { it.copy(isPaging = true, errorMessage = null) }
+
+            val result = connectionRepository.syncConnectionsPage(
+                _state.value.currentRole,
+                page = _state.value.nextPage,
+                size = _state.value.pageSize
+            )
+
+            if (result.isSuccess) {
+                val pageInfo = result.getOrNull()!!
+                val endReached = pageInfo.pageNumber + 1 >= pageInfo.totalPages
+                _state.update { it.copy(nextPage = pageInfo.pageNumber + 1, endReached = endReached) }
+            } else {
+                _state.update { it.copy(errorMessage = "Не удалось загрузить следующую страницу") }
+            }
+
+            _state.update { it.copy(isPaging = false) }
+        }
+    }
+
+    fun syncNetworkData() {
+        refreshFirstPage()
     }
 
     fun onInviteCodeInputChanged(code: String) {

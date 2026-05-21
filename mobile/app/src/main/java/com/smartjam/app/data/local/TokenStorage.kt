@@ -17,12 +17,16 @@ class TokenStorage(private val context: Context) {
         private companion object Keys{
                 val ACCESS_TOKEN = stringPreferencesKey("access_token")
                 val REFRESH_TOKEN = stringPreferencesKey("refresh_token")
+                val USER_ROLE = stringPreferencesKey("user_role")
         }
 
-        suspend fun saveToken(accessToken: String, refreshToken: String){
+        suspend fun saveToken(accessToken: String, refreshToken: String, role: String? = null){
                 context.dataStore.edit { preferences ->
                         preferences[ACCESS_TOKEN] = accessToken
                         preferences[REFRESH_TOKEN] = refreshToken
+                        if (role != null) {
+                                preferences[USER_ROLE] = role
+                        }
                 }
         }
 
@@ -31,6 +35,15 @@ class TokenStorage(private val context: Context) {
 
         val refreshToken : Flow<String?> = context.dataStore.data
                 .map { preferences -> preferences[REFRESH_TOKEN] }
+
+        val userRole : Flow<String?> = context.dataStore.data
+                .map { preferences -> preferences[USER_ROLE] }
+
+        suspend fun saveRole(role: String){
+                context.dataStore.edit { preferences ->
+                        preferences[USER_ROLE] = role
+                }
+        }
 
         suspend fun clearTokens(){
                 context.dataStore.edit { preferences ->

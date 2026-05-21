@@ -8,6 +8,7 @@ import com.smartjam.app.data.local.TokenStorage
 import com.smartjam.app.domain.model.UserRole
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.Flow
 import org.openapitools.client.infrastructure.ApiClient
 import com.smartjam.app.BuildConfig
 
@@ -16,6 +17,11 @@ class AuthRepository (
     private val authApi: AuthApi,
     private val apiClient: ApiClient
 ) {
+    val userRole: Flow<String?> = tokenStorage.userRole
+
+    suspend fun saveRole(role: String) {
+        tokenStorage.saveRole(role)
+    }
 
     suspend fun register(email: String, password: String, username: String, role: UserRole): Result<Unit> {
         return try {
@@ -25,7 +31,8 @@ class AuthRepository (
                 val authResponse = response.body()!!
                 tokenStorage.saveToken(
                     accessToken = authResponse.accessToken,
-                    refreshToken = authResponse.refreshToken
+                    refreshToken = authResponse.refreshToken,
+                    role = role.name
                 )
                 apiClient.setBearerToken(authResponse.accessToken)
                 Result.success(Unit)
@@ -38,12 +45,13 @@ class AuthRepository (
         }
     }
 
-    suspend fun login(email: String, password: String): Result<Unit> {
+    suspend fun login(email: String, password: String, role: UserRole): Result<Unit> {
         return try {
             if (BuildConfig.DEBUG && email == "admin" && password == "admin") {
                 tokenStorage.saveToken(
                     accessToken = "mock_admin_access_token",
-                    refreshToken = "mock_admin_refresh_token"
+                    refreshToken = "mock_admin_refresh_token",
+                    role = role.name
                 )
                 apiClient.setBearerToken("mock_admin_access_token")
                 return Result.success(Unit)
@@ -55,9 +63,13 @@ class AuthRepository (
                 val authResponse = response.body()!!
                 tokenStorage.saveToken(
                     accessToken = authResponse.accessToken,
-                    refreshToken = authResponse.refreshToken
+                    refreshToken = authResponse.refreshToken,
+                    role = role.name
                 )
                 apiClient.setBearerToken(authResponse.accessToken)
+
+                refreshWithRole(role)
+
                 Result.success(Unit)
             } else {
                 Result.failure(Exception("Login failed: ${response.code()}"))
@@ -75,20 +87,24 @@ class AuthRepository (
             if (refreshTokenStr == null){
                 return false
             }
-            val response = authApi.refreshToken(RefreshRequest(refreshTokenStr))
+
+            val storedRole = tokenStorage.userRole.first() ?: UserRole.STUDENT.name
+            val apiRole = toApiRole(storedRole)
+            val response = authApi.refreshToken(RefreshRequest(refreshTokenStr, apiRole))
 
             if (response.isSuccessful && response.body() != null) {
                 val authResponse = response.body()!!
                 tokenStorage.saveToken(
                     accessToken = authResponse.accessToken,
-                    refreshToken = authResponse.refreshToken
+                    refreshToken = authResponse.refreshToken,
+                    role = storedRole
                 )
                 apiClient.setBearerToken(authResponse.accessToken)
-                return true
+                true
             } else {
                 tokenStorage.clearTokens()
                 apiClient.setBearerToken("")
-                return false
+                false
             }
 
         } catch (e: Exception){
@@ -101,6 +117,33 @@ class AuthRepository (
                 return false
             }
 
+        }
+    }
+
+    suspend fun refreshWithRole(role: UserRole): Boolean {
+        return try {
+            val refreshTokenStr = tokenStorage.refreshToken.first() ?: return false
+
+            val response = authApi.refreshToken(RefreshRequest(refreshTokenStr, toApiRole(role.name)))
+
+            if (response.isSuccessful && response.body() != null) {
+                val authResponse = response.body()!!
+                tokenStorage.saveToken(
+                    accessToken = authResponse.accessToken,
+                    refreshToken = authResponse.refreshToken,
+                    role = role.name
+                )
+                apiClient.setBearerToken(authResponse.accessToken)
+                true
+            } else {
+                tokenStorage.clearTokens()
+                apiClient.setBearerToken("")
+                false
+            }
+        } catch (e: Exception) {
+            tokenStorage.clearTokens()
+            apiClient.setBearerToken("")
+            false
         }
     }
 
@@ -133,5 +176,13 @@ class AuthRepository (
             return false
         }
         return refreshToken()
+    }
+
+    private fun toApiRole(role: String): com.smartjam.app.model.UserRole? {
+        return try {
+            com.smartjam.app.model.UserRole.valueOf(role)
+        } catch (e: Exception) {
+            null
+        }
     }
 }

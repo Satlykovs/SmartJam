@@ -2,7 +2,6 @@ package com.smartjam.app.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import java.net.URI
 import java.time.Instant
 import java.util.UUID
 
@@ -14,6 +13,7 @@ data class ConnectionEntity(
     val createdAt: Instant,
     val peerFirstName: String? = null,
     val peerLastName: String? = null,
-    val peerAvatarUrl: URI? = null,
+    val peerAvatarUrl: String? = null,
+    val peerAvatarBytes: ByteArray? = null,
     val myRole: String
 )

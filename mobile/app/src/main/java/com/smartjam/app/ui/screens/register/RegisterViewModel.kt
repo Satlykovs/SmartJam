@@ -101,9 +101,8 @@ class RegisterViewModel(
                 role = currentState.selectedRole
             )
 
-            _state.update { it.copy(isLoading = false) }
-
             if (result.isSuccess) {
+                _state.update { it.copy(isLoading = false) }
                 eventChannel.send(RegisterEvent.NavigateToHome)
             } else {
                 val error = result.exceptionOrNull()?.message ?: "Ошибка регистрации"

@@ -35,18 +35,22 @@ class AuthAuthenticator(
                 }
 
                 val refreshToken = tokenStorage.refreshToken.first() ?: return@runBlocking null
+                val storedRole = tokenStorage.userRole.first()
 
                 val authApiClient = ApiClient(baseUrl = baseUrl)
                 val authApi = authApiClient.createService(AuthApi::class.java)
 
                 try {
-                    val refreshResponse = authApi.refreshToken(RefreshRequest(refreshToken))
+                    val refreshResponse = authApi.refreshToken(
+                        RefreshRequest(refreshToken, storedRole?.let { toApiRole(it) })
+                    )
 
                     if (refreshResponse.isSuccessful && refreshResponse.body() != null) {
                         val newAuthResponse = refreshResponse.body()!!
                         tokenStorage.saveToken(
                             accessToken = newAuthResponse.accessToken,
-                            refreshToken = newAuthResponse.refreshToken
+                            refreshToken = newAuthResponse.refreshToken,
+                            role = storedRole
                         )
 
                         apiClient?.setBearerToken(newAuthResponse.accessToken)
@@ -78,4 +82,12 @@ class AuthAuthenticator(
             }
             return result
         }
+
+    private fun toApiRole(role: String): com.smartjam.app.model.UserRole? {
+        return try {
+            com.smartjam.app.model.UserRole.valueOf(role)
+        } catch (e: Exception) {
+            null
+        }
+    }
 }

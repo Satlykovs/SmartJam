@@ -114,6 +114,45 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
 
 
+  /api/v1/devices/register:
+    post:
+      tags:
+        - Devices
+      summary: Register device
+      description: Links the FCM token of the current device to the user account.
+      operationId: registerDevice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceRegistrationRequest'
+      responses:
+        '200':
+          description: Device registered successfully.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/devices/unregister:
+    post:
+      tags:
+        - Devices
+      summary: Unregister device
+      description: Удаляет привязку FCM токена. Вызывается при логауте.
+      operationId: unregisterDevice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceRegistrationRequest'
+      responses:
+        '204':
+          description: Device unregistered successfully.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+
   /api/v1/users/me:
     get:
       tags:
@@ -130,6 +169,9 @@ paths:
                 $ref: '#/components/schemas/UserResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+
+
+
 
   /api/v1/connections/invite:
     post:
@@ -772,6 +814,17 @@ components:
           description: Array of errors detected during performance.
           items:
             $ref: './common-models.yaml#/components/schemas/FeedbackEvent'
+
+    DeviceRegistrationRequest:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          example: "bk3rn1...v2"
+          description: "FCM registration token from Firebase SDK"
+
 
     ErrorResponse:
       type: object

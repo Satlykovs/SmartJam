@@ -1,7 +1,10 @@
 package com.smartjam.notification.infrastructure.fcm;
 
+import java.util.List;
+
+import com.google.firebase.messaging.BatchResponse;
 import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.Message;
+import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.Notification;
 import com.smartjam.notification.domain.port.PushPublisher;
 import lombok.extern.slf4j.Slf4j;
@@ -18,27 +21,38 @@ import org.springframework.stereotype.Component;
 public class FcmPushAdapter implements PushPublisher {
 
     @Override
-    public void sendPush(String fcmToken, String messageText) {
+    public void sendPush(List<String> fcmTokens, String messageText) {
         try {
             Notification notification = Notification.builder()
                     .setTitle("SmartJam")
                     .setBody(messageText)
                     .build();
 
-            Message message = Message.builder()
-                    .setToken(fcmToken)
+            MulticastMessage message = MulticastMessage.builder()
+                    .addAllTokens(fcmTokens)
                     .setNotification(notification)
                     .build();
 
-            String response = FirebaseMessaging.getInstance().send(message);
+            BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
 
-            log.info("Successfully sent push notification. Firebase response: {}", response);
+            log.info(
+                    "Multicast push sent. Success: {}, Failure: {}",
+                    response.getSuccessCount(),
+                    response.getFailureCount());
+
+            if (response.getFailureCount() > 0) {
+                response.getResponses().forEach(res -> {
+                    if (!res.isSuccessful()) {
+                        log.warn(
+                                "Failed to send to a device: {}",
+                                res.getException().getMessage());
+                    }
+                });
+            }
 
         } catch (Exception e) {
 
-            String maskedToken =
-                    (fcmToken != null && fcmToken.length() > 10) ? fcmToken.substring(0, 10) + "..." : "***";
-            log.error("Firebase cloud messaging error for token {}: {}", maskedToken, e.getMessage(), e);
+            log.error("Critical error during FCM multicast sending", e);
         }
     }
 }

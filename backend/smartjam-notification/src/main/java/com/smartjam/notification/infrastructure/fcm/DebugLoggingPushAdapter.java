@@ -1,5 +1,8 @@
 package com.smartjam.notification.infrastructure.fcm;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import com.smartjam.notification.domain.port.PushPublisher;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Profile;
@@ -14,8 +17,15 @@ import org.springframework.stereotype.Component;
 @Profile("debug")
 public class DebugLoggingPushAdapter implements PushPublisher {
     @Override
-    public void sendPush(String fcmToken, String message) {
-        String maskedToken = (fcmToken != null && fcmToken.length() > 10) ? fcmToken.substring(0, 10) + "..." : "***";
-        log.info("[MOCK PUSH] Sending to User {}: {}", maskedToken, message);
+    public void sendPush(List<String> fcmTokens, String message) {
+        String tokensPreview = fcmTokens.stream()
+                .map(t -> (t.length() > 10) ? t.substring(0, 10) + "..." : "***")
+                .collect(Collectors.joining(", "));
+
+        log.info(
+                "[MOCK PUSH] Sending to {} devices. Tokens: [{}]. Message: {}",
+                fcmTokens.size(),
+                tokensPreview,
+                message);
     }
 }

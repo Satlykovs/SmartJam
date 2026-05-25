@@ -1,5 +1,6 @@
 package com.smartjam.notification.infrastructure.persistence.adapter;
 
+import java.util.List;
 import java.util.UUID;
 
 import com.smartjam.common.dto.analysis.AnalysisType;
@@ -28,7 +29,7 @@ public class RecipientPersistenceAdapter implements RecipientResolver {
     }
 
     @Override
-    public String findFcmToken(UUID userId) {
-        return jdbcTemplate.queryForObject("SELECT fcm_token FROM users WHERE id = ?", String.class, userId);
+    public List<String> findFcmTokens(UUID userId) {
+        return jdbcTemplate.queryForList("SELECT fcm_token FROM user_devices WHERE user_id = ?", String.class, userId);
     }
 }

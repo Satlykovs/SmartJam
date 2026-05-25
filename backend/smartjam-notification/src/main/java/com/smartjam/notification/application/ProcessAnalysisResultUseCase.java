@@ -1,5 +1,6 @@
 package com.smartjam.notification.application;
 
+import java.util.List;
 import java.util.UUID;
 
 import com.smartjam.common.dto.analysis.AnalysisFinishedEvent;
@@ -33,17 +34,17 @@ public class ProcessAnalysisResultUseCase {
             try {
                 UUID userId = recipientResolver.findOwnerId(event.targetId(), event.type());
 
-                String token = recipientResolver.findFcmToken(userId);
+                List<String> tokens = recipientResolver.findFcmTokens(userId);
 
-                if (token == null || token.isEmpty()) {
-                    log.warn("User {} does not have fcm token, push will not be sent", userId);
+                if (tokens.isEmpty()) {
+                    log.warn("User {} has no registered devices, push skipped", userId);
                     return;
                 }
 
                 String message = (event.type() == AnalysisType.SUBMISSION)
                         ? "Твоя игра " + "проанализирована! Балл: " + event.totalScore()
                         : "Твоя запись " + "обработана!";
-                pushPublisher.sendPush(token, message);
+                pushPublisher.sendPush(tokens, message);
             } catch (Exception e) {
                 log.error("Failed to send push notification for {}: {}", event.targetId(), e.getMessage());
             }

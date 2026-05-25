@@ -138,7 +138,7 @@ paths:
       tags:
         - Devices
       summary: Unregister device
-      description: Удаляет привязку FCM токена. Вызывается при логауте.
+      description: Removes FCM token link for user. Call it during user's logout.
       operationId: unregisterDevice
       requestBody:
         required: true

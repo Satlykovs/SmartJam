@@ -1,29 +1,26 @@
 package com.smartjam.app.domain.repository
 
-
+import android.util.Log
+import com.smartjam.app.api.ConnectionsApi
 import com.smartjam.app.data.local.dao.ConnectionDao
 import com.smartjam.app.data.local.entity.ConnectionEntity
 import com.smartjam.app.domain.model.Connection
 import com.smartjam.app.domain.model.UserRole
+import com.smartjam.app.model.JoinRequest
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import com.smartjam.app.api.ConnectionsApi
-import com.smartjam.app.model.JoinRequest
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
-class ConnectionRepository (
-    private val api: ConnectionsApi,
-    private val dao: ConnectionDao
-){
+class ConnectionRepository(private val api: ConnectionsApi, private val dao: ConnectionDao) {
     data class ConnectionPageInfo(
         val pageNumber: Int,
         val totalPages: Int,
         val pageSize: Int,
-        val totalElements: Long
+        val totalElements: Long,
     )
 
     private val avatarClient = OkHttpClient.Builder().build()
@@ -36,16 +33,22 @@ class ConnectionRepository (
                     peerId = entity.peerId.toString(),
                     peerName = entity.peerUsername,
                     peerAvatarUrl = entity.peerAvatarUrl,
-                    peerAvatarBytes = entity.peerAvatarBytes
+                    peerAvatarBytes = entity.peerAvatarBytes,
                 )
             }
         }
     }
 
-    suspend fun syncConnectionsPage(role: UserRole, page: Int, size: Int): Result<ConnectionPageInfo> {
+    suspend fun syncConnectionsPage(
+        role: UserRole,
+        page: Int,
+        size: Int,
+    ): Result<ConnectionPageInfo> {
         return try {
             val activeResponse = api.getMyConnections(page = page, size = size)
 
+            Log.e("HUESOS", activeResponse.toString())
+            Log.e("HUESOS", activeResponse.body()!!.content.toString())
             if (activeResponse.isSuccessful && activeResponse.body() != null) {
                 val body = activeResponse.body()!!
                 val activeItems = body.content
@@ -55,11 +58,14 @@ class ConnectionRepository (
                 val allEntities = activeItems.map { dto ->
                     val avatarUrl = dto.peerAvatarUrl?.toString()
                     val cached = existing[dto.id]
-                    val avatarBytes = when {
-                        avatarUrl.isNullOrBlank() -> null
-                        cached != null && cached.peerAvatarUrl == avatarUrl && cached.peerAvatarBytes != null -> cached.peerAvatarBytes
-                        else -> downloadAvatar(avatarUrl)
-                    }
+                    val avatarBytes =
+                        when {
+                            avatarUrl.isNullOrBlank() -> null
+                            cached != null &&
+                                cached.peerAvatarUrl == avatarUrl &&
+                                cached.peerAvatarBytes != null -> cached.peerAvatarBytes
+                            else -> downloadAvatar(avatarUrl)
+                        }
 
                     ConnectionEntity(
                         connectionId = dto.id,
@@ -70,7 +76,7 @@ class ConnectionRepository (
                         peerLastName = dto.peerLastName,
                         peerAvatarUrl = avatarUrl,
                         peerAvatarBytes = avatarBytes,
-                        myRole = role.name
+                        myRole = role.name,
                     )
                 }
 
@@ -81,7 +87,7 @@ class ConnectionRepository (
                         pageNumber = body.page.number,
                         totalPages = body.page.totalPages,
                         pageSize = body.page.propertySize,
-                        totalElements = body.page.totalElements
+                        totalElements = body.page.totalElements,
                     )
                 )
             } else {
@@ -95,7 +101,7 @@ class ConnectionRepository (
 
     @Deprecated("Use syncConnectionsPage for paged loading")
     suspend fun syncConnections(role: UserRole): Result<Unit> {
-        return syncConnectionsPage(role, page = 0, size = 20).map { }
+        return syncConnectionsPage(role, page = 0, size = 20).map {}
     }
 
     suspend fun generateInviteCode(): Result<String> {
@@ -130,17 +136,18 @@ class ConnectionRepository (
         return Result.success(Unit)
     }
 
-    private suspend fun downloadAvatar(url: String): ByteArray? = withContext(Dispatchers.IO) {
-        try {
-            val request = Request.Builder().url(url).build()
-            val response = avatarClient.newCall(request).execute()
-            if (response.isSuccessful) {
-                response.body?.bytes()
-            } else {
+    private suspend fun downloadAvatar(url: String): ByteArray? =
+        withContext(Dispatchers.IO) {
+            try {
+                val request = Request.Builder().url(url).build()
+                val response = avatarClient.newCall(request).execute()
+                if (response.isSuccessful) {
+                    response.body?.bytes()
+                } else {
+                    null
+                }
+            } catch (e: Exception) {
                 null
             }
-        } catch (e: Exception) {
-            null
         }
-    }
 }

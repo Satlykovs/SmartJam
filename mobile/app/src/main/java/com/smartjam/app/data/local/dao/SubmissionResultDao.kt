@@ -10,7 +10,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SubmissionResultDao {
-    @Query("SELECT * FROM submission_results WHERE assignmentId = :assignmentId ORDER BY createdAt DESC")
+    @Query(
+        "SELECT * FROM submission_results WHERE assignmentId = :assignmentId ORDER BY createdAt DESC"
+    )
     fun getResultsForAssignment(assignmentId: UUID): Flow<List<SubmissionResultEntity>>
 
     @Query("SELECT * FROM submission_results WHERE assignmentId = :assignmentId")

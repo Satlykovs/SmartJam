@@ -8,7 +8,6 @@ plugins {
 }
 
 
-
 subprojects {
     apply(plugin = "com.diffplug.spotless")
 

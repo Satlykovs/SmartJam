@@ -17,7 +17,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,7 +32,6 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -52,7 +50,7 @@ import com.smartjam.app.ui.theme.ErrorRed
 fun HomeScreen(
     viewModel: HomeViewModel,
     onNavigateToRoom: (String) -> Unit,
-    onNavigateToLogin: () -> Unit
+    onNavigateToLogin: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
@@ -73,12 +71,11 @@ fun HomeScreen(
 
     LaunchedEffect(listState) {
         snapshotFlow {
-            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-            val total = listState.layoutInfo.totalItemsCount
-            lastVisible to total
-        }.collect { (lastVisible, total) ->
-            viewModel.onListScrolled(lastVisible, total)
-        }
+                val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                val total = listState.layoutInfo.totalItemsCount
+                lastVisible to total
+            }
+            .collect { (lastVisible, total) -> viewModel.onListScrolled(lastVisible, total) }
     }
 
     Box(modifier = Modifier.fillMaxSize().background(Color(0xFF05050A))) {
@@ -119,7 +116,6 @@ fun HomeScreen(
 
                     item { Spacer(modifier = Modifier.height(8.dp)) }
                     item { SectionTitle("Мои ученики") }
-
                 } else {
                     item {
                         StudentJoinSection(
@@ -129,7 +125,7 @@ fun HomeScreen(
                             onJoin = {
                                 keyboard?.hide()
                                 viewModel.onJoinRoomClicked()
-                            }
+                            },
                         )
                     }
 
@@ -142,14 +138,14 @@ fun HomeScreen(
                         Text(
                             text = "Список пуст",
                             color = Color.White.copy(alpha = 0.5f),
-                            modifier = Modifier.padding(top = 16.dp)
+                            modifier = Modifier.padding(top = 16.dp),
                         )
                     }
                 } else {
                     items(state.connections) { connection ->
                         ActiveConnectionCard(
                             connection = connection,
-                            onClick = { viewModel.onConnectionClicked(connection.id) }
+                            onClick = { viewModel.onConnectionClicked(connection.id) },
                         )
                     }
                 }
@@ -164,32 +160,36 @@ private fun HomeHeader(
     isLoading: Boolean,
     onLogout: () -> Unit,
     onSync: () -> Unit,
-    onToggleDebugRole: () -> Unit
+    onToggleDebugRole: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 48.dp, start = 24.dp, end = 24.dp, bottom = 16.dp),
+        modifier =
+            Modifier.fillMaxWidth()
+                .padding(top = 48.dp, start = 24.dp, end = 24.dp, bottom = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.clickable { onToggleDebugRole() }) {
             Text(
                 text = "SmartJam",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = Color.White,
             )
             Text(
                 text = if (role == UserRole.TEACHER) "Режим преподавателя" else "Режим ученика",
                 fontSize = 12.sp,
-                color = BrandCyan
+                color = BrandCyan,
             )
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = Color.White,
+                    strokeWidth = 2.dp,
+                )
                 Spacer(modifier = Modifier.width(16.dp))
             }
 
@@ -210,7 +210,7 @@ private fun SectionTitle(text: String) {
         text = text,
         fontSize = 18.sp,
         fontWeight = FontWeight.SemiBold,
-        color = Color.White.copy(alpha = 0.8f)
+        color = Color.White.copy(alpha = 0.8f),
     )
 }
 
@@ -222,7 +222,13 @@ private fun TeacherInviteSection(code: String?, isLoading: Boolean, onGenerate: 
             Spacer(modifier = Modifier.height(12.dp))
 
             if (code != null) {
-                Text(text = code, fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = BrandGold, letterSpacing = 4.sp)
+                Text(
+                    text = code,
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = BrandGold,
+                    letterSpacing = 4.sp,
+                )
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
@@ -230,18 +236,26 @@ private fun TeacherInviteSection(code: String?, isLoading: Boolean, onGenerate: 
                 text = if (code == null) "Сгенерировать код" else "Обновить код",
                 onClick = onGenerate,
                 enabled = !isLoading,
-                modifier = Modifier.fillMaxWidth().height(50.dp)
+                modifier = Modifier.fillMaxWidth().height(50.dp),
             )
         }
     }
 }
 
-
 @Composable
-private fun StudentJoinSection(inputValue: String, isLoading: Boolean, onInputChange: (String) -> Unit, onJoin: () -> Unit) {
+private fun StudentJoinSection(
+    inputValue: String,
+    isLoading: Boolean,
+    onInputChange: (String) -> Unit,
+    onJoin: () -> Unit,
+) {
     GlassContainer {
         Column {
-            Text("Присоединиться к классу", color = Color.White.copy(alpha = 0.6f), fontSize = 14.sp)
+            Text(
+                "Присоединиться к классу",
+                color = Color.White.copy(alpha = 0.6f),
+                fontSize = 14.sp,
+            )
             Spacer(modifier = Modifier.height(12.dp))
 
             AppleGlassTextField(
@@ -249,12 +263,10 @@ private fun StudentJoinSection(inputValue: String, isLoading: Boolean, onInputCh
                 onValueChange = onInputChange,
                 hint = "Введите код (напр. A1B2C)",
                 icon = Icons.Default.Person,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Text,
-                    imeAction = ImeAction.Done
-                ),
+                keyboardOptions =
+                    KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { onJoin() }),
-                enabled = !isLoading
+                enabled = !isLoading,
             )
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -262,30 +274,50 @@ private fun StudentJoinSection(inputValue: String, isLoading: Boolean, onInputCh
                 text = "Отправить заявку",
                 onClick = onJoin,
                 enabled = !isLoading && inputValue.isNotBlank(),
-                modifier = Modifier.fillMaxWidth().height(50.dp)
+                modifier = Modifier.fillMaxWidth().height(50.dp),
             )
         }
     }
 }
 
 @Composable
-private fun PendingRequestCard(connection: Connection, onAccept: (String) -> Unit, onReject: (String) -> Unit) {
+private fun PendingRequestCard(
+    connection: Connection,
+    onAccept: (String) -> Unit,
+    onReject: (String) -> Unit,
+) {
     GlassContainer {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Column {
-                Text("Новая заявка", color = BrandGold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                Text(connection.peerName, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Medium)
+                Text(
+                    "Новая заявка",
+                    color = BrandGold,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    connection.peerName,
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                )
             }
             Row {
-                IconButton(onClick = { onReject(connection.id) }, modifier = Modifier.background(ErrorRed.copy(0.2f), RoundedCornerShape(12.dp))) {
+                IconButton(
+                    onClick = { onReject(connection.id) },
+                    modifier = Modifier.background(ErrorRed.copy(0.2f), RoundedCornerShape(12.dp)),
+                ) {
                     Icon(Icons.Default.Close, contentDescription = "Отклонить", tint = ErrorRed)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                IconButton(onClick = { onAccept(connection.id) }, modifier = Modifier.background(BrandCyan.copy(0.2f), RoundedCornerShape(12.dp))) {
+                IconButton(
+                    onClick = { onAccept(connection.id) },
+                    modifier = Modifier.background(BrandCyan.copy(0.2f), RoundedCornerShape(12.dp)),
+                ) {
                     Icon(Icons.Default.Check, contentDescription = "Принять", tint = BrandCyan)
                 }
             }
@@ -296,42 +328,47 @@ private fun PendingRequestCard(connection: Connection, onAccept: (String) -> Uni
 @Composable
 private fun ActiveConnectionCard(connection: Connection, onClick: () -> Unit) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(Color.White.copy(alpha = 0.05f))
-            .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(20.dp))
-            .clickable { onClick() }
-            .padding(20.dp)
+        modifier =
+            Modifier.fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .background(Color.White.copy(alpha = 0.05f))
+                .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(20.dp))
+                .clickable { onClick() }
+                .padding(20.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             val model = connection.peerAvatarBytes ?: connection.peerAvatarUrl
             if (model != null) {
                 AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(model)
-                        .crossfade(true)
-                        .build(),
+                    model =
+                        ImageRequest.Builder(LocalContext.current)
+                            .data(model)
+                            .crossfade(true)
+                            .build(),
                     contentDescription = null,
-                    modifier = Modifier.size(48.dp).clip(RoundedCornerShape(24.dp))
+                    modifier = Modifier.size(48.dp).clip(RoundedCornerShape(24.dp)),
                 )
             } else {
                 Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(Color.White.copy(0.1f)),
-                    contentAlignment = Alignment.Center
+                    modifier =
+                        Modifier.size(48.dp)
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(Color.White.copy(0.1f)),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(Icons.Default.Person, contentDescription = null, tint = Color.White)
                 }
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column {
-                Text(connection.peerName, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    connection.peerName,
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
                 Text("Нажмите, чтобы открыть", color = Color.White.copy(0.5f), fontSize = 13.sp)
             }
         }
     }
 }
-

@@ -15,5 +15,5 @@ data class AssignmentEntity(
     val referenceAudioUrl: URI?,
     val referenceAudioLocalPath: String?,
     val status: String,
-    val createdAt: Instant
+    val createdAt: Instant,
 )

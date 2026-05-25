@@ -94,19 +94,22 @@ class RegisterViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, errorMessage = null) }
 
-            val result = authRepository.register(
-                email = currentState.emailInput,
-                password = currentState.passwordInput,
-                username = currentState.usernameInput,
-                role = currentState.selectedRole
-            )
+            try {
+                val result = authRepository.register(
+                    email = currentState.emailInput,
+                    password = currentState.passwordInput,
+                    username = currentState.usernameInput,
+                    role = currentState.selectedRole
+                )
 
-            if (result.isSuccess) {
+                if (result.isSuccess) {
+                    eventChannel.send(RegisterEvent.NavigateToHome)
+                } else {
+                    val error = result.exceptionOrNull()?.message ?: "Ошибка регистрации"
+                    _state.update { it.copy(errorMessage = error) }
+                }
+            } finally {
                 _state.update { it.copy(isLoading = false) }
-                eventChannel.send(RegisterEvent.NavigateToHome)
-            } else {
-                val error = result.exceptionOrNull()?.message ?: "Ошибка регистрации"
-                _state.update { it.copy(errorMessage = error) }
             }
         }
     }

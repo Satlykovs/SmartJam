@@ -143,4 +143,14 @@ class ConnectionRepository (
             null
         }
     }
+
+    suspend fun clearAllConnections(): Result<Unit> {
+        return try {
+            dao.clearAllConnections()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Result.failure(e)
+        }
+    }
 }

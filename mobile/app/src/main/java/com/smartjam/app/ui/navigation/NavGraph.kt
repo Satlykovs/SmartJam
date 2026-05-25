@@ -125,7 +125,7 @@ fun SmartJamNavGraph(
 
             composable(route = Screen.Login.route) {
                 val loginViewModel: LoginViewModel = viewModel(
-                    factory = LoginViewModelFactory(authRepository, tokenStorage)
+                    factory = LoginViewModelFactory(authRepository, tokenStorage, connectionRepository)
                 )
 
                 LoginScreen(
@@ -385,4 +385,3 @@ private fun PlaceholderScreen(
         }
     }
 }
-

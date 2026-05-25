@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.smartjam.app.domain.repository.AuthRepository
+import com.smartjam.app.domain.repository.ConnectionRepository
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,7 +29,8 @@ sealed class LoginEvent{
 
 class LoginViewModel (
     private val authRepository: AuthRepository,
-    private val tokenStorage: com.smartjam.app.data.local.TokenStorage
+    private val tokenStorage: com.smartjam.app.data.local.TokenStorage,
+    private val connectionRepository: ConnectionRepository
 ) : ViewModel(){
 
     private val _state = MutableStateFlow(LoginState())
@@ -68,6 +70,7 @@ class LoginViewModel (
                 val result = authRepository.login(currentEmail, currentPassword, selectedRole)
 
                 if (result.isSuccess){
+                    connectionRepository.clearAllConnections()
                     eventChannel.send(LoginEvent.NavigateToHome)
                 }
                 else{
@@ -89,13 +92,14 @@ class LoginViewModel (
 
 class LoginViewModelFactory(
     private val authRepository: AuthRepository,
-    private val tokenStorage: com.smartjam.app.data.local.TokenStorage
+    private val tokenStorage: com.smartjam.app.data.local.TokenStorage,
+    private val connectionRepository: ConnectionRepository
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(LoginViewModel::class.java)) {
-            return LoginViewModel(authRepository, tokenStorage) as T
+            return LoginViewModel(authRepository, tokenStorage, connectionRepository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

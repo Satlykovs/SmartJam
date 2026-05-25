@@ -5,6 +5,7 @@ converterGson = "3.0.0"
 converterScalars = "3.0.0"
 coreKtx = "1.18.0"
 datastorePreferences = "1.2.1"
+gsonJavatimeSerialisers = "1.1.2"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
@@ -36,6 +37,7 @@ androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }
 converter-scalars = { module = "com.squareup.retrofit2:converter-scalars", version.ref = "converterScalars" }
+gson-javatime-serialisers = { module = "com.fatboyindustrial.gson-javatime-serialisers:gson-javatime-serialisers", version.ref = "gsonJavatimeSerialisers" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }

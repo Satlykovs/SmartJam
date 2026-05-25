@@ -34,7 +34,7 @@ import com.smartjam.app.domain.repository.ConnectionRepository
 import com.smartjam.app.domain.repository.RoomRepository
 import com.smartjam.app.ui.navigation.Screen
 import com.smartjam.app.ui.navigation.SmartJamNavGraph
-import kotlin.time.Instant
+import java.time.Instant
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking

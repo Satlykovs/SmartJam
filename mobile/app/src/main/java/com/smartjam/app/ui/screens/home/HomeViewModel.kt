@@ -128,6 +128,7 @@ class HomeViewModel(
 
     private fun refreshFirstPage() {
         viewModelScope.launch {
+            // 1. Включаем загрузку и сбрасываем старую ошибку
             _state.update { it.copy(isLoading = true, errorMessage = null) }
 
             val result =
@@ -137,11 +138,24 @@ class HomeViewModel(
                     size = _state.value.pageSize,
                 )
 
-            if (result.isFailure) {
-                _state.update { it.copy(errorMessage = "Не удалось обновить данные с сервера") }
+            // 2. Обрабатываем результат и выключаем загрузку в зависимости от исхода
+            if (result.isSuccess) {
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = null,
+                        // Здесь также можно обновить список студентов, если они берутся из state
+                        // students = result.getOrNull()?.content ?: emptyList()
+                    )
+                }
+            } else {
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Не удалось обновить данные с сервера",
+                    )
+                }
             }
-
-            _state.update { it.copy(isLoading = false) }
         }
     }
 

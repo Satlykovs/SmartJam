@@ -1,6 +1,5 @@
 package com.smartjam.app.domain.repository
 
-import android.util.Log
 import com.smartjam.app.api.ConnectionsApi
 import com.smartjam.app.data.local.dao.ConnectionDao
 import com.smartjam.app.data.local.entity.ConnectionEntity
@@ -46,9 +45,6 @@ class ConnectionRepository(private val api: ConnectionsApi, private val dao: Con
     ): Result<ConnectionPageInfo> {
         return try {
             val activeResponse = api.getMyConnections(page = page, size = size)
-
-            Log.e("HUESOS", activeResponse.toString())
-            Log.e("HUESOS", activeResponse.body()!!.content.toString())
             if (activeResponse.isSuccessful && activeResponse.body() != null) {
                 val body = activeResponse.body()!!
                 val activeItems = body.content
@@ -95,6 +91,7 @@ class ConnectionRepository(private val api: ConnectionsApi, private val dao: Con
             }
         } catch (e: Exception) {
             if (e is CancellationException) throw e
+
             Result.failure(e)
         }
     }

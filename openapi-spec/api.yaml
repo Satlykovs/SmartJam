@@ -822,6 +822,8 @@ components:
       properties:
         token:
           type: string
+          minLength: 1
+          pattern: '.*\S.*'
           example: "bk3rn1...v2"
           description: "FCM registration token from Firebase SDK"
 

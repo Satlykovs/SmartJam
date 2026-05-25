@@ -15,7 +15,8 @@ import com.smartjam.app.BuildConfig
 class AuthRepository (
     private val tokenStorage: TokenStorage,
     private val authApi: AuthApi,
-    private val apiClient: ApiClient
+    private val apiClient: ApiClient,
+    private val devicesApi: DevicesApi,
 ) {
     val userRole: Flow<String?> = tokenStorage.userRole
 
@@ -23,8 +24,13 @@ class AuthRepository (
         tokenStorage.saveRole(role)
     }
 
-    suspend fun register(email: String, password: String, username: String, role: UserRole): Result<Unit> {
-        return try {
+    suspend fun register(
+        email: String,
+        password: String,
+        username: String,
+        role: UserRole,
+    ): Result<Unit> =
+        try {
             val response = authApi.registerUser(RegisterRequest(email, username, password))
 
             if (response.isSuccessful && response.body() != null) {
@@ -40,7 +46,7 @@ class AuthRepository (
                 Result.failure(Exception("Registration failed: ${response.code()}"))
             }
         } catch (e: Exception) {
-            if (e is CancellationException) throw e;
+            if (e is CancellationException) throw e
             Result.failure(e)
         }
     }
@@ -74,15 +80,25 @@ class AuthRepository (
             } else {
                 Result.failure(Exception("Login failed: ${response.code()}"))
             }
-        } catch (e: Exception){
-            if (e is CancellationException) throw e;
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
             Result.failure(e)
         }
     }
 
+    private suspend fun registerDevicePushToken() {
+        try {
+            val fcmToken = FirebaseMessaging.getInstance().token.await()
+            devicesApi.registerDevice(DeviceRegistrationRequest(token = fcmToken))
+            Log.d("SmartJam_Auth", "Device registered for pushes successfully")
+        } catch (e: Exception) {
+            Log.e("SmartJam_Auth", "Failed to register device for pushes", e)
+        }
+    }
+
     suspend fun refreshToken(): Boolean {
-        return try{
-            val refreshTokenStr = tokenStorage.refreshToken.first()
+        return try {
+            val refreshTokenStr = tokenStorage.refreshToken.first() ?: return false
 
             if (refreshTokenStr == null){
                 return false
@@ -106,17 +122,12 @@ class AuthRepository (
                 apiClient.setBearerToken("")
                 false
             }
-
-        } catch (e: Exception){
-            if (e is CancellationException) {
-                throw e
-            }
-            else{
-                tokenStorage.clearTokens()
-                apiClient.setBearerToken("")
-                return false
-            }
-
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            tokenStorage.clearTokens()
+            apiClient.setBearerToken("")
+            false
         }
     }
 
@@ -148,6 +159,14 @@ class AuthRepository (
     }
 
     suspend fun logout() {
+        try {
+            val fcmToken = FirebaseMessaging.getInstance().token.await()
+            devicesApi.unregisterDevice(DeviceRegistrationRequest(token = fcmToken))
+            Log.d("SmartJam_Auth", "Device unregistered successfully")
+        } catch (e: Exception) {
+            Log.e("SmartJam_Auth", "Failed to unregister device during logout", e)
+        }
+
         tokenStorage.clearTokens()
         apiClient.setBearerToken("")
     }

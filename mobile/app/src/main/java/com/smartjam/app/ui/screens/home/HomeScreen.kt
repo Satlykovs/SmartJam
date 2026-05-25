@@ -12,10 +12,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,6 +33,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -87,7 +90,7 @@ fun HomeScreen(
                 isLoading = state.isLoading,
                 onLogout = viewModel::onLogoutClicked,
                 onSync = viewModel::syncNetworkData,
-                onToggleDebugRole = viewModel::toggleDebugRole
+                onToggleDebugRole = viewModel::toggleDebugRole,
             )
 
             if (state.errorMessage != null) {
@@ -95,7 +98,7 @@ fun HomeScreen(
                     text = state.errorMessage!!,
                     color = Color(0xFFFF5252),
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-                    fontSize = 14.sp
+                    fontSize = 14.sp,
                 )
             }
 
@@ -103,14 +106,14 @@ fun HomeScreen(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 if (state.currentRole == UserRole.TEACHER) {
                     item {
                         TeacherInviteSection(
                             code = state.teacherGeneratedCode,
                             isLoading = state.isLoading,
-                            onGenerate = viewModel::onGenerateCodeClicked
+                            onGenerate = viewModel::onGenerateCodeClicked,
                         )
                     }
 
@@ -191,7 +194,11 @@ private fun HomeHeader(
             }
 
             IconButton(onClick = onLogout) {
-                Icon(Icons.Default.ExitToApp, contentDescription = "Выйти", tint = Color.White.copy(alpha = 0.7f))
+                Icon(
+                    Icons.AutoMirrored.Default.ExitToApp,
+                    contentDescription = "Выйти",
+                    tint = Color.White.copy(alpha = 0.7f),
+                )
             }
         }
     }

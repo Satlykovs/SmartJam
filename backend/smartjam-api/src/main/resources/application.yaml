@@ -66,3 +66,4 @@ minio:
   buckets:
     references: references
     submissions: submissions
+    avatars: avatars

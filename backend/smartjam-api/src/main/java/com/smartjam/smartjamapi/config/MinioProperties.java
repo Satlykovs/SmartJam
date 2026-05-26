@@ -40,5 +40,8 @@ public class MinioProperties {
 
         @NotBlank
         private String submissions;
+
+        @NotBlank
+        private String avatars;
     }
 }

@@ -130,6 +130,38 @@ paths:
                 $ref: '#/components/schemas/UserResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+    patch:
+      tags:
+        - Profile
+
+      summary: Update current user profile
+
+      description: >
+        Updates editable profile information of the currently authenticated user.
+        Email and password are not editable via this endpoint.
+
+      operationId: updateCurrentUserProfile
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfileUpdateRequest'
+
+      responses:
+        '200':
+          description: Profile updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserAvatarResponse'
+
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+        '409':
+          $ref: '#/components/responses/ConflictError'
 
   /api/v1/connections/invite:
     post:
@@ -484,6 +516,27 @@ components:
           type: string
           example: "Try playing it slow with a metronome."
 
+    UserProfileUpdateRequest:
+      type: object
+      description: Data for updating current user's profile.
+      properties:
+        username:
+          type: string
+          description: New unique username.
+
+        firstName:
+          type: string
+          description: User's first name.
+
+        lastName:
+          type: string
+          description: User's last name.
+
+        avatarUpdated:
+          type: boolean
+          nullable: false
+          description: Indicates whether the avatar image was updated successfully.
+
     AuthResponse:
       type: object
       description: Contains the JWT access token and refresh token.
@@ -801,6 +854,15 @@ components:
           description: Detailed error message.
           example: "Email already in use."
 
+    UserAvatarResponse:
+      type: object
+      description: Updated user avatar information.
+      properties:
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: Current S3 avatar URL of the user.
   responses:
     UnauthorizedError:
       description: Access token is missing or invalid.
@@ -827,4 +889,9 @@ components:
             error: "Forbidden"
             message: "Access denied: Teacher role required"
 
-
+    ConflictError:
+      description: Resource conflict (e.g., username already exists).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

@@ -28,6 +28,14 @@ public class S3Service {
         return String.format("references/%s/%s", connectionId, assignmentId);
     }
 
+    public String getSubmissionKey(UUID assignmentId, UUID submissionId) {
+        return String.format("submissions/%s/%s", assignmentId, submissionId);
+    }
+
+    public String getAvatarsKey(UUID userUUID) {
+        return String.format("avatars/%s", userUUID);
+    }
+
     public String generatePresignedUrlForTeacher(String key) {
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(minioProperties.getBuckets().getReferences())
@@ -38,6 +46,18 @@ public class S3Service {
                 r -> r.putObjectRequest(putObjectRequest).signatureDuration(Duration.ofMinutes(10)));
 
         return presignedPutObjectRequest.url().toString();
+    }
+
+    public String generatePresignedUrlForStudent(String key) {
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(minioProperties.getBuckets().getSubmissions())
+                .key(getRelativeKey(key))
+                .build();
+
+        PresignedPutObjectRequest presignedRequest = presigner.presignPutObject(
+                r -> r.putObjectRequest(putObjectRequest).signatureDuration(Duration.ofMinutes(10)));
+
+        return presignedRequest.url().toString();
     }
 
     public String generatePresignedUrlForDownload(String key) {
@@ -56,26 +76,24 @@ public class S3Service {
         return presignedGetObjectRequest.url().toString();
     }
 
-    private String determineBucket(String key) {
-        if (key != null && key.startsWith("submissions/")) {
-            return minioProperties.getBuckets().getSubmissions();
-        }
-        return minioProperties.getBuckets().getReferences();
-    }
-
     private String getRelativeKey(String key) {
         if (key == null) return null;
         int index = key.indexOf("/");
         return (index != -1) ? key.substring(index + 1) : key;
     }
 
-    public String getSubmissionKey(UUID assignmentId, UUID submissionId) {
-        return String.format("submissions/%s/%s", assignmentId, submissionId);
+    private String determineBucket(String key) {
+        if (key != null && key.startsWith("submissions/")) {
+            return minioProperties.getBuckets().getSubmissions();
+        } else if (key != null && key.startsWith("references/")) {
+            return minioProperties.getBuckets().getReferences();
+        }
+        return minioProperties.getBuckets().getAvatars();
     }
 
-    public String generatePresignedUrlForStudent(String key) {
+    public String generatePresignedUrlForUserAvatar(String key) {
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                .bucket(minioProperties.getBuckets().getSubmissions())
+                .bucket(minioProperties.getBuckets().getAvatars())
                 .key(getRelativeKey(key))
                 .build();
 

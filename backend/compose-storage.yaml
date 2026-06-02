@@ -78,6 +78,9 @@ services:
       MINIO_NOTIFY_KAFKA_ENABLE_primary: "on"
       MINIO_NOTIFY_KAFKA_BROKERS_primary: kafka:9092
       MINIO_NOTIFY_KAFKA_TOPIC_primary: s3-events
+      MINIO_NOTIFY_WEBHOOK_ENABLE_avatar_proc: "on"
+      MINIO_NOTIFY_WEBHOOK_ENDPOINT_avatar_proc: "http://host.docker.internal:8081/api/v1/internal/s3-avatar-webhook"
+      MINIO_NOTIFY_WEBHOOK_AUTH_TOKEN_avatar_proc: "Bearer super-secret-token-12345-qwerty"
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000"
@@ -106,9 +109,9 @@ services:
           sleep 1
         done
         
-        provision_bucket() {
+        provision_kafka_bucket() {
           BUCKET_NAME=$$1
-          echo "Provisioning bucket: $$BUCKET_NAME"
+          echo "Provisioning KAFKA bucket: $$BUCKET_NAME"
         
           /usr/bin/mc mb --ignore-existing myminio/$$BUCKET_NAME
         
@@ -118,8 +121,26 @@ services:
           /usr/bin/mc event add myminio/$$BUCKET_NAME arn:minio:sqs::primary:kafka --event put
         }
         
-        provision_bucket references
-        provision_bucket submissions
+        provision_webhook_bucket() {
+          BUCKET_NAME=$$1
+          echo "Provisioning WEBHOOK bucket: $$BUCKET_NAME"
+        
+          /usr/bin/mc mb --ignore-existing myminio/$$BUCKET_NAME
+        
+        
+          echo "Resetting Webhook events for $$BUCKET_NAME..."
+          /usr/bin/mc event remove myminio/$$BUCKET_NAME arn:minio:sqs::avatar_proc:webhook --event put || true
+          /usr/bin/mc event add myminio/$$BUCKET_NAME arn:minio:sqs::avatar_proc:webhook --event put
+        }
+        
+        
+        provision_kafka_bucket references
+        provision_kafka_bucket submissions
+        
+        
+        /usr/bin/mc mb --ignore-existing myminio/avatars
+        
+        provision_webhook_bucket temp-avatars
         
         echo "MinIO infrastructure setup complete."
 

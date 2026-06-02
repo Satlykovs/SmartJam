@@ -20,6 +20,8 @@ dependencies {
     implementation 'software.amazon.awssdk:s3:2.30.33'
     implementation project(':smartjam-common')
 
+    implementation 'net.coobird:thumbnailator:0.4.20'
+
     runtimeOnly 'org.postgresql:postgresql'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'

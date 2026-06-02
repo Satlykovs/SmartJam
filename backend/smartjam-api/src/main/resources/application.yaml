@@ -67,3 +67,10 @@ minio:
     references: references
     submissions: submissions
     avatars: avatars
+    temp-avatars: temp-avatars
+  webhook:
+    minio-secret: "super-secret-token-12345-qwerty"
+  format-avatar:
+    jpeg: "jpeg"
+    jpg: "jpg"
+    png: "png"

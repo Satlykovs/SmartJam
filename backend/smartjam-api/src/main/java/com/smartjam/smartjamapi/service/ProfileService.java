@@ -45,7 +45,9 @@ public class ProfileService {
                 .findById(userId)
                 .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
 
-        if (request.username() != null && !request.username().isBlank()) {
+        if (request.username() != null
+                && !request.username().isBlank()
+                && !request.username().equals(user.getUsername())) {
             if (repository.existsByUsername(request.username())) {
                 throw new UserAlreadyExistsException("Username already exists");
             }
@@ -61,10 +63,9 @@ public class ProfileService {
         }
 
         if (request.avatarUpdated() != null && request.avatarUpdated()) {
-            String key = s3Service.getAvatarsKey(userId);
+            String key = s3Service.getTempAvatarsKey(userId);
             avatarUrl = s3Service.generatePresignedUrlForUserAvatar(key);
         }
-        // TODO: обновить key в бд, нужна новая ручка|валидатор
         return new UserAvatarResponse(avatarUrl);
     }
 }

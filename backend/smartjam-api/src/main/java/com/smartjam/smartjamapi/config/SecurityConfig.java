@@ -24,7 +24,12 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) {
         http.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth.requestMatchers(
-                                "/api/v1/auth/**", "/swagger", "/swagger-ui/**", "/v3/api-docs/**", "/*.yaml")
+                                "/api/v1/auth/**",
+                                "/swagger",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/*.yaml",
+                                "/api/v1/internal/s3-avatar-webhook/**")
                         .permitAll()
                         .anyRequest()
                         .authenticated())

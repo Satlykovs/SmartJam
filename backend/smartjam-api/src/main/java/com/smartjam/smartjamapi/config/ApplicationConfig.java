@@ -11,6 +11,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 @Configuration
@@ -20,6 +22,18 @@ public class ApplicationConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public S3Client s3Client(MinioProperties minioProperties) {
+        return S3Client.builder()
+                .endpointOverride(URI.create(minioProperties.getEndpoint()))
+                .region(Region.US_EAST_1)
+                .credentialsProvider(StaticCredentialsProvider.create(
+                        AwsBasicCredentials.create(minioProperties.getAccessKey(), minioProperties.getSecretKey())))
+                .serviceConfiguration(
+                        S3Configuration.builder().pathStyleAccessEnabled(true).build())
+                .build();
     }
 
     @Bean
@@ -33,9 +47,8 @@ public class ApplicationConfig {
         return S3Presigner.builder()
                 .endpointOverride(URI.create(effectiveEndpoint))
                 .region(Region.US_EAST_1)
-                .serviceConfiguration(software.amazon.awssdk.services.s3.S3Configuration.builder()
-                        .pathStyleAccessEnabled(true)
-                        .build())
+                .serviceConfiguration(
+                        S3Configuration.builder().pathStyleAccessEnabled(true).build())
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(minioProperties.getAccessKey(), minioProperties.getSecretKey())))
                 .build();

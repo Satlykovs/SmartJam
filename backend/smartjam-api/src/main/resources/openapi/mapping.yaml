@@ -15,6 +15,9 @@ options:
     layout: standard
 
 map:
+  extensions:
+    x-oap-annotation:
+      notBlank @ jakarta.validation.constraints.NotBlank
 
   result: org.springframework.http.ResponseEntity
 

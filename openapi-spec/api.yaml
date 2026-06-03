@@ -364,6 +364,75 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/assignments/{assignmentId}/comments:
+    parameters:
+      - name: assignmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags:
+        - Comments
+      summary: Post the comment to an assignments
+      description: addComment
+      operationId: createComment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentRequest'
+      responses:
+        '201':
+          description: Comment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+    get:
+      tags:
+        - Comments
+      summary: Get comments for an assignment
+      description: Returns a paginated list of comments using cursor-based pagination.
+      operationId: getComments
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: How many comments to return
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 50
+        - name: cursor
+          in: query
+          required: false
+          description: The cursor for the next page (created_at,id)
+          schema:
+            type: string
+            example: "29.01.2007,67"
+      responses:
+        '200':
+          description: A paginated list of comments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentPageResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: Assignment not found
+
 components:
   securitySchemes:
     bearerAuth:
@@ -483,6 +552,31 @@ components:
         description:
           type: string
           example: "Try playing it slow with a metronome."
+
+    CommentRequest:
+      type: object
+      description: Payload to create a new comment.
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          x-oap-annotation: notBlank
+          example: "Go redo it"
+
+    CommentPageResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommentResponse'
+        nextCursor:
+          type: string
+          nullable: true
+          description: "Send this value in the next request to get the next page"
+        hasNext:
+          type: boolean
 
     AuthResponse:
       type: object
@@ -734,6 +828,31 @@ components:
         uploadUrl:
           type: string
           format: uri
+
+    CommentResponse:
+      type: object
+      description: Returns the created comment with its ID, text, author, assignment and creation timestamp.
+      required:
+        - commentId
+        - text
+        - authorId
+        - assignmentId
+        - createdAt
+      properties:
+        commentId:
+          type: string
+          format: uuid
+        text:
+          type: string
+        authorId:
+          type: string
+          format: uuid
+        assignmentId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
 
     SubmissionResultResponse:
       type: object

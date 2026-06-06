@@ -1,6 +1,6 @@
 package com.smartjam.smartjamapi.repository;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,7 +16,7 @@ public interface CommentsRepository extends JpaRepository<CommentEntity, UUID> {
             AND (c.createdAt > :cursorTime OR (c.createdAt = :cursorTime AND c.id > :cursorId))
             ORDER BY c.createdAt ASC, c.id ASC
             """)
-    List<CommentEntity> getNextPage(UUID assignmentId, OffsetDateTime cursorTime, UUID cursorId, Pageable pageable);
+    List<CommentEntity> getNextPage(UUID assignmentId, Instant cursorTime, UUID cursorId, Pageable pageable);
 
     @Query("""
             SELECT c FROM CommentEntity c

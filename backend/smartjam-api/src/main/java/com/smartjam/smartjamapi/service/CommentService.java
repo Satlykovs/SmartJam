@@ -1,6 +1,6 @@
 package com.smartjam.smartjamapi.service;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -93,7 +93,7 @@ public class CommentService {
         } else {
             try {
                 String[] detCursor = cursor.split(",");
-                OffsetDateTime cursorTime = OffsetDateTime.parse(detCursor[0]);
+                Instant cursorTime = Instant.parse(detCursor[0]);
                 UUID cursorId = UUID.fromString(detCursor[1]);
                 comments = new ArrayList<>(repository.getNextPage(assignmentId, cursorTime, cursorId, pageable));
             } catch (Exception e) {

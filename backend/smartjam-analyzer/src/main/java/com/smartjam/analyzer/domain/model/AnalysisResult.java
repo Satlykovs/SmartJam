@@ -13,6 +13,8 @@ import com.smartjam.common.model.FeedbackEvent;
  * @param rhythmScore Score representing rhythmic stability (0.0 - 100.0).
  * @param warpingPath List of [teacherIndex, studentIndex] pairs representing the optimal DTW path.
  * @param feedback List of specific error events detected during evaluation.
+ * @param teacherWaveform RMS energy vector of the teacher's reference audio.
+ * @param studentWaveform RMS energy vector of the student's submission audio.
  * @param costMatrix The accumulated cost matrix (nullable, used only for debug visualization).
  */
 public record AnalysisResult(
@@ -21,6 +23,8 @@ public record AnalysisResult(
         double rhythmScore,
         List<int[]> warpingPath,
         List<FeedbackEvent> feedback,
+        float[] teacherWaveform,
+        float[] studentWaveform,
         double[][] costMatrix) {
 
     public AnalysisResult {
@@ -28,6 +32,9 @@ public record AnalysisResult(
                 ? List.of()
                 : warpingPath.stream().map(int[]::clone).toList();
         feedback = feedback == null ? List.of() : List.copyOf(feedback);
+        teacherWaveform = (teacherWaveform != null) ? teacherWaveform.clone() : new float[0];
+        studentWaveform = (studentWaveform != null) ? studentWaveform.clone() : new float[0];
+
         costMatrix = copyMatrix(costMatrix);
     }
 

@@ -40,6 +40,9 @@ public class SubmissionPersistenceAdapter implements ResultRepository {
         entity.setStatus(AudioProcessingStatus.COMPLETED);
         entity.setErrorMessage(null);
 
+        entity.setTeacherWaveform(result.teacherWaveform());
+        entity.setStudentWaveform(result.studentWaveform());
+
         repository.save(entity);
     }
 

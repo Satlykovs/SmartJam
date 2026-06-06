@@ -42,7 +42,7 @@ public class DtwPerformanceEvaluator implements PerformanceEvaluator {
         List<FeedbackEvent> feedbacks = new ArrayList<>();
         PathMetrics metrics = analyzePath(path, reference, student, feedbacks);
 
-        return buildFinalResult(metrics, dtwMatrix, path, feedbacks);
+        return buildFinalResult(metrics, dtwMatrix, path, feedbacks, reference.rms(), student.rms());
     }
 
     private PathMetrics analyzePath(
@@ -104,7 +104,12 @@ public class DtwPerformanceEvaluator implements PerformanceEvaluator {
     }
 
     private AnalysisResult buildFinalResult(
-            PathMetrics metrics, double[][] matrix, List<int[]> path, List<FeedbackEvent> feedbacks) {
+            PathMetrics metrics,
+            double[][] matrix,
+            List<int[]> path,
+            List<FeedbackEvent> feedbacks,
+            float[] teacherRms,
+            float[] studentRms) {
 
         double avgPitchError = metrics.totalPitchDist / path.size();
         double pScore = Math.max(0.0, 100.0 * (1.0 - Math.pow(avgPitchError / 0.5, 2)));
@@ -113,7 +118,14 @@ public class DtwPerformanceEvaluator implements PerformanceEvaluator {
         double rScore = Math.max(0.0, 100.0 * (1.0 - Math.pow(avgDrift / 0.2, 2)));
 
         return new AnalysisResult(
-                Math.sqrt(pScore * rScore), pScore, rScore, path, feedbacks, includeDebugData ? matrix : null);
+                Math.sqrt(pScore * rScore),
+                pScore,
+                rScore,
+                path,
+                feedbacks,
+                teacherRms,
+                studentRms,
+                includeDebugData ? matrix : null);
     }
 
     double[][] computeCostMatrix(List<float[]> ref, List<float[]> stud) {

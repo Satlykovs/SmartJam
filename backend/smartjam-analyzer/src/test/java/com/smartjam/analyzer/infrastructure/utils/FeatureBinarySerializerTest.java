@@ -21,12 +21,13 @@ class FeatureBinarySerializerTest {
 
         float[] frame1 = {0.1f, 0.5f, 0.9f};
         float[] frame2 = {0.2f, 0.4f, 0.6f};
-        FeatureSequence original = new FeatureSequence(List.of(frame1, frame2), TEST_FRAME_RATE);
+        float[] rms = {0.5f, 0.8f};
+        FeatureSequence original = new FeatureSequence(List.of(frame1, frame2), TEST_FRAME_RATE, rms);
 
         byte[] encoded = FeatureBinarySerializer.serialize(original);
         assertNotNull(encoded);
         assertTrue(encoded.length > 8);
-        assertEquals(36, encoded.length);
+        assertEquals(44, encoded.length); // HEADER(12) + frame1(3 * 4) + frame2(3 * 4) + rms(2 * 4)
 
         FeatureSequence decoded = FeatureBinarySerializer.deserialize(encoded);
 
@@ -37,6 +38,7 @@ class FeatureBinarySerializerTest {
         for (int i = 0; i < original.frames().size(); i++) {
             assertArrayEquals(original.frames().get(i), decoded.frames().get(i), 1e-6f);
         }
+        assertArrayEquals(original.rms(), decoded.rms(), 1e-6f);
     }
 
     @Test
@@ -61,7 +63,9 @@ class FeatureBinarySerializerTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> FeatureBinarySerializer.serialize(new FeatureSequence(
-                        List.of(new float[] {1.0f, 2.0f}, new float[] {3.0f, 4.0f, 5.0f}), TEST_FRAME_RATE)));
+                        List.of(new float[] {1.0f, 2.0f}, new float[] {3.0f, 4.0f, 5.0f}),
+                        TEST_FRAME_RATE,
+                        new float[2])));
     }
 
     @Test
@@ -107,7 +111,7 @@ class FeatureBinarySerializerTest {
     void littleEndianOrder() {
 
         List<float[]> frames = List.of(new float[] {1.0f});
-        FeatureSequence seq = new FeatureSequence(frames, TEST_FRAME_RATE);
+        FeatureSequence seq = new FeatureSequence(frames, TEST_FRAME_RATE, new float[1]);
         byte[] encoded = FeatureBinarySerializer.serialize(seq);
 
         ByteBuffer buffer = ByteBuffer.wrap(encoded).order(ByteOrder.LITTLE_ENDIAN);
@@ -125,16 +129,17 @@ class FeatureBinarySerializerTest {
         int bins = 100;
 
         List<float[]> frames = new ArrayList<>(framesCount);
-
+        float[] rms = new float[framesCount];
         for (int i = 0; i < framesCount; i++) {
             float[] frame = new float[bins];
             for (int j = 0; j < bins; j++) {
                 frame[j] = (float) (i + j);
             }
             frames.add(frame);
+            rms[i] = (float) i / framesCount;
         }
 
-        FeatureSequence original = new FeatureSequence(frames, TEST_FRAME_RATE);
+        FeatureSequence original = new FeatureSequence(frames, TEST_FRAME_RATE, rms);
 
         byte[] encoded = FeatureBinarySerializer.serialize(original);
 
@@ -146,6 +151,7 @@ class FeatureBinarySerializerTest {
         for (int i = 0; i < framesCount; i++) {
             assertArrayEquals(frames.get(i), decoded.frames().get(i), 1e-6f);
         }
+        assertArrayEquals(original.rms(), decoded.rms(), 1e-6f);
     }
 
     @Test
@@ -153,7 +159,7 @@ class FeatureBinarySerializerTest {
     void singleFrameSingleValue() {
 
         List<float[]> original = List.of(new float[] {42.0f});
-        FeatureSequence seq = new FeatureSequence(original, TEST_FRAME_RATE);
+        FeatureSequence seq = new FeatureSequence(original, TEST_FRAME_RATE, new float[original.size()]);
 
         byte[] encoded = FeatureBinarySerializer.serialize(seq);
         FeatureSequence decoded = FeatureBinarySerializer.deserialize(encoded);
@@ -168,9 +174,13 @@ class FeatureBinarySerializerTest {
     void extremeFloatValues() {
 
         List<float[]> frames = List.of(
+                new float[] {Float.MAX_VALUE, -Float.MAX_VALUE, Float.MIN_VALUE, Float.NaN, Float.POSITIVE_INFINITY},
+                new float[] {Float.MAX_VALUE, -Float.MAX_VALUE, Float.MIN_VALUE, Float.NaN, Float.POSITIVE_INFINITY},
                 new float[] {Float.MAX_VALUE, -Float.MAX_VALUE, Float.MIN_VALUE, Float.NaN, Float.POSITIVE_INFINITY});
 
-        FeatureSequence seq = new FeatureSequence(frames, TEST_FRAME_RATE);
+        float[] rms = {Float.NEGATIVE_INFINITY, Float.MAX_VALUE, Float.NaN};
+
+        FeatureSequence seq = new FeatureSequence(frames, TEST_FRAME_RATE, rms);
 
         byte[] encoded = FeatureBinarySerializer.serialize(seq);
 

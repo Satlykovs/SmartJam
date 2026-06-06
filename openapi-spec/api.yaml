@@ -814,6 +814,19 @@ components:
           description: Array of errors detected during performance.
           items:
             $ref: './common-models.yaml#/components/schemas/FeedbackEvent'
+        teacherWaveform:
+          type: array
+          description: "RMS energy vector of the teacher's reference audio"
+          items:
+            type: number
+            format: float
+        studentWaveform:
+            type: array
+            description: "RMS energy vector of the student's submission"
+            items:
+              type: number
+              format: float
+
 
     DeviceRegistrationRequest:
       type: object

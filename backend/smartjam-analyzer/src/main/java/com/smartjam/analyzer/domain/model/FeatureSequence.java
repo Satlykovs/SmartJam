@@ -8,8 +8,9 @@ import java.util.List;
  *
  * @param frames A list of feature vectors (e.g., CQT or Chromagram).
  * @param frameRate How many frames are processed per second (Hz). Necessary for time-alignment during comparison.
+ * @param rms A vector of Root Mean Square (RMS) amplitudes, used for waveform visualization.
  */
-public record FeatureSequence(List<float[]> frames, float frameRate) {
+public record FeatureSequence(List<float[]> frames, float frameRate, float[] rms) {
     public FeatureSequence {
         if (frames == null || frames.isEmpty()) {
             throw new IllegalArgumentException("Frames list cannot be null or empty");
@@ -33,6 +34,14 @@ public record FeatureSequence(List<float[]> frames, float frameRate) {
             if (frame.length != firstBinCount) {
                 throw new IllegalArgumentException("Inconsistent bin count across frames");
             }
+        }
+
+        if (rms == null) {
+            throw new IllegalArgumentException("RMS array cannot be null");
+        }
+        if (rms.length != frames.size()) {
+            throw new IllegalArgumentException(
+                    "RMS length must match frames count. " + "Expected: " + frames.size() + ", got: " + rms.length);
         }
     }
 

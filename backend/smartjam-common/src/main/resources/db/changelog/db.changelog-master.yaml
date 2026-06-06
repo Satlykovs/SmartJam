@@ -7,3 +7,5 @@ databaseChangeLog:
       file: db/changelog/changes/03-add-missing-audit-columns.sql
   - include:
       file: db/changelog/changes/04-add-user-devices.sql
+  - include:
+      file: db/changelog/changes/05-add-waveforms-to-submissions.sql

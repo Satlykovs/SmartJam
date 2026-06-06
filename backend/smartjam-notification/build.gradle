@@ -13,6 +13,8 @@ dependencies {
 
     implementation project(':smartjam-common')
 
+    testImplementation testFixtures(project(":smartjam-common"))
+
     testImplementation 'org.springframework.boot:spring-boot-starter-data-redis-test'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
 }

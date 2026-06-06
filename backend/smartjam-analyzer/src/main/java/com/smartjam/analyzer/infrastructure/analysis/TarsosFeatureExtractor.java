@@ -33,6 +33,7 @@ public class TarsosFeatureExtractor implements FeatureExtractor {
         log.info("Извлечение признаков из файла: {}", audioFile.getFileName());
 
         List<float[]> frames = new ArrayList<>();
+        List<Float> rms = new ArrayList();
 
         File file = audioFile.toFile();
 
@@ -49,6 +50,9 @@ public class TarsosFeatureExtractor implements FeatureExtractor {
                 @Override
                 public boolean process(AudioEvent audioEvent) {
                     float[] magnitudes = cqt.getMagnitudes().clone();
+
+                    float rmsValue = (float) audioEvent.getRMS();
+                    rms.add(rmsValue);
 
                     double sumOfSquares = 0;
                     for (float m : magnitudes) {
@@ -80,9 +84,14 @@ public class TarsosFeatureExtractor implements FeatureExtractor {
 
             dispatcher.run();
 
+            float[] rmsArray = new float[rms.size()];
+            for (int i = 0; i < rms.size(); ++i) {
+                rmsArray[i] = rms.get(i);
+            }
+
             float frameRate = (float) SAMPLE_RATE / (props.bufferSize() - props.overlap());
 
-            return new FeatureSequence(frames, frameRate);
+            return new FeatureSequence(frames, frameRate, rmsArray);
 
         } catch (Exception e) {
             log.error("Ошибка при извлечении признаков: {}", e.getMessage(), e);

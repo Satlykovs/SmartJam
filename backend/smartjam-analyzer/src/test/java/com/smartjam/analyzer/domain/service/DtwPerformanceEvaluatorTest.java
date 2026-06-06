@@ -32,7 +32,7 @@ class DtwPerformanceEvaluatorTest {
         float[] frame = new float[84];
         frame[12] = 1.0f;
         List<float[]> frames = Collections.nCopies(3, frame);
-        FeatureSequence seq = new FeatureSequence(frames, 20.0f);
+        FeatureSequence seq = new FeatureSequence(frames, 20.0f, new float[frames.size()]);
 
         AnalysisResult result = evaluator.evaluate(seq, seq);
 
@@ -50,7 +50,9 @@ class DtwPerformanceEvaluatorTest {
         List<float[]> ref = Collections.nCopies(20, refFrame);
         List<float[]> stud = Collections.nCopies(20, studFrame);
 
-        AnalysisResult result = evaluator.evaluate(new FeatureSequence(ref, 20.0f), new FeatureSequence(stud, 20.0f));
+        AnalysisResult result = evaluator.evaluate(
+                new FeatureSequence(ref, 20.0f, new float[ref.size()]),
+                new FeatureSequence(stud, 20.0f, new float[ref.size()]));
 
         assertTrue(result.pitchScore() < 50.0, "Score должен упасть при неверных нотах");
         assertTrue(result.pitchScore() > 20.0, "Score не должен быть нулевым при перекрытии");
@@ -84,8 +86,8 @@ class DtwPerformanceEvaluatorTest {
             }
         }
 
-        FeatureSequence ref = new FeatureSequence(refFrames, 10f);
-        FeatureSequence stud = new FeatureSequence(studFrames, 10f);
+        FeatureSequence ref = new FeatureSequence(refFrames, 10f, new float[refFrames.size()]);
+        FeatureSequence stud = new FeatureSequence(studFrames, 10f, new float[studFrames.size()]);
 
         AnalysisResult result = evaluator.evaluate(ref, stud);
 
@@ -101,7 +103,9 @@ class DtwPerformanceEvaluatorTest {
         List<float[]> stud = new ArrayList<>();
         for (int i = 0; i < 30; i++) stud.add(new float[] {1.0f, (float) i / 100});
 
-        AnalysisResult result = evaluator.evaluate(new FeatureSequence(ref, 20f), new FeatureSequence(stud, 20f));
+        AnalysisResult result = evaluator.evaluate(
+                new FeatureSequence(ref, 20f, new float[ref.size()]),
+                new FeatureSequence(stud, 20f, new float[stud.size()]));
 
         assertTrue(result.totalScore() < 50.0, "Score должен быть низким при обрыве записи");
         boolean hasRhythmError =
@@ -128,7 +132,9 @@ class DtwPerformanceEvaluatorTest {
             }
         }
 
-        AnalysisResult result = evaluator.evaluate(new FeatureSequence(ref, 20f), new FeatureSequence(stud, 20f));
+        AnalysisResult result = evaluator.evaluate(
+                new FeatureSequence(ref, 20f, new float[ref.size()]),
+                new FeatureSequence(stud, 20f, new float[stud.size()]));
 
         List<FeedbackEvent> pitchEvents = result.feedback().stream()
                 .filter(e -> e.type().equals(FeedbackType.WRONG_NOTE))
@@ -145,7 +151,9 @@ class DtwPerformanceEvaluatorTest {
         List<float[]> ref = Collections.nCopies(50, refFrame);
         List<float[]> stud = Collections.nCopies(50, studFrame);
 
-        AnalysisResult result = evaluator.evaluate(new FeatureSequence(ref, 20f), new FeatureSequence(stud, 20f));
+        AnalysisResult result = evaluator.evaluate(
+                new FeatureSequence(ref, 20f, new float[ref.size()]),
+                new FeatureSequence(stud, 20f, new float[stud.size()]));
 
         assertTrue(
                 result.pitchScore() > 20.0 && result.pitchScore() < 80.0,
@@ -165,7 +173,9 @@ class DtwPerformanceEvaluatorTest {
         List<float[]> ref = Collections.nCopies(50, refFrame);
         List<float[]> stud = Collections.nCopies(50, studFrame);
 
-        AnalysisResult result = evaluator.evaluate(new FeatureSequence(ref, 20f), new FeatureSequence(stud, 20f));
+        AnalysisResult result = evaluator.evaluate(
+                new FeatureSequence(ref, 20f, new float[ref.size()]),
+                new FeatureSequence(stud, 20f, new float[stud.size()]));
 
         result.feedback().stream()
                 .filter(e -> e.type().equals(FeedbackType.WRONG_NOTE))
@@ -179,7 +189,9 @@ class DtwPerformanceEvaluatorTest {
         List<float[]> stud = new ArrayList<>(Collections.nCopies(100, new float[] {1f, 0f}));
         stud.set(50, new float[] {0f, 1f});
 
-        AnalysisResult result = evaluator.evaluate(new FeatureSequence(ref, 20.0f), new FeatureSequence(stud, 20.0f));
+        AnalysisResult result = evaluator.evaluate(
+                new FeatureSequence(ref, 20.0f, new float[ref.size()]),
+                new FeatureSequence(stud, 20.0f, new float[stud.size()]));
 
         assertTrue(result.totalScore() > 95.0);
         assertTrue(result.feedback().isEmpty(), "Одиночный битый кадр не должен генерировать Event");
@@ -203,8 +215,8 @@ class DtwPerformanceEvaluatorTest {
             }
         }
 
-        FeatureSequence refSeq = new FeatureSequence(ref, 20f);
-        FeatureSequence studSeq = new FeatureSequence(stud, 20f);
+        FeatureSequence refSeq = new FeatureSequence(ref, 20f, new float[ref.size()]);
+        FeatureSequence studSeq = new FeatureSequence(stud, 20f, new float[stud.size()]);
 
         AnalysisResult result = evaluator.evaluate(refSeq, studSeq);
 
@@ -239,8 +251,8 @@ class DtwPerformanceEvaluatorTest {
             stud.add(bad);
         }
 
-        FeatureSequence refSeq = new FeatureSequence(ref, 20f);
-        FeatureSequence studSeq = new FeatureSequence(stud, 20f);
+        FeatureSequence refSeq = new FeatureSequence(ref, 20f, new float[ref.size()]);
+        FeatureSequence studSeq = new FeatureSequence(stud, 20f, new float[stud.size()]);
 
         AnalysisResult result = evaluator.evaluate(refSeq, studSeq);
 

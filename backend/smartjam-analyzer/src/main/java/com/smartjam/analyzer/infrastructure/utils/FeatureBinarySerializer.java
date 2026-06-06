@@ -9,8 +9,9 @@ import java.util.Objects;
 import com.smartjam.analyzer.domain.model.FeatureSequence;
 
 /**
- * High-performance binary serializer for spectral feature matrices. Storage format (Little-Endian): [0-3 bytes] - int:
- * frameCount (N) [4-7 bytes] - int: binCount (M) [8-11 bytes] - float: frameRate [12+ bytes] - N * M raw floats
+ * High-performance binary serializer for spectral feature matrices and RMS energy vectors. Storage format
+ * (Little-Endian): [0-3 bytes] - int: frameCount (N) [4-7 bytes] - int: binCount (M) [8-11 bytes] - float: frameRate
+ * [12..X bytes] - N * M raw floats (Spectral Data) [X..Y bytes] - N raw floats (RMS/Waveform Data)
  */
 public class FeatureBinarySerializer {
 
@@ -51,12 +52,12 @@ public class FeatureBinarySerializer {
             if (payloadBytes > Integer.MAX_VALUE - HEADER_SIZE) {
                 throw new ArithmeticException();
             }
-        } catch (ArithmeticException e) {
+        } catch (ArithmeticException _) {
             throw new IllegalArgumentException("Feature matrix is too large for binary serialization");
         }
 
-        ByteBuffer buffer =
-                ByteBuffer.allocate(HEADER_SIZE + (int) payloadBytes).order(ByteOrder.LITTLE_ENDIAN);
+        ByteBuffer buffer = ByteBuffer.allocate(HEADER_SIZE + (int) payloadBytes + (frameCount * Float.BYTES))
+                .order(ByteOrder.LITTLE_ENDIAN);
 
         buffer.putInt(frameCount);
         buffer.putInt(binCount);
@@ -66,6 +67,10 @@ public class FeatureBinarySerializer {
             for (float val : frame) {
                 buffer.putFloat(val);
             }
+        }
+
+        for (float val : sequence.rms()) {
+            buffer.putFloat(val);
         }
 
         return buffer.array();
@@ -100,13 +105,13 @@ public class FeatureBinarySerializer {
         long expectedPayload;
         try {
             expectedPayload = Math.multiplyExact((long) frameCount * binCount, (long) Float.BYTES);
-        } catch (ArithmeticException e) {
+        } catch (ArithmeticException _) {
             throw new IllegalArgumentException("Invalid header: dimensions cause integer overflow");
         }
 
-        if (data.length < HEADER_SIZE + expectedPayload) {
+        if (data.length < HEADER_SIZE + expectedPayload + ((long) frameCount * Float.BYTES)) {
             throw new IllegalArgumentException(
-                    "Binary data truncated. Expected " + (HEADER_SIZE + expectedPayload) + " bytes");
+                    "Binary data truncated. Expected " + (HEADER_SIZE + expectedPayload) + " " + "bytes");
         }
 
         List<float[]> frames = new ArrayList<>(frameCount);
@@ -117,6 +122,12 @@ public class FeatureBinarySerializer {
             }
             frames.add(frame);
         }
-        return new FeatureSequence(frames, frameRate);
+
+        float[] rms = new float[frameCount];
+
+        for (int i = 0; i < frameCount; ++i) {
+            rms[i] = buffer.getFloat();
+        }
+        return new FeatureSequence(frames, frameRate, rms);
     }
 }

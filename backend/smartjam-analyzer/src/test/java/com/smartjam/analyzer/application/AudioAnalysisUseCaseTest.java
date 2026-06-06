@@ -66,7 +66,7 @@ class AudioAnalysisUseCaseTest {
         String fileKey = VALID_UUID_STR + ".m4a";
         Path mockPath = Path.of("input");
         Path mockWav = Path.of("output");
-        FeatureSequence mockSeq = new FeatureSequence(List.of(new float[84]), 20f);
+        FeatureSequence mockSeq = new FeatureSequence(List.of(new float[84]), 20f, new float[1]);
 
         when(workspaceFactory.create()).thenReturn(workspace);
         when(storage.downloadAudioFile(eq(bucket), eq(fileKey), any())).thenReturn(mockPath);

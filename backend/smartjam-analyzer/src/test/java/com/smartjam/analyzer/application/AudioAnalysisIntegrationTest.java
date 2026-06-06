@@ -7,8 +7,8 @@ import java.util.stream.Collectors;
 import com.smartjam.analyzer.domain.model.AnalysisResult;
 import com.smartjam.analyzer.domain.model.FeatureSequence;
 import com.smartjam.analyzer.domain.port.*;
+import com.smartjam.common.BaseIntegrationTest;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,13 +16,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.util.StopWatch;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 @SpringBootTest
 @ActiveProfiles("debug")
-@Disabled("TODO: Enable later. Need something to run a database in github CI/CD")
-class AudioAnalysisIntegrationTest {
+class AudioAnalysisIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
     private FeatureExtractor extractor;
@@ -41,9 +40,9 @@ class AudioAnalysisIntegrationTest {
 
     @Test
     @DisplayName("Полный цикл анализа с замером производительности")
-    void shouldPerformFullAnalysisCycle() throws Exception {
+    void shouldPerformFullAnalysisCycle() {
         Path teacherPath = Path.of("src/test/resources/californication_teacher.m4a");
-        Path studentPath = Path.of("src/test/resources/cant_stop_bad.m4a");
+        Path studentPath = Path.of("src/test/resources/californication_stud.m4a");
 
         StopWatch sw = new StopWatch("Audio Pipeline Benchmark");
 
@@ -63,9 +62,17 @@ class AudioAnalysisIntegrationTest {
             AnalysisResult result = evaluator.evaluate(tSeq, sSeq);
             sw.stop();
 
+            double avgTeacherRms = 0;
+            for (float f : result.teacherWaveform()) avgTeacherRms += f;
+            avgTeacherRms /= Math.max(1, result.teacherWaveform().length);
+
+            double avgStudentRms = 0;
+            for (float f : result.studentWaveform()) avgStudentRms += f;
+            avgStudentRms /= Math.max(1, result.studentWaveform().length);
+
             String feedbackReport = result.feedback().stream()
                     .map(e -> String.format(
-                            "-> [%s] с %5.2fs до %5.2fs (Ученик: с %5.2fs до %5.2fs) | Тяжесть: %.2f",
+                            "-> [%s] с %5.2fs до %5.2fs (Ученик: с %5.2fs до %5.2fs) | Тяжесть: %" + ".2f",
                             e.type(),
                             e.teacherStartTime(),
                             e.teacherEndTime(),
@@ -77,28 +84,36 @@ class AudioAnalysisIntegrationTest {
             String report = String.format(
                     """
 
-                ===========================================================
-                АНАЛИЗ ЗАВЕРШЕН: %s vs %s
-                ===========================================================
-                МЕТРИКИ:
-                -> Общий балл:    %6.2f%%
-                -> Точность нот:  %6.2f%%
-                -> Ритм и темп:   %6.2f%%
-                -> Статус:        %s
-                -----------------------------------------------------------
-                НАЙДЕННЫЕ ОШИБКИ (%d):
-                %s
-                -----------------------------------------------------------
-                ПРОИЗВОДИТЕЛЬНОСТЬ:
-                %s
-                ===========================================================
-                """,
+                            ===========================================================
+                            АНАЛИЗ ЗАВЕРШЕН: %s vs %s
+                            ===========================================================
+                            МЕТРИКИ:
+                            -> Общий балл:    %6.2f%%
+                            -> Точность нот:  %6.2f%%
+                            -> Ритм и темп:   %6.2f%%
+                            -> Статус:        %s
+                            -----------------------------------------------------------
+                            ДАННЫЕ ГРОМКОСТИ (RMS):
+                            -> Учитель: %d кадров (ср. громкость: %.4f)
+                            -> Ученик:  %d кадров (ср. громкость: %.4f)
+                            -----------------------------------------------------------
+                            НАЙДЕННЫЕ ОШИБКИ (%d):
+                            %s
+                            -----------------------------------------------------------
+                            ПРОИЗВОДИТЕЛЬНОСТЬ:
+                            %s
+                            ===========================================================
+                            """,
                     teacherPath.getFileName(),
                     studentPath.getFileName(),
                     result.totalScore(),
                     result.pitchScore(),
                     result.rhythmScore(),
                     result.isPassed() ? "PASSED" : "FAILED",
+                    result.teacherWaveform().length,
+                    avgTeacherRms,
+                    result.studentWaveform().length,
+                    avgStudentRms,
                     result.feedback().size(),
                     feedbackReport.isEmpty() ? "Ошибок не найдено." : feedbackReport,
                     sw.prettyPrint());

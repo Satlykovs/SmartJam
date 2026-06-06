@@ -64,6 +64,14 @@ public class SubmissionEntity {
     @Column(name = "analysis_feedback", columnDefinition = "jsonb")
     private List<FeedbackEvent> analysisFeedback;
 
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "teacher_waveform", columnDefinition = "real[]")
+    private List<Float> teacherWaveform;
+
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "student_waveform", columnDefinition = "real[]")
+    private List<Float> studentWaveform;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

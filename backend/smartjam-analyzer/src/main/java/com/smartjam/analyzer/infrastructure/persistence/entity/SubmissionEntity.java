@@ -54,6 +54,14 @@ public class SubmissionEntity {
     @Column(name = "analysis_feedback")
     private List<FeedbackEvent> analysisFeedback;
 
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "teacher_waveform", columnDefinition = "real[]")
+    private float[] teacherWaveform;
+
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "student_waveform", columnDefinition = "real[]")
+    private float[] studentWaveform;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false, nullable = false)
     private Instant createdAt;

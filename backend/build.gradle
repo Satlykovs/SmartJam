@@ -5,7 +5,14 @@ plugins {
     id "com.diffplug.spotless" version "8.3.0" apply false
     id 'io.openapiprocessor.openapi-processor' version '2026.1' apply false
 
+    id 'base'
+    id 'jacoco'
+
 }
+repositories {
+    mavenCentral()
+}
+
 
 group = 'com.smartjam'
 version = '0.0.1-SNAPSHOT'
@@ -18,6 +25,8 @@ subprojects {
     apply plugin: 'io.spring.dependency-management'
 
     apply plugin: 'com.diffplug.spotless'
+
+    apply plugin: 'jacoco'
 
     java {
         toolchain {
@@ -38,6 +47,21 @@ subprojects {
 
         testImplementation 'org.springframework.boot:spring-boot-starter-test'
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+
+
+        testImplementation platform("org.testcontainers:testcontainers-bom:2.0.5")
+        testImplementation "org.testcontainers:testcontainers-junit-jupiter"
+        testImplementation "org.testcontainers:testcontainers-postgresql"
+        testImplementation "org.testcontainers:testcontainers-kafka"
+        testImplementation "org.testcontainers:testcontainers-minio"
+        testImplementation "com.redis:testcontainers-redis:2.2.2"
+
+        testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+
+        testImplementation 'io.minio:minio:8.5.14'
+        testImplementation 'org.springframework.kafka:spring-kafka'
+
     }
 
 
@@ -60,4 +84,38 @@ subprojects {
         jvmArgs("-XX:+EnableDynamicAgentLoading")
     }
 
+
+    jacocoTestReport {
+        reports {
+            xml.required = true
+            html.required = true
+        }
+    }
+
+
+    test.finalizedBy jacocoTestReport
+    jacocoTestReport.finalizedBy jacocoTestCoverageVerification
 }
+
+tasks.register("jacocoRootReport", JacocoReport) {
+    group = "Verification"
+    description = "Generates an aggregate report from all subprojects"
+    dependsOn(subprojects.test)
+
+    executionData.setFrom(files(subprojects.collect { subproject ->
+        fileTree(dir: subproject.layout.buildDirectory, include: 'jacoco/test.exec')
+    }))
+
+    subprojects.each { subproject ->
+        sourceDirectories.from(subproject.sourceSets.main.allSource.srcDirs)
+        classDirectories.from(subproject.sourceSets.main.output)
+    }
+
+    reports {
+        html.required = true
+        xml.required = true
+        html.outputLocation = layout.buildDirectory.dir("reports/jacoco/aggregate/html")
+    }
+}
+
+build.dependsOn jacocoRootReport

@@ -92,7 +92,9 @@ public class SubmissionsService {
                 submission.getErrorMessage(),
                 referenceAudioUrl,
                 submissionAudioUrl,
-                submission.getAnalysisFeedback());
+                submission.getAnalysisFeedback(),
+                submission.getTeacherWaveform(),
+                submission.getStudentWaveform());
     }
 
     @Transactional(readOnly = true)

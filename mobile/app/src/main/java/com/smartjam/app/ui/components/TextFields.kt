@@ -38,42 +38,43 @@ fun AppleGlassTextField(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
-    enabled: Boolean = true
+    enabled: Boolean = true,
 ) {
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
         singleLine = true,
         enabled = enabled,
-        textStyle = TextStyle(
-            color = if (enabled) Color.White else Color.White.copy(alpha = 0.5f),
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium
-        ),
+        textStyle =
+            TextStyle(
+                color = if (enabled) Color.White else Color.White.copy(alpha = 0.5f),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+            ),
         visualTransformation = visualTransformation,
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
         cursorBrush = SolidColor(Color.White),
         decorationBox = { innerTextField ->
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color.White.copy(alpha = if (enabled) 0.05f else 0.02f))
-                    .border(
-                        width = 1.dp,
-                        color = Color.White.copy(alpha = if (enabled) 0.15f else 0.05f),
-                        shape = RoundedCornerShape(24.dp)
-                    )
-                    .padding(horizontal = 20.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .height(60.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Color.White.copy(alpha = if (enabled) 0.05f else 0.02f))
+                        .border(
+                            width = 1.dp,
+                            color = Color.White.copy(alpha = if (enabled) 0.15f else 0.05f),
+                            shape = RoundedCornerShape(24.dp),
+                        )
+                        .padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = Color.White.copy(alpha = if (enabled) 0.5f else 0.2f),
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(20.dp),
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 Box(modifier = Modifier.weight(1f)) {
@@ -81,12 +82,12 @@ fun AppleGlassTextField(
                         Text(
                             text = hint,
                             color = Color.White.copy(alpha = if (enabled) 0.3f else 0.15f),
-                            fontSize = 16.sp
+                            fontSize = 16.sp,
                         )
                     }
                     innerTextField()
                 }
             }
-        }
+        },
     )
 }

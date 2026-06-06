@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Slf4j
-@Profile("!debug")
+@Profile("!debug & !test")
 public class FcmPushAdapter implements PushPublisher {
 
     @Override

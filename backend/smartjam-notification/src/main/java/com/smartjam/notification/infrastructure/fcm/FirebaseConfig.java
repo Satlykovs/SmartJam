@@ -17,7 +17,7 @@ import org.springframework.context.annotation.Profile;
  */
 @Slf4j
 @Configuration
-@Profile("!debug")
+@Profile("!debug & !test")
 public class FirebaseConfig {
     @PostConstruct
     public void init() {

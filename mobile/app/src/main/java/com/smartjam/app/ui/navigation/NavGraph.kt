@@ -58,6 +58,7 @@ import com.smartjam.app.ui.screens.register.RegisterViewModelFactory
 import com.smartjam.app.ui.screens.room.RoomScreen
 import com.smartjam.app.ui.screens.room.RoomViewModel
 import com.smartjam.app.ui.screens.room.RoomViewModelFactory
+import com.smartjam.app.ui.screens.room.AssignmentDetailsScreen
 import com.smartjam.app.ui.theme.BlurCyan
 import com.smartjam.app.ui.theme.BlurPurpleDark
 import com.smartjam.app.ui.theme.CoreBackground
@@ -72,6 +73,10 @@ sealed class Screen(val route: String) {
     object Comments : Screen("comments_screen")
     object Room : Screen("room_screen/{connectionId}/{role}") {
         fun createRoute(connectionId: String, role: String) = "room_screen/$connectionId/$role"
+    }
+    object AssignmentDetails : Screen("assignment_screen/{connectionId}/{assignmentId}/{role}") {
+        fun createRoute(connectionId: String, assignmentId: String, role: String) =
+            "assignment_screen/$connectionId/$assignmentId/$role"
     }
 }
 
@@ -208,6 +213,37 @@ fun SmartJamNavGraph(
 
                 RoomScreen(
                     connectionId = connectionId,
+                    role = role,
+                    viewModel = viewModel,
+                    onBack = { navController.popBackStack() },
+                    onOpenAssignment = { assignmentId ->
+                        navController.navigate(
+                            Screen.AssignmentDetails.createRoute(
+                                connectionId = connectionId.toString(),
+                                assignmentId = assignmentId.toString(),
+                                role = role.name
+                            )
+                        )
+                    }
+                )
+            }
+
+            composable(route = Screen.AssignmentDetails.route) { backStackEntry ->
+                val connectionIdStr =
+                    backStackEntry.arguments?.getString("connectionId") ?: return@composable
+                val assignmentIdStr =
+                    backStackEntry.arguments?.getString("assignmentId") ?: return@composable
+                val roleStr = backStackEntry.arguments?.getString("role") ?: return@composable
+                val connectionId = UUID.fromString(connectionIdStr)
+                val assignmentId = UUID.fromString(assignmentIdStr)
+                val role = com.smartjam.app.domain.model.UserRole.valueOf(roleStr)
+
+                val viewModel: RoomViewModel = viewModel(
+                    factory = RoomViewModelFactory(connectionId, roomRepository)
+                )
+
+                AssignmentDetailsScreen(
+                    assignmentId = assignmentId,
                     role = role,
                     viewModel = viewModel,
                     onBack = { navController.popBackStack() }

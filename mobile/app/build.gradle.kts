@@ -73,6 +73,12 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:2.11.+")
     implementation("com.squareup.okhttp3:okhttp:4.12.+")
 
+    //audio player
+    implementation("androidx.media3:media3-exoplayer:1.10.1")
+    implementation("androidx.media3:media3-exoplayer-dash:1.10.1")
+    implementation("androidx.media3:media3-ui:1.10.1")
+    implementation("androidx.media3:media3-ui-compose-material3:1.10.1")
+
     //serialization
     implementation("com.squareup.retrofit2:converter-gson:2.11.+")
 

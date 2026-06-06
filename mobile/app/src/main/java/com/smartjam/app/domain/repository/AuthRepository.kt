@@ -195,11 +195,19 @@ class AuthRepository(
                 return true
             }
         }
+
         val token = tokenStorage.refreshToken.first()
         if (token.isNullOrEmpty()) {
             return false
         }
-        return refreshToken()
+
+        val isValid = refreshToken()
+
+        if (isValid) {
+            registerDevicePushToken()
+        }
+
+        return isValid
     }
 
     private fun toApiRole(role: String): com.smartjam.app.model.UserRole? {

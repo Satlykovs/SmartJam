@@ -21,18 +21,24 @@ data class HomeState(
     val inviteCodeInput: String = "",
     val teacherGeneratedCode: String? = null,
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val isPaging: Boolean = false,
+    val endReached: Boolean = false,
+    val nextPage: Int = 1,
+    val pageSize: Int = 20,
+    val errorMessage: String? = null,
 )
 
 sealed class HomeEvent {
     object NavigateToLogin : HomeEvent()
+
     data class NavigateToRoom(val connectionId: String) : HomeEvent()
+
     data class ShowToast(val message: String) : HomeEvent()
 }
 
 class HomeViewModel(
     private val connectionRepository: ConnectionRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
@@ -42,59 +48,144 @@ class HomeViewModel(
     val events = eventChannel.receiveAsFlow()
 
     private var connectionJob: Job? = null
+    private var pollingJob: Job? = null
+    private var hasStarted = false
 
     init {
-        startObservingConnections()
+        viewModelScope.launch {
+            authRepository.userRole.collect { roleString ->
+                val newRole =
+                    try {
+                        UserRole.valueOf(roleString ?: "STUDENT")
+                    } catch (e: Exception) {
+                        UserRole.STUDENT
+                    }
+
+                if (!hasStarted || _state.value.currentRole != newRole) {
+                    hasStarted = true
+                    _state.update { it.copy(currentRole = newRole) }
+                    startObservingConnections()
+                }
+            }
+        }
     }
 
     fun toggleDebugRole() {
-        val newRole = if (_state.value.currentRole == UserRole.STUDENT) {
-            UserRole.TEACHER
-        } else {
-            UserRole.STUDENT
+        val newRole =
+            if (_state.value.currentRole == UserRole.STUDENT) {
+                UserRole.TEACHER
+            } else {
+                UserRole.STUDENT
+            }
+
+        viewModelScope.launch {
+            val refreshed = authRepository.refreshWithRole(newRole)
+            if (!refreshed) {
+                eventChannel.send(HomeEvent.NavigateToLogin)
+            }
         }
-
-        _state.update { it.copy(
-            currentRole = newRole,
-            connections = emptyList(),
-            errorMessage = null
-        ) }
-
-        startObservingConnections()
     }
 
     private fun startObservingConnections() {
         connectionJob?.cancel()
+        pollingJob?.cancel()
+
+        _state.update { it.copy(nextPage = 1, endReached = false) }
 
         connectionJob = viewModelScope.launch {
             val role = _state.value.currentRole
 
             launch {
                 connectionRepository.getConnectionsFlow(role).collect { connections ->
-                    _state.update { currentState ->
-                        currentState.copy(
-                            connections = connections
-                        )
-                    }
+                    _state.update { currentState -> currentState.copy(connections = connections) }
                 }
             }
 
-            syncNetworkData()
+            refreshFirstPage()
+            startPolling()
+        }
+    }
+
+    private fun startPolling() {
+        pollingJob?.cancel()
+        pollingJob = viewModelScope.launch {
+            while (true) {
+                kotlinx.coroutines.delay(50_000)
+                refreshFirstPage()
+            }
+        }
+    }
+
+    fun onListScrolled(lastVisibleIndex: Int, totalCount: Int) {
+        val state = _state.value
+        if (state.isPaging || state.endReached || totalCount == 0) return
+
+        val threshold = (state.pageSize / 2).coerceAtLeast(1)
+        if (lastVisibleIndex >= totalCount - threshold) {
+            loadNextPage()
+        }
+    }
+
+    private fun refreshFirstPage() {
+        viewModelScope.launch {
+            // 1. Включаем загрузку и сбрасываем старую ошибку
+            _state.update { it.copy(isLoading = true, errorMessage = null) }
+
+            val result =
+                connectionRepository.syncConnectionsPage(
+                    _state.value.currentRole,
+                    page = 0,
+                    size = _state.value.pageSize,
+                )
+
+            // 2. Обрабатываем результат и выключаем загрузку в зависимости от исхода
+            if (result.isSuccess) {
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = null,
+                        // Здесь также можно обновить список студентов, если они берутся из state
+                        // students = result.getOrNull()?.content ?: emptyList()
+                    )
+                }
+            } else {
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Не удалось обновить данные с сервера",
+                    )
+                }
+            }
+        }
+    }
+
+    private fun loadNextPage() {
+        viewModelScope.launch {
+            _state.update { it.copy(isPaging = true, errorMessage = null) }
+
+            val result =
+                connectionRepository.syncConnectionsPage(
+                    _state.value.currentRole,
+                    page = _state.value.nextPage,
+                    size = _state.value.pageSize,
+                )
+
+            if (result.isSuccess) {
+                val pageInfo = result.getOrNull()!!
+                val endReached = pageInfo.pageNumber + 1 >= pageInfo.totalPages
+                _state.update {
+                    it.copy(nextPage = pageInfo.pageNumber + 1, endReached = endReached)
+                }
+            } else {
+                _state.update { it.copy(errorMessage = "Не удалось загрузить следующую страницу") }
+            }
+
+            _state.update { it.copy(isPaging = false) }
         }
     }
 
     fun syncNetworkData() {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, errorMessage = null) }
-
-            val result = connectionRepository.syncConnections(_state.value.currentRole)
-
-            if (result.isFailure) {
-                _state.update { it.copy(errorMessage = "Не удалось обновить данные с сервера") }
-            }
-
-            _state.update { it.copy(isLoading = false) }
-        }
+        refreshFirstPage()
     }
 
     fun onInviteCodeInputChanged(code: String) {
@@ -157,9 +248,7 @@ class HomeViewModel(
     }
 
     fun onConnectionClicked(connectionId: String) {
-        viewModelScope.launch {
-            eventChannel.send(HomeEvent.NavigateToRoom(connectionId))
-        }
+        viewModelScope.launch { eventChannel.send(HomeEvent.NavigateToRoom(connectionId)) }
     }
 
     fun onLogoutClicked() {
@@ -172,7 +261,7 @@ class HomeViewModel(
 
 class HomeViewModelFactory(
     private val connectionRepository: ConnectionRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {

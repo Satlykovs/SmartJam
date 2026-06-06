@@ -1,6 +1,5 @@
 package com.smartjam.app.ui.screens.register
 
-import android.widget.Toast
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,7 +42,7 @@ import com.smartjam.app.ui.theme.ErrorRed
 fun RegisterScreen(
     viewModel: RegisterViewModel,
     onNavigateToHome: () -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
@@ -57,20 +56,16 @@ fun RegisterScreen(
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(CoreBackground)
-    ) {
+    Box(modifier = Modifier.fillMaxSize().background(CoreBackground)) {
         AppleLiquidBackground()
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 32.dp)
-                .verticalScroll(rememberScrollState()),
+            modifier =
+                Modifier.fillMaxSize()
+                    .padding(horizontal = 32.dp)
+                    .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Center,
         ) {
             Spacer(modifier = Modifier.height(48.dp))
 
@@ -78,29 +73,25 @@ fun RegisterScreen(
                 text = "Создать аккаунт",
                 fontSize = 32.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color.White
+                color = Color.White,
             )
 
             Spacer(modifier = Modifier.height(24.dp))
-
 
             GlassRoleSelector(
                 selectedRole = state.selectedRole,
-                onRoleSelected = { viewModel.onRoleSelected(it) }
+                onRoleSelected = { viewModel.onRoleSelected(it) },
             )
 
             Spacer(modifier = Modifier.height(24.dp))
-
 
             AppleGlassTextField(
                 value = state.usernameInput,
                 onValueChange = { viewModel.onUsernameChanged(it) },
                 hint = "Имя пользователя",
                 icon = Icons.Default.Person,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Text,
-                    imeAction = ImeAction.Next
-                )
+                keyboardOptions =
+                    KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -110,10 +101,8 @@ fun RegisterScreen(
                 onValueChange = { viewModel.onEmailChanged(it) },
                 hint = "Email",
                 icon = Icons.Default.Email,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Email,
-                    imeAction = ImeAction.Next
-                )
+                keyboardOptions =
+                    KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -124,10 +113,11 @@ fun RegisterScreen(
                 hint = "Пароль",
                 icon = Icons.Default.Lock,
                 visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Next
-                )
+                keyboardOptions =
+                    KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Next,
+                    ),
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -138,25 +128,24 @@ fun RegisterScreen(
                 hint = "Повторите пароль",
                 icon = Icons.Default.Lock,
                 visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Done
-                ),
-                keyboardActions = KeyboardActions(onDone = { viewModel.onRegisterClicked() })
+                keyboardOptions =
+                    KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done,
+                    ),
+                keyboardActions = KeyboardActions(onDone = { viewModel.onRegisterClicked() }),
             )
 
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                contentAlignment = Alignment.Center
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                contentAlignment = Alignment.Center,
             ) {
                 if (state.errorMessage != null) {
                     Text(
                         text = state.errorMessage!!,
                         color = ErrorRed,
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
                     )
                 }
             }
@@ -164,7 +153,7 @@ fun RegisterScreen(
             GoldenStringsButton(
                 text = if (state.isLoading) "Создание..." else "Зарегистрироваться",
                 onClick = { viewModel.onRegisterClicked() },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -173,9 +162,7 @@ fun RegisterScreen(
                 text = "Уже есть аккаунт? Войти",
                 fontSize = 14.sp,
                 color = Color.White.copy(alpha = 0.6f),
-                modifier = Modifier
-                    .clickable { viewModel.onBackClicked() }
-                    .padding(16.dp)
+                modifier = Modifier.clickable { viewModel.onBackClicked() }.padding(16.dp),
             )
 
             Spacer(modifier = Modifier.height(48.dp))
@@ -184,35 +171,32 @@ fun RegisterScreen(
 }
 
 @Composable
-fun GlassRoleSelector(
-    selectedRole: UserRole,
-    onRoleSelected: (UserRole) -> Unit
-) {
+fun GlassRoleSelector(selectedRole: UserRole, onRoleSelected: (UserRole) -> Unit) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(50.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .background(Color.White.copy(alpha = 0.05f))
-            .border(
-                width = 1.dp,
-                color = Color.White.copy(alpha = 0.15f),
-                shape = RoundedCornerShape(24.dp)
-            ),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            Modifier.fillMaxWidth()
+                .height(50.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(Color.White.copy(alpha = 0.05f))
+                .border(
+                    width = 1.dp,
+                    color = Color.White.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(24.dp),
+                ),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         RoleButton(
             text = "Я ученик",
             isSelected = selectedRole == UserRole.STUDENT,
             onClick = { onRoleSelected(UserRole.STUDENT) },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
         )
 
         RoleButton(
             text = "Я преподаватель",
             isSelected = selectedRole == UserRole.TEACHER,
             onClick = { onRoleSelected(UserRole.TEACHER) },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
         )
     }
 }
@@ -222,28 +206,30 @@ fun RoleButton(
     text: String,
     isSelected: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    val backgroundColor by animateColorAsState(
-        targetValue = if (isSelected) BrandGold.copy(alpha = 0.2f) else Color.Transparent,
-        label = "RoleColorAnimation"
-    )
+    val backgroundColor by
+        animateColorAsState(
+            targetValue = if (isSelected) BrandGold.copy(alpha = 0.2f) else Color.Transparent,
+            label = "RoleColorAnimation",
+        )
 
     val textColor = if (isSelected) BrandGold else Color.White.copy(alpha = 0.5f)
 
     Box(
-        modifier = modifier
-            .fillMaxHeight()
-            .clip(RoundedCornerShape(24.dp))
-            .background(backgroundColor)
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center
+        modifier =
+            modifier
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(24.dp))
+                .background(backgroundColor)
+                .clickable { onClick() },
+        contentAlignment = Alignment.Center,
     ) {
         Text(
             text = text,
             color = textColor,
             fontSize = 14.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
         )
     }
 }

@@ -114,6 +114,45 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
 
 
+  /api/v1/devices/register:
+    post:
+      tags:
+        - Devices
+      summary: Register device
+      description: Links the FCM token of the current device to the user account.
+      operationId: registerDevice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceRegistrationRequest'
+      responses:
+        '200':
+          description: Device registered successfully.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/devices/unregister:
+    post:
+      tags:
+        - Devices
+      summary: Unregister device
+      description: Removes FCM token link for user. Call it during user's logout.
+      operationId: unregisterDevice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceRegistrationRequest'
+      responses:
+        '204':
+          description: Device unregistered successfully.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+
   /api/v1/users/me:
     get:
       tags:
@@ -130,6 +169,9 @@ paths:
                 $ref: '#/components/schemas/UserResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+
+
+
 
   /api/v1/connections/invite:
     post:
@@ -891,6 +933,32 @@ components:
           description: Array of errors detected during performance.
           items:
             $ref: './common-models.yaml#/components/schemas/FeedbackEvent'
+        teacherWaveform:
+          type: array
+          description: "RMS energy vector of the teacher's reference audio"
+          items:
+            type: number
+            format: float
+        studentWaveform:
+            type: array
+            description: "RMS energy vector of the student's submission"
+            items:
+              type: number
+              format: float
+
+
+    DeviceRegistrationRequest:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          minLength: 1
+          pattern: '.*\S.*'
+          example: "bk3rn1...v2"
+          description: "FCM registration token from Firebase SDK"
+
 
     ErrorResponse:
       type: object

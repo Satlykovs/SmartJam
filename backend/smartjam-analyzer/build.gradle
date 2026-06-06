@@ -16,6 +16,8 @@ repositories {
 
 dependencies {
 
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 
     runtimeOnly 'org.postgresql:postgresql'
@@ -40,5 +42,7 @@ dependencies {
 
 
     implementation project(':smartjam-common')
+
+    testImplementation testFixtures(project(":smartjam-common"))
 
 }

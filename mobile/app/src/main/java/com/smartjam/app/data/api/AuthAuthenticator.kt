@@ -13,10 +13,8 @@ import okhttp3.Response
 import okhttp3.Route
 import org.openapitools.client.infrastructure.ApiClient
 
-class AuthAuthenticator(
-    private val tokenStorage: TokenStorage,
-    private val baseUrl: String
-) : Authenticator {
+class AuthAuthenticator(private val tokenStorage: TokenStorage, private val baseUrl: String) :
+    Authenticator {
 
     private val mutex = Mutex()
     var apiClient: ApiClient? = null
@@ -29,29 +27,36 @@ class AuthAuthenticator(
                 val currentToken = tokenStorage.accessToken.first()
                 val requestToken = response.request.header("Authorization")?.removePrefix("Bearer ")
                 if (currentToken != null && currentToken != requestToken) {
-                    return@runBlocking response.request.newBuilder()
+                    return@runBlocking response.request
+                        .newBuilder()
                         .header("Authorization", "Bearer $currentToken")
                         .build()
                 }
 
                 val refreshToken = tokenStorage.refreshToken.first() ?: return@runBlocking null
+                val storedRole = tokenStorage.userRole.first()
 
                 val authApiClient = ApiClient(baseUrl = baseUrl)
                 val authApi = authApiClient.createService(AuthApi::class.java)
 
                 try {
-                    val refreshResponse = authApi.refreshToken(RefreshRequest(refreshToken))
+                    val refreshResponse =
+                        authApi.refreshToken(
+                            RefreshRequest(refreshToken, storedRole?.let { toApiRole(it) })
+                        )
 
                     if (refreshResponse.isSuccessful && refreshResponse.body() != null) {
                         val newAuthResponse = refreshResponse.body()!!
                         tokenStorage.saveToken(
                             accessToken = newAuthResponse.accessToken,
-                            refreshToken = newAuthResponse.refreshToken
+                            refreshToken = newAuthResponse.refreshToken,
+                            role = storedRole,
                         )
 
                         apiClient?.setBearerToken(newAuthResponse.accessToken)
 
-                        response.request.newBuilder()
+                        response.request
+                            .newBuilder()
                             .header("Authorization", "Bearer ${newAuthResponse.accessToken}")
                             .build()
                     } else {
@@ -78,4 +83,12 @@ class AuthAuthenticator(
             }
             return result
         }
+
+    private fun toApiRole(role: String): com.smartjam.app.model.UserRole? {
+        return try {
+            com.smartjam.app.model.UserRole.valueOf(role)
+        } catch (e: Exception) {
+            null
+        }
+    }
 }

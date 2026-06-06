@@ -41,9 +41,11 @@ public class ProcessAnalysisResultUseCase {
                     return;
                 }
 
+                String formattedScore = String.format("%.2f", event.totalScore());
+
                 String message = (event.type() == AnalysisType.SUBMISSION)
-                        ? "Твоя игра " + "проанализирована! Балл: " + event.totalScore()
-                        : "Твоя запись " + "обработана!";
+                        ? "Твоя игра проанализирована! Балл: " + formattedScore
+                        : "Твой запись успешно обработана! 🎸";
                 pushPublisher.sendPush(tokens, message);
             } catch (Exception e) {
                 log.error("Failed to send push notification for {}: {}", event.targetId(), e.getMessage());

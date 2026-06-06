@@ -146,6 +146,7 @@ fun LoginScreen(
             GoldenStringsButton(
                 text = if (state.isLoading) "Загрузка..." else "Войти",
                 onClick = { viewModel.onLoginClicked() },
+                enabled = !state.isLoading,
                 modifier = Modifier.fillMaxWidth(),
             )
 

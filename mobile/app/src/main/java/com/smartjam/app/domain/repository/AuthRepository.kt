@@ -106,11 +106,7 @@ class AuthRepository(
 
     suspend fun refreshToken(): Boolean {
         return try {
-            val refreshTokenStr = tokenStorage.refreshToken.first()
-
-            if (refreshTokenStr == null) {
-                return false
-            }
+            val refreshTokenStr = tokenStorage.refreshToken.first() ?: return false
 
             val storedRole = tokenStorage.userRole.first() ?: UserRole.STUDENT.name
             val apiRole = toApiRole(storedRole)

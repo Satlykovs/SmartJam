@@ -16,6 +16,5 @@ data class SubmissionResultEntity(
     val errorMessage: String?,
     val fileUrl: String?,
     val submissionAudioLocalPath: String?,
-    val createdAt: Instant
+    val createdAt: Instant,
 )
-

@@ -7,7 +7,6 @@ import androidx.room.Query
 import com.smartjam.app.data.local.entity.ConnectionEntity
 import kotlinx.coroutines.flow.Flow
 
-
 @Dao
 interface ConnectionDao {
     @Query("SELECT * FROM connections WHERE myRole = :role ORDER BY createdAt DESC")

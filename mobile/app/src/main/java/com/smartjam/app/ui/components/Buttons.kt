@@ -46,41 +46,47 @@ fun GoldenStringsButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true
+    enabled: Boolean = true,
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "strings")
-    val masterProgress by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2500, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ), label = "master_progress"
-    )
+    val masterProgress by
+        infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec =
+                infiniteRepeatable(
+                    animation = tween(2500, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart,
+                ),
+            label = "master_progress",
+        )
 
     Box(
-        modifier = modifier
-            .height(64.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .background(Color.White.copy(alpha = if (enabled) 0.1f else 0.05f))
-            .border(
-                width = 1.dp,
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        BrandGold.copy(alpha = 0.5f),
-                        BrandPink.copy(alpha = 0.3f),
-                        BrandCyan.copy(alpha = 0.3f)
-                    )
+        modifier =
+            modifier
+                .height(64.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(Color.White.copy(alpha = if (enabled) 0.1f else 0.05f))
+                .border(
+                    width = 1.dp,
+                    brush =
+                        Brush.linearGradient(
+                            colors =
+                                listOf(
+                                    BrandGold.copy(alpha = 0.5f),
+                                    BrandPink.copy(alpha = 0.3f),
+                                    BrandCyan.copy(alpha = 0.3f),
+                                )
+                        ),
+                    shape = RoundedCornerShape(24.dp),
+                )
+                .clickable(
+                    enabled = enabled,
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = LocalIndication.current,
+                    onClick = onClick,
                 ),
-                shape = RoundedCornerShape(24.dp)
-            )
-            .clickable(
-                enabled = enabled,
-                interactionSource = remember { MutableInteractionSource() },
-                indication = LocalIndication.current,
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         Canvas(modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp))) {
             val width = size.width
@@ -137,19 +143,21 @@ fun GoldenStringsButton(
                 drawPath(
                     path = path,
                     color = stringColors[i].copy(alpha = glowAlpha),
-                    style = Stroke(width = baseThickness * 3f * (1f + energyAlpha))
+                    style = Stroke(width = baseThickness * 3f * (1f + energyAlpha)),
                 )
 
                 drawPath(
                     path = path,
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(
-                            stringColors[i].copy(alpha = coreAlpha * 0.1f),
-                            stringColors[i].copy(alpha = coreAlpha),
-                            stringColors[i].copy(alpha = coreAlpha * 0.1f)
-                        )
-                    ),
-                    style = Stroke(width = baseThickness)
+                    brush =
+                        Brush.horizontalGradient(
+                            colors =
+                                listOf(
+                                    stringColors[i].copy(alpha = coreAlpha * 0.1f),
+                                    stringColors[i].copy(alpha = coreAlpha),
+                                    stringColors[i].copy(alpha = coreAlpha * 0.1f),
+                                )
+                        ),
+                    style = Stroke(width = baseThickness),
                 )
             }
         }
@@ -159,41 +167,35 @@ fun GoldenStringsButton(
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             color = if (enabled) Color.White else Color.White.copy(alpha = 0.5f),
-            style = TextStyle(
-                shadow = Shadow(
-                    color = Color(0xFF000000).copy(alpha = 0.7f),
-                    offset = Offset(0f, 2f),
-                    blurRadius = 8f
-                )
-            )
+            style =
+                TextStyle(
+                    shadow =
+                        Shadow(
+                            color = Color(0xFF000000).copy(alpha = 0.7f),
+                            offset = Offset(0f, 2f),
+                            blurRadius = 8f,
+                        )
+                ),
         )
     }
 }
 
 @Composable
-fun AppleGlassButton(
-    onClick: () -> Unit,
-    text: String,
-    modifier: Modifier = Modifier
-) {
+fun AppleGlassButton(onClick: () -> Unit, text: String, modifier: Modifier = Modifier) {
     Box(
-        modifier = modifier
-            .height(60.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .background(Color.White.copy(alpha = 0.05f))
-            .border(
-                width = 1.dp,
-                color = Color.White.copy(alpha = 0.1f),
-                shape = RoundedCornerShape(24.dp)
-            )
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
+        modifier =
+            modifier
+                .height(60.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(Color.White.copy(alpha = 0.05f))
+                .border(
+                    width = 1.dp,
+                    color = Color.White.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(24.dp),
+                )
+                .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = text,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = Color.White
-        )
+        Text(text = text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
     }
 }

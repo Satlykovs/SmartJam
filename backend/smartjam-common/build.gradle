@@ -1,6 +1,7 @@
 plugins {
     id 'java-library'
     id 'io.openapiprocessor.openapi-processor'
+    id 'java-test-fixtures'
 }
 
 group = 'com.smartjam'
@@ -12,6 +13,19 @@ dependencies {
     api 'com.fasterxml.jackson.core:jackson-databind'
     api 'jakarta.validation:jakarta.validation-api:3.1.1'
     api 'jakarta.annotation:jakarta.annotation-api:3.0.0'
+
+    testFixturesApi platform("org.testcontainers:testcontainers-bom:2.0.5")
+    testFixturesApi "org.testcontainers:testcontainers-junit-jupiter"
+    testFixturesApi "org.testcontainers:testcontainers-postgresql"
+    testFixturesApi "org.testcontainers:testcontainers-kafka"
+    testFixturesApi "org.testcontainers:testcontainers-minio"
+    testFixturesApi "com.redis:testcontainers-redis:2.2.2"
+
+    testFixturesApi 'org.springframework.boot:spring-boot-testcontainers'
+    testFixturesApi 'org.springframework.boot:spring-boot-starter-test'
+
+    testFixturesApi 'io.minio:minio:8.5.14'
+    testFixturesApi 'org.springframework.kafka:spring-kafka'
 }
 
 openapiProcessor {

@@ -28,4 +28,3 @@ class InstantAdapter : TypeAdapter<Instant>() {
         }
     }
 }
-

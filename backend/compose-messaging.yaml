@@ -41,8 +41,12 @@ services:
           echo "Broker not ready, retrying in 2s..."
           sleep 2
         done
+        
         /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic s3-events --partitions 3 --replication-factor 1
-        echo "Topic s3-events created."
+        
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic analysis-results --partitions 3 --replication-factor 1
+        
+        echo "Topics s3-events and analysis-results created."
 
 
 

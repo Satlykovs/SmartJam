@@ -9,17 +9,15 @@ import com.smartjam.app.data.local.entity.ConnectionEntity
 import com.smartjam.app.data.local.entity.SubmissionResultEntity
 
 @Database(
-    entities = [
-        ConnectionEntity::class,
-        AssignmentEntity::class,
-        SubmissionResultEntity::class
-    ],
+    entities = [ConnectionEntity::class, AssignmentEntity::class, SubmissionResultEntity::class],
     version = 6,
-    exportSchema = false
+    exportSchema = false,
 )
 @TypeConverters(Converters::class)
 abstract class SmartJamDatabase : RoomDatabase() {
     abstract fun connectionDao(): ConnectionDao
+
     abstract fun assignmentDao(): AssignmentDao
+
     abstract fun submissionResultDao(): SubmissionResultDao
 }

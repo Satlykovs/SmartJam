@@ -19,17 +19,16 @@ data class RegisterState(
     val repeatPasswordInput: String = "",
     val selectedRole: UserRole = UserRole.STUDENT,
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
 )
 
 sealed class RegisterEvent {
     object NavigateToHome : RegisterEvent()
+
     object NavigateBack : RegisterEvent()
 }
 
-class RegisterViewModel(
-    private val authRepository: AuthRepository
-) : ViewModel() {
+class RegisterViewModel(private val authRepository: AuthRepository) : ViewModel() {
 
     private val _state = MutableStateFlow(RegisterState())
     val state = _state.asStateFlow()
@@ -60,14 +59,12 @@ class RegisterViewModel(
     }
 
     fun onBackClicked() {
-        viewModelScope.launch {
-            eventChannel.send(RegisterEvent.NavigateBack)
-        }
+        viewModelScope.launch { eventChannel.send(RegisterEvent.NavigateBack) }
     }
 
     fun onRegisterClicked() {
-        if (_state.value.isLoading){
-            return;
+        if (_state.value.isLoading) {
+            return
         }
         val currentState = _state.value
 
@@ -82,7 +79,9 @@ class RegisterViewModel(
         }
 
         if (!passwordRegex.matches(currentState.passwordInput)) {
-            _state.update { it.copy(errorMessage = "Пароль: мин. 8 символов, латинские буквы и цифры") }
+            _state.update {
+                it.copy(errorMessage = "Пароль: мин. 8 символов, латинские буквы и цифры")
+            }
             return
         }
 
@@ -115,9 +114,8 @@ class RegisterViewModel(
     }
 }
 
-class RegisterViewModelFactory(
-    private val authRepository: AuthRepository
-) : ViewModelProvider.Factory {
+class RegisterViewModelFactory(private val authRepository: AuthRepository) :
+    ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(RegisterViewModel::class.java)) {

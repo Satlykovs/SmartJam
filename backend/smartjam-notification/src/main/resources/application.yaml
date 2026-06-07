@@ -1,0 +1,31 @@
+spring:
+  profiles:
+    active: prod
+  application:
+    name: smartjam-notification
+  threads:
+    virtual:
+      enabled: true
+
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/smartjam
+    username: admin
+    password: admin
+    driver-class-name: org.postgresql.Driver
+
+
+  kafka:
+    bootstrap-servers: localhost:29092
+
+    consumer:
+      group-id: smartjam-notification-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+
+      enable-auto-commit: false
+    listener:
+      ack-mode: manual_immediate

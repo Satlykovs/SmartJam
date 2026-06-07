@@ -8,13 +8,13 @@ import com.smartjam.app.data.local.entity.SubmissionResultEntity
 import com.smartjam.app.domain.repository.RoomRepository
 import com.smartjam.app.model.CreateAssignmentRequest
 import com.smartjam.app.model.FeedbackEvent
+import java.io.File
+import java.util.*
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.io.File
-import java.util.*
 
 data class RoomUiState(
     val assignments: List<AssignmentEntity> = emptyList(),
@@ -26,13 +26,11 @@ data class RoomUiState(
     val nextPage: Int = 1,
     val pageSize: Int = 20,
     val isUploading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
 )
 
-class RoomViewModel(
-    private val connectionId: UUID,
-    private val repository: RoomRepository
-) : ViewModel() {
+class RoomViewModel(private val connectionId: UUID, private val repository: RoomRepository) :
+    ViewModel() {
 
     private val _uiState = kotlinx.coroutines.flow.MutableStateFlow(RoomUiState())
     val uiState = _uiState.asStateFlow()
@@ -65,7 +63,12 @@ class RoomViewModel(
     fun refreshFirstPage() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            val result = repository.syncAssignmentsPage(connectionId, page = 0, size = _uiState.value.pageSize)
+            val result =
+                repository.syncAssignmentsPage(
+                    connectionId,
+                    page = 0,
+                    size = _uiState.value.pageSize,
+                )
             if (result.isFailure) {
                 _uiState.update { it.copy(error = "Не удалось обновить список уроков") }
             }
@@ -76,15 +79,18 @@ class RoomViewModel(
     private fun loadNextPage() {
         viewModelScope.launch {
             _uiState.update { it.copy(isPaging = true, error = null) }
-            val result = repository.syncAssignmentsPage(
-                connectionId,
-                page = _uiState.value.nextPage,
-                size = _uiState.value.pageSize
-            )
+            val result =
+                repository.syncAssignmentsPage(
+                    connectionId,
+                    page = _uiState.value.nextPage,
+                    size = _uiState.value.pageSize,
+                )
             if (result.isSuccess) {
                 val pageInfo = result.getOrNull()!!
                 val endReached = pageInfo.pageNumber + 1 >= pageInfo.totalPages
-                _uiState.update { it.copy(nextPage = pageInfo.pageNumber + 1, endReached = endReached) }
+                _uiState.update {
+                    it.copy(nextPage = pageInfo.pageNumber + 1, endReached = endReached)
+                }
             } else {
                 _uiState.update { it.copy(error = "Не удалось загрузить следующую страницу") }
             }
@@ -144,7 +150,8 @@ class RoomViewModel(
     }
 
     /**
-     * Ensure reference audio for assignment is cached locally. Calls onResult with local path or null on failure.
+     * Ensure reference audio for assignment is cached locally. Calls onResult with local path or
+     * null on failure.
      */
     fun downloadReference(assignmentId: UUID, onResult: (String?) -> Unit) {
         viewModelScope.launch {
@@ -157,7 +164,12 @@ class RoomViewModel(
         }
     }
 
-    fun downloadSubmissionAudio(submissionId: UUID, assignmentId: UUID, fileUrl: String?, onResult: (String?) -> Unit) {
+    fun downloadSubmissionAudio(
+        submissionId: UUID,
+        assignmentId: UUID,
+        fileUrl: String?,
+        onResult: (String?) -> Unit,
+    ) {
         viewModelScope.launch {
             val res = repository.cacheSubmissionAudioIfNeeded(submissionId, assignmentId, fileUrl)
             if (res.isSuccess) {
@@ -174,12 +186,16 @@ class RoomViewModel(
             repository.getSubmissionsFlow(assignmentId).collect { submissions ->
                 _uiState.update { state ->
                     state.copy(
-                        submissionsByAssignment = state.submissionsByAssignment + (assignmentId to submissions)
+                        submissionsByAssignment =
+                            state.submissionsByAssignment + (assignmentId to submissions)
                     )
                 }
                 submissions.forEach { submission ->
                     val hasFeedback = _uiState.value.feedbackBySubmission.containsKey(submission.id)
-                    val needsDetailFetch = submission.pitchScore == null || submission.rhythmScore == null || !hasFeedback
+                    val needsDetailFetch =
+                        submission.pitchScore == null ||
+                            submission.rhythmScore == null ||
+                            !hasFeedback
                     if (needsDetailFetch) {
                         viewModelScope.launch {
                             val res = repository.getSubmissionResult(submission.id, assignmentId)
@@ -187,7 +203,10 @@ class RoomViewModel(
                                 val dto = res.getOrNull()!!
                                 val feedback = dto.feedback ?: emptyList()
                                 _uiState.update { st ->
-                                    st.copy(feedbackBySubmission = st.feedbackBySubmission + (submission.id to feedback))
+                                    st.copy(
+                                        feedbackBySubmission =
+                                            st.feedbackBySubmission + (submission.id to feedback)
+                                    )
                                 }
                             }
                         }
@@ -205,7 +224,10 @@ class RoomViewModel(
                     val dto = result.getOrNull()!!
                     val feedback = dto.feedback ?: emptyList()
                     _uiState.update { state ->
-                        state.copy(feedbackBySubmission = state.feedbackBySubmission + (submissionId to feedback))
+                        state.copy(
+                            feedbackBySubmission =
+                                state.feedbackBySubmission + (submissionId to feedback)
+                        )
                     }
                     val status = dto.status.name
                     if (status == "COMPLETED" || status == "FAILED") {
@@ -218,10 +240,8 @@ class RoomViewModel(
     }
 }
 
-class RoomViewModelFactory(
-    private val connectionId: UUID,
-    private val repository: RoomRepository
-) : ViewModelProvider.Factory {
+class RoomViewModelFactory(private val connectionId: UUID, private val repository: RoomRepository) :
+    ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return RoomViewModel(connectionId, repository) as T

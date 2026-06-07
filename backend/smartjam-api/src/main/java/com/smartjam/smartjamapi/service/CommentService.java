@@ -96,14 +96,8 @@ public class CommentService {
         if (cursor == null || cursor.isBlank()) {
             comments = new ArrayList<>(repository.getFirstPage(assignmentId, pageable));
         } else {
-            try {
-                String[] detCursor = cursor.split(",");
-                Instant cursorTime = Instant.parse(detCursor[0]);
-                UUID cursorId = UUID.fromString(detCursor[1]);
-                comments = new ArrayList<>(repository.getNextPage(assignmentId, cursorTime, cursorId, pageable));
-            } catch (Exception e) {
-                throw new IllegalArgumentException("Invalid cursor format");
-            }
+            CursorData parsed = parseCursor(cursor);
+            comments = new ArrayList<>(repository.getNextPage(assignmentId, parsed.time(), parsed.id(), pageable));
         }
 
         log.info("current cursor: {}", cursor);
@@ -122,4 +116,17 @@ public class CommentService {
         log.info("size commentsResponses: {}", commentsResponses.size());
         return new CommentPageResponse(commentsResponses, nextCursor, hasNext);
     }
+
+    private CursorData parseCursor(String cursor) {
+        try {
+            String[] parts = cursor.split(",");
+            Instant cursorTime = Instant.parse(parts[0]);
+            UUID cursorId = UUID.fromString(parts[1]);
+            return new CursorData(cursorTime, cursorId);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid cursor format");
+        }
+    }
+
+    private record CursorData(Instant time, UUID id) {}
 }

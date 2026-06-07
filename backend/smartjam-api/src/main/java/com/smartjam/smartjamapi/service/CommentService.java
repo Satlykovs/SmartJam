@@ -118,13 +118,17 @@ public class CommentService {
     }
 
     private CursorData parseCursor(String cursor) {
+
+        String[] parts = cursor.split(",", -1);
+        if (parts.length != 2) {
+            throw new IllegalArgumentException("Invalid cursor format");
+        }
         try {
-            String[] parts = cursor.split(",");
             Instant cursorTime = Instant.parse(parts[0]);
             UUID cursorId = UUID.fromString(parts[1]);
             return new CursorData(cursorTime, cursorId);
         } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid cursor format");
+            throw new IllegalArgumentException("Invalid cursor format", e);
         }
     }
 

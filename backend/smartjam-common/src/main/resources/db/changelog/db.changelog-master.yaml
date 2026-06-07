@@ -9,3 +9,5 @@ databaseChangeLog:
       file: db/changelog/changes/04-add-user-devices.sql
   - include:
       file: db/changelog/changes/05-add-waveforms-to-submissions.sql
+  - include:
+      file: db/changelog/changes/06-update-comment-index.sql

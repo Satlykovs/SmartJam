@@ -21,6 +21,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +32,7 @@ public class CommentService {
     private final CommentsRepository repository;
     private final CommentMapper commentMapper;
 
+    @Transactional
     public CommentResponse createComment(UUID assignmentId, CommentRequest request) {
 
         UUID currentUserId = identityService.getCurrentUserId();
@@ -66,7 +68,10 @@ public class CommentService {
         return commentMapper.toResponse(saved);
     }
 
+    @Transactional(readOnly = true)
     public CommentPageResponse getComments(UUID assignmentId, Integer limit, String cursor) {
+
+        log.info("getComments: limit = {}", limit);
 
         UUID currentUserId = identityService.getCurrentUserId();
 
@@ -101,15 +106,20 @@ public class CommentService {
             }
         }
 
+        log.info("current cursor: {}", cursor);
+
         boolean hasNext = false;
         String nextCursor = null;
-        if (!comments.isEmpty() && comments.size() == limit + 1) {
+        if (comments.size() == limit + 1) {
             hasNext = true;
             comments.removeLast();
             CommentEntity lastComment = comments.getLast();
             nextCursor = lastComment.getCreatedAt() + "," + lastComment.getId();
         }
 
-        return new CommentPageResponse(commentMapper.toResponseList(comments), nextCursor, hasNext);
+        List<CommentResponse> commentsResponses = commentMapper.toResponseList(comments);
+
+        log.info("size commentsResponses: {}", commentsResponses.size());
+        return new CommentPageResponse(commentsResponses, nextCursor, hasNext);
     }
 }

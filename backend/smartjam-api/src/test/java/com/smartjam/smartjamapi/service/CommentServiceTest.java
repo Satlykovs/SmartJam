@@ -218,7 +218,7 @@ class CommentServiceTest {
     @Test
     @DisplayName("getComments: первая страница, следующей нет → hasNext=false, nextCursor=null")
     void getComments_whenRepositoryReturnsExactlyLimit_returnsHasNextFalseAndNullCursor() {
-        int limit = 10;
+        int limit = 7;
 
         List<CommentEntity> comments = new ArrayList<>();
 
@@ -257,7 +257,7 @@ class CommentServiceTest {
         ArgumentCaptor<List<CommentEntity>> captor = ArgumentCaptor.forClass(List.class);
         verify(commentMapper).toResponseList(captor.capture());
 
-        assertThat(captor.getValue()).hasSize(10);
+        assertThat(captor.getValue()).hasSize(limit);
         assertThat(captor.getValue()).containsAll(comments);
 
         verify(repository, never()).getFirstPage(any(), any());
@@ -329,5 +329,22 @@ class CommentServiceTest {
         assertThat(result.hasNext()).isFalse();
         assertThat(result.nextCursor()).isNull();
         assertThat(result.items()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("getComments: невалидный курсор '67.67.6767,67' → IllegalArgumentException")
+    void getComments_whenCursorHasInvalidFormat_throwsIllegalArgument() {
+        String invalidCursor = "67.67.6767,67";
+
+        when(identityService.getCurrentUserId()).thenReturn(teacherId);
+        when(assignmentsService.getAssignmentEntityById(assignmentId)).thenReturn(assignment);
+
+        assertThatThrownBy(() -> commentService.getComments(assignmentId, 10, invalidCursor))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid cursor format");
+
+        verify(repository, never()).getFirstPage(any(), any());
+        verify(repository, never()).getNextPage(any(), any(), any(), any());
+        verifyNoInteractions(commentMapper);
     }
 }

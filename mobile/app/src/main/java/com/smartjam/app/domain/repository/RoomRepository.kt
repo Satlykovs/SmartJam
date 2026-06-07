@@ -278,13 +278,22 @@ class RoomRepository(
                 val target = audioFileStore.getSubmissionAudioFile(submissionId)
                 val request = Request.Builder().url(fixedUrl).header("Host", originalHost).build()
 
-                httpClient.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) {
-                        return@withContext Result.success(null)
-                    }
+            httpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    val errorBody = response.body?.string()
+                    Log.w("RoomRepository", "cacheSubmissionAudioIfNeeded failed: code=${response.code} body=$errorBody")
+                    return@withContext Result.failure(Exception("Audio download failed: ${response.code}"))
+                }
 
-                    response.body?.byteStream()?.use { input ->
-                        target.outputStream().use { output -> input.copyTo(output) }
+                val body = response.body
+                if (body == null || body.contentLength() == 0L) {
+                    Log.w("RoomRepository", "cacheSubmissionAudioIfNeeded empty body for $urlString")
+                    return@withContext Result.failure(Exception("Audio download empty"))
+                }
+
+                body.byteStream().use { input ->
+                    target.outputStream().use { output ->
+                        input.copyTo(output)
                     }
                 }
 

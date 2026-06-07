@@ -253,6 +253,7 @@ class HomeViewModel(
 
     fun onLogoutClicked() {
         viewModelScope.launch {
+            connectionRepository.clearAllConnections()
             authRepository.logout()
             eventChannel.send(HomeEvent.NavigateToLogin)
         }

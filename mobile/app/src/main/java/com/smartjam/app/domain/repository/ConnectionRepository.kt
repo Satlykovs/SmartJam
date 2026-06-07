@@ -147,4 +147,15 @@ class ConnectionRepository(private val api: ConnectionsApi, private val dao: Con
                 null
             }
         }
+    }
+
+    suspend fun clearAllConnections(): Result<Unit> {
+        return try {
+            dao.clearAllConnections()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Result.failure(e)
+        }
+    }
 }

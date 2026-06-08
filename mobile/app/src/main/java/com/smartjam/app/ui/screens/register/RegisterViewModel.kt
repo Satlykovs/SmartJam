@@ -36,7 +36,9 @@ class RegisterViewModel(private val authRepository: AuthRepository) : ViewModel(
     private val eventChannel = Channel<RegisterEvent>(Channel.BUFFERED)
     val events = eventChannel.receiveAsFlow()
     private val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\$".toRegex()
-    private val passwordRegex = "^(?=[^A-Z]*[A-Z])(?=[^a-z]*[a-z])(?=\\D*\\d)(?=[^#?!@\$%^&*-]*[#?!@\$%^&*-]).{8,20}\$".toRegex()
+    private val passwordRegex =
+        "^(?=[^A-Z]*[A-Z])(?=[^a-z]*[a-z])(?=\\D*\\d)(?=[^#?!@\$%^&*-]*[#?!@\$%^&*-]).{8,20}\$"
+            .toRegex()
 
     fun onUsernameChanged(username: String) {
         _state.update { it.copy(usernameInput = username, errorMessage = null) }
@@ -94,12 +96,13 @@ class RegisterViewModel(private val authRepository: AuthRepository) : ViewModel(
             _state.update { it.copy(isLoading = true, errorMessage = null) }
 
             try {
-                val result = authRepository.register(
-                    email = currentState.emailInput,
-                    password = currentState.passwordInput,
-                    username = currentState.usernameInput,
-                    role = currentState.selectedRole
-                )
+                val result =
+                    authRepository.register(
+                        email = currentState.emailInput,
+                        password = currentState.passwordInput,
+                        username = currentState.usernameInput,
+                        role = currentState.selectedRole,
+                    )
 
                 if (result.isSuccess) {
                     eventChannel.send(RegisterEvent.NavigateToHome)

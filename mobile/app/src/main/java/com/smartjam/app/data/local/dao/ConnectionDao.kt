@@ -21,6 +21,5 @@ interface ConnectionDao {
     @Query("DELETE FROM connections WHERE myRole = :role")
     suspend fun clearConnections(role: String): Int
 
-    @Query("DELETE FROM connections")
-    suspend fun clearAllConnections(): Int
+    @Query("DELETE FROM connections") suspend fun clearAllConnections(): Int
 }

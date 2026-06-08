@@ -1,5 +1,6 @@
 package com.smartjam.app.domain.repository
 
+import android.util.Log
 import com.smartjam.app.api.ConnectionsApi
 import com.smartjam.app.data.local.dao.ConnectionDao
 import com.smartjam.app.data.local.entity.ConnectionEntity
@@ -42,59 +43,66 @@ class ConnectionRepository(private val api: ConnectionsApi, private val dao: Con
         role: UserRole,
         page: Int,
         size: Int,
-    ): Result<ConnectionPageInfo> {
-        return try {
-            val activeResponse = api.getMyConnections(page = page, size = size)
-            if (activeResponse.isSuccessful && activeResponse.body() != null) {
-                val body = activeResponse.body()!!
-                val activeItems = body.content
-                val ids = activeItems.map { it.id }
-                val existing = dao.getConnectionsByIds(ids).associateBy { it.connectionId }
+    ): Result<ConnectionPageInfo> =
+        withContext(Dispatchers.IO) {
+            return@withContext try {
+                Log.e("SmartJam_Connections", "I am here")
 
-                val allEntities = activeItems.map { dto ->
-                    val avatarUrl = dto.peerAvatarUrl?.toString()
-                    val cached = existing[dto.id]
-                    val avatarBytes =
-                        when {
-                            avatarUrl.isNullOrBlank() -> null
-                            cached != null &&
-                                cached.peerAvatarUrl == avatarUrl &&
-                                cached.peerAvatarBytes != null -> cached.peerAvatarBytes
-                            else -> downloadAvatar(avatarUrl)
-                        }
+                val activeResponse = api.getMyConnections(page = page, size = size)
+                Log.e("SmartJam_Connections", "Now I am here")
+                if (activeResponse.isSuccessful && activeResponse.body() != null) {
+                    val body = activeResponse.body()!!
+                    val activeItems = body.content
+                    val ids = activeItems.map { it.id }
+                    val existing = dao.getConnectionsByIds(ids).associateBy { it.connectionId }
 
-                    ConnectionEntity(
-                        connectionId = dto.id,
-                        peerId = dto.peerId,
-                        peerUsername = dto.peerUsername,
-                        createdAt = dto.createdAt,
-                        peerFirstName = dto.peerFirstName,
-                        peerLastName = dto.peerLastName,
-                        peerAvatarUrl = avatarUrl,
-                        peerAvatarBytes = avatarBytes,
-                        myRole = role.name,
+                    val allEntities = activeItems.map { dto ->
+                        val avatarUrl = dto.peerAvatarUrl?.toString()
+                        val cached = existing[dto.id]
+                        val avatarBytes =
+                            when {
+                                avatarUrl.isNullOrBlank() -> null
+                                cached != null &&
+                                    cached.peerAvatarUrl == avatarUrl &&
+                                    cached.peerAvatarBytes != null -> cached.peerAvatarBytes
+                                else -> downloadAvatar(avatarUrl)
+                            }
+
+                        ConnectionEntity(
+                            connectionId = dto.id,
+                            peerId = dto.peerId,
+                            peerUsername = dto.peerUsername,
+                            createdAt = dto.createdAt,
+                            peerFirstName = dto.peerFirstName,
+                            peerLastName = dto.peerLastName,
+                            peerAvatarUrl = avatarUrl,
+                            peerAvatarBytes = avatarBytes,
+                            myRole = role.name,
+                        )
+                    }
+
+                    dao.insertConnections(allEntities)
+
+                    Result.success(
+                        ConnectionPageInfo(
+                            pageNumber = body.page.number,
+                            totalPages = body.page.totalPages,
+                            pageSize = body.page.propertySize,
+                            totalElements = body.page.totalElements,
+                        )
+                    )
+                } else {
+                    Result.failure(
+                        Exception("Failed to fetch connections: ${activeResponse.code()}")
                     )
                 }
+            } catch (e: Exception) {
+                Log.e("SmartJam_Connection_repo", e.message!!)
+                if (e is CancellationException) throw e
 
-                dao.insertConnections(allEntities)
-
-                Result.success(
-                    ConnectionPageInfo(
-                        pageNumber = body.page.number,
-                        totalPages = body.page.totalPages,
-                        pageSize = body.page.propertySize,
-                        totalElements = body.page.totalElements,
-                    )
-                )
-            } else {
-                Result.failure(Exception("Failed to fetch connections: ${activeResponse.code()}"))
+                Result.failure(e)
             }
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-
-            Result.failure(e)
         }
-    }
 
     @Deprecated("Use syncConnectionsPage for paged loading")
     suspend fun syncConnections(role: UserRole): Result<Unit> {
@@ -147,7 +155,6 @@ class ConnectionRepository(private val api: ConnectionsApi, private val dao: Con
                 null
             }
         }
-    }
 
     suspend fun clearAllConnections(): Result<Unit> {
         return try {

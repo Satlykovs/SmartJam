@@ -5,6 +5,7 @@ include:
   - path: compose-storage.yaml
   - path: compose-messaging.yaml
   - path: compose-observability.yaml
+  - path: compose-services.yaml
 
 
 networks:

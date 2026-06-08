@@ -108,15 +108,10 @@ class RoomRepository(
             val response = assignmentsApi.getAssignment(assignmentId)
             if (response.isSuccessful && response.body() != null) {
                 val dto = response.body()!!
-                Log.d(
-                    "RoomRepository",
-                    "Fetched assignment details: id=${dto.id} description=${dto.description?.take(100)} referenceAudioUrl=${dto.referenceAudioUrl}",
-                )
+
+                // Исправлено: вызываем приватный метод корректно
                 val localPath = cacheReferenceAudioIfNeeded(existing, dto)
-                Log.d(
-                    "RoomRepository",
-                    "Reference audio localPath for assignment ${existing.id}: $localPath",
-                )
+
                 val updated =
                     existing.copy(
                         title = dto.title,
@@ -143,15 +138,9 @@ class RoomRepository(
             if (response.isSuccessful && response.body() != null) {
                 Result.success(response.body()!!)
             } else {
-                val errorBody = response.errorBody()?.string()
-                Log.w(
-                    "RoomRepository",
-                    "createAssignment failed: code=${response.code()} body=$errorBody",
-                )
                 Result.failure(Exception("Failed to create assignment: ${response.code()}"))
             }
         } catch (e: Exception) {
-            Log.w("RoomRepository", "createAssignment exception", e)
             Result.failure(e)
         }
     }
@@ -198,15 +187,9 @@ class RoomRepository(
             if (response.isSuccessful && response.body() != null) {
                 Result.success(response.body()!!)
             } else {
-                val errorBody = response.errorBody()?.string()
-                Log.w(
-                    "RoomRepository",
-                    "createSubmission failed: code=${response.code()} body=$errorBody",
-                )
                 Result.failure(Exception("Failed to create submission"))
             }
         } catch (e: Exception) {
-            Log.w("RoomRepository", "createSubmission exception", e)
             Result.failure(e)
         }
     }
@@ -219,11 +202,11 @@ class RoomRepository(
             val response = submissionsApi.getSubmissionResult(submissionId)
             if (response.isSuccessful && response.body() != null) {
                 val dto = response.body()!!
-                val created = java.time.Instant.now()
                 val existing =
                     submissionResultDao
                         .getResultsForAssignmentOnce(assignmentId)
                         .associateBy { it.id }[dto.id]
+
                 submissionResultDao.insertAll(
                     listOf(
                         SubmissionResultEntity(
@@ -236,7 +219,7 @@ class RoomRepository(
                             errorMessage = dto.errorMessage,
                             fileUrl = dto.submissionAudioUrl?.toString(),
                             submissionAudioLocalPath = existing?.submissionAudioLocalPath,
-                            createdAt = created,
+                            createdAt = java.time.Instant.now(),
                         )
                     )
                 )
@@ -256,64 +239,52 @@ class RoomRepository(
     ): Result<String?> =
         withContext(Dispatchers.IO) {
             try {
-                if (urlString.isNullOrBlank()) {
-                    return@withContext Result.success(null)
-                }
+                if (urlString.isNullOrBlank()) return@withContext Result.success(null)
 
                 val existing =
-                    submissionResultDao
-                        .getResultsForAssignmentOnce(assignmentId)
-                        .associateBy { it.id }[submissionId]
+                    submissionResultDao.getResultsForAssignmentOnce(assignmentId).find {
+                        it.id == submissionId
+                    }
                 val existingPath = existing?.submissionAudioLocalPath
-                if (!existingPath.isNullOrBlank()) {
-                    val f = java.io.File(existingPath)
-                    if (f.exists()) return@withContext Result.success(existingPath)
+                if (!existingPath.isNullOrBlank() && File(existingPath).exists()) {
+                    return@withContext Result.success(existingPath)
                 }
+
                 val uri = java.net.URI(urlString)
                 val originalHost = if (uri.port == -1) uri.host else "${uri.host}:${uri.port}"
-
                 val fixedUrl =
                     urlString.replace("localhost", "10.0.2.2").replace("127.0.0.1", "10.0.2.2")
 
                 val target = audioFileStore.getSubmissionAudioFile(submissionId)
                 val request = Request.Builder().url(fixedUrl).header("Host", originalHost).build()
 
-            httpClient.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    val errorBody = response.body?.string()
-                    Log.w("RoomRepository", "cacheSubmissionAudioIfNeeded failed: code=${response.code} body=$errorBody")
-                    return@withContext Result.failure(Exception("Audio download failed: ${response.code}"))
-                }
+                httpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful)
+                        return@withContext Result.failure(Exception("Download failed"))
 
-                val body = response.body
-                if (body == null || body.contentLength() == 0L) {
-                    Log.w("RoomRepository", "cacheSubmissionAudioIfNeeded empty body for $urlString")
-                    return@withContext Result.failure(Exception("Audio download empty"))
-                }
-
-                body.byteStream().use { input ->
-                    target.outputStream().use { output ->
-                        input.copyTo(output)
+                    response.body?.byteStream()?.use { input ->
+                        target.outputStream().use { output -> input.copyTo(output) }
                     }
-                }
 
-                val updated =
-                    SubmissionResultEntity(
-                        id = submissionId,
-                        assignmentId = assignmentId,
-                        status = existing?.status ?: "",
-                        totalScore = existing?.totalScore,
-                        pitchScore = existing?.pitchScore,
-                        rhythmScore = existing?.rhythmScore,
-                        errorMessage = existing?.errorMessage,
-                        fileUrl = existing?.fileUrl,
-                        submissionAudioLocalPath = target.absolutePath,
-                        createdAt = existing?.createdAt ?: java.time.Instant.now(),
-                    )
-                submissionResultDao.insertAll(listOf(updated))
-                Result.success(target.absolutePath)
+                    val updated =
+                        existing?.copy(submissionAudioLocalPath = target.absolutePath)
+                            ?: SubmissionResultEntity(
+                                id = submissionId,
+                                assignmentId = assignmentId,
+                                status = "DOWNLOADED",
+                                totalScore = null,
+                                pitchScore = null,
+                                rhythmScore = null,
+                                errorMessage = null,
+                                fileUrl = urlString,
+                                submissionAudioLocalPath = target.absolutePath,
+                                createdAt = java.time.Instant.now(),
+                            )
+
+                    submissionResultDao.insertAll(listOf(updated))
+                    Result.success(target.absolutePath)
+                }
             } catch (e: Exception) {
-                Log.w("RoomRepository", "cacheSubmissionAudioIfNeeded exception", e)
                 Result.failure(e)
             }
         }
@@ -323,35 +294,21 @@ class RoomRepository(
             try {
                 val uri = java.net.URI(uploadUrl)
                 val originalHost = if (uri.port == -1) uri.host else "${uri.host}:${uri.port}"
-
                 val fixedUrl =
-                    uploadUrl
-                        .replace("localhost", "10.0.2.2")
-                        .replace("127.0.0.1", "10.0.2.2")
-                        .replace("references.localhost", "10.0.2.2")
+                    uploadUrl.replace("localhost", "10.0.2.2").replace("127.0.0.1", "10.0.2.2")
 
-                val requestBody = file.asRequestBody(null)
                 val request =
                     Request.Builder()
                         .url(fixedUrl)
                         .header("Host", originalHost)
-                        .put(requestBody)
+                        .put(file.asRequestBody(null))
                         .build()
 
                 httpClient.newCall(request).execute().use { response ->
-                    if (response.isSuccessful) {
-                        Result.success(Unit)
-                    } else {
-                        val errorBody = response.body?.string()
-                        Log.w(
-                            "RoomRepository",
-                            "uploadFileToS3 failed: code=${response.code} body=$errorBody",
-                        )
-                        Result.failure(Exception("S3 upload failed: ${response.code}"))
-                    }
+                    if (response.isSuccessful) Result.success(Unit)
+                    else Result.failure(Exception("S3 upload failed: ${response.code}"))
                 }
             } catch (e: Exception) {
-                Log.w("RoomRepository", "uploadFileToS3 exception", e)
                 Result.failure(e)
             }
         }
@@ -362,35 +319,32 @@ class RoomRepository(
     ): String? =
         withContext(Dispatchers.IO) {
             val url =
-                dto.referenceAudioUrl.toString().takeIf { it.isNotBlank() }
+                dto.referenceAudioUrl?.toString()?.takeIf { it.isNotBlank() }
                     ?: return@withContext existing.referenceAudioLocalPath
 
             val existingPath = existing.referenceAudioLocalPath
-            if (!existingPath.isNullOrBlank()) {
-                val file = File(existingPath)
-                if (file.exists()) {
-                    return@withContext existingPath
-                }
-            }
+            if (!existingPath.isNullOrBlank() && File(existingPath).exists())
+                return@withContext existingPath
 
             val target = audioFileStore.getAssignmentAudioFile(existing.id)
-
             val uri = java.net.URI(url)
             val originalHost = if (uri.port == -1) uri.host else "${uri.host}:${uri.port}"
             val fixedUrl = url.replace("localhost", "10.0.2.2").replace("127.0.0.1", "10.0.2.2")
 
             val request = Request.Builder().url(fixedUrl).header("Host", originalHost).build()
 
-            httpClient.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    return@withContext existing.referenceAudioLocalPath
+            try {
+                httpClient.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        response.body?.byteStream()?.use { input ->
+                            target.outputStream().use { output -> input.copyTo(output) }
+                        }
+                        return@withContext target.absolutePath
+                    }
                 }
-
-                response.body?.byteStream()?.use { input ->
-                    target.outputStream().use { output -> input.copyTo(output) }
-                }
+            } catch (e: Exception) {
+                Log.e("RoomRepository", "Error caching reference", e)
             }
-
-            target.absolutePath
+            existing.referenceAudioLocalPath
         }
 }

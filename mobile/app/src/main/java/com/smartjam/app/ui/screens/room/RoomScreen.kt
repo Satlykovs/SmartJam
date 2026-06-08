@@ -12,9 +12,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,7 +44,7 @@ fun RoomScreen(
     role: UserRole,
     viewModel: RoomViewModel,
     onBack: () -> Unit,
-    onOpenAssignment: (UUID) -> Unit
+    onOpenAssignment: (UUID) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -75,17 +72,19 @@ fun RoomScreen(
             }
         }
 
-    val saveToDeviceLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("audio/wav")
-    ) { uri: Uri? ->
-        val path = pendingSavePath
-        if (uri != null && !path.isNullOrBlank()) {
-            val input = File(path)
-            context.contentResolver.openOutputStream(uri)?.use { output ->
-                input.inputStream().use { it.copyTo(output) }
+    val saveToDeviceLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.CreateDocument("audio/wav")
+        ) { uri: Uri? ->
+            val path = pendingSavePath
+            if (uri != null && !path.isNullOrBlank()) {
+                val input = File(path)
+                context.contentResolver.openOutputStream(uri)?.use { output ->
+                    input.inputStream().use { it.copyTo(output) }
+                }
             }
             pendingSavePath = null
-        }
+        } // <--- ВОТ ЭТА СКОБКА БЫЛА ПРОПУЩЕНА
 
     LaunchedEffect(listState) {
         snapshotFlow {
@@ -106,6 +105,7 @@ fun RoomScreen(
                         WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 16.dp
                     )
             )
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth(),
@@ -163,7 +163,7 @@ fun RoomScreen(
 
             if (state.error != null) {
                 Text(
-                    state.error ?: "",
+                    text = state.error ?: "",
                     color = Color(0xFFFF5252),
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
@@ -190,7 +190,7 @@ fun RoomScreen(
                                     saveToDeviceLauncher.launch("${assignment.title}.wav")
                                 }
                             }
-                        }
+                        },
                     )
                 }
             }
@@ -204,7 +204,7 @@ private fun AssignmentCard(
     role: UserRole,
     onOpenAssignment: () -> Unit,
     onSaveAudio: (String) -> Unit,
-    onDownloadReference: (UUID) -> Unit
+    onDownloadReference: (UUID) -> Unit,
 ) {
     GlassContainer {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -215,13 +215,13 @@ private fun AssignmentCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        assignment.title,
+                        text = assignment.title,
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
                     )
                     Text(
-                        "Статус: ${assignment.status}",
+                        text = "Статус: ${assignment.status}",
                         color = Color.White.copy(alpha = 0.7f),
                         fontSize = 12.sp,
                     )
@@ -230,14 +230,14 @@ private fun AssignmentCard(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                         contentDescription = "Open",
-                        tint = Color.White
+                        tint = Color.White,
                     )
                 }
             }
 
             assignment.description?.let {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(it, color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
+                Text(text = it, color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
             }
 
             val localPath = assignment.referenceAudioLocalPath
@@ -246,14 +246,14 @@ private fun AssignmentCard(
                 GoldenStringsButton(
                     text = "Сохранить эталон",
                     onClick = { onSaveAudio(localPath) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
             } else if (role == UserRole.STUDENT) {
                 Spacer(modifier = Modifier.height(12.dp))
                 GoldenStringsButton(
                     text = "Скачать эталон",
                     onClick = { onDownloadReference(assignment.id) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
 
@@ -262,7 +262,7 @@ private fun AssignmentCard(
                 GoldenStringsButton(
                     text = "Открыть урок",
                     onClick = onOpenAssignment,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         }

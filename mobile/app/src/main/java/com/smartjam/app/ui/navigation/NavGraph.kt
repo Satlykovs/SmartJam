@@ -54,10 +54,10 @@ import com.smartjam.app.ui.screens.login.LoginViewModelFactory
 import com.smartjam.app.ui.screens.register.RegisterScreen
 import com.smartjam.app.ui.screens.register.RegisterViewModel
 import com.smartjam.app.ui.screens.register.RegisterViewModelFactory
+import com.smartjam.app.ui.screens.room.AssignmentDetailsScreen
 import com.smartjam.app.ui.screens.room.RoomScreen
 import com.smartjam.app.ui.screens.room.RoomViewModel
 import com.smartjam.app.ui.screens.room.RoomViewModelFactory
-import com.smartjam.app.ui.screens.room.AssignmentDetailsScreen
 import com.smartjam.app.ui.theme.BlurCyan
 import com.smartjam.app.ui.theme.BlurPurpleDark
 import com.smartjam.app.ui.theme.CoreBackground
@@ -77,6 +77,7 @@ sealed class Screen(val route: String) {
     object Room : Screen("room_screen/{connectionId}/{role}") {
         fun createRoute(connectionId: String, role: String) = "room_screen/$connectionId/$role"
     }
+
     object AssignmentDetails : Screen("assignment_screen/{connectionId}/{assignmentId}/{role}") {
         fun createRoute(connectionId: String, assignmentId: String, role: String) =
             "assignment_screen/$connectionId/$assignmentId/$role"
@@ -132,9 +133,15 @@ fun SmartJamNavGraph(
             modifier = Modifier.fillMaxSize(),
         ) {
             composable(route = Screen.Login.route) {
-                val loginViewModel: LoginViewModel = viewModel(
-                    factory = LoginViewModelFactory(authRepository, tokenStorage, connectionRepository)
-                )
+                val loginViewModel: LoginViewModel =
+                    viewModel(
+                        factory =
+                            LoginViewModelFactory(
+                                authRepository,
+                                tokenStorage,
+                                connectionRepository,
+                            )
+                    )
 
                 LoginScreen(
                     viewModel = loginViewModel,
@@ -216,10 +223,10 @@ fun SmartJamNavGraph(
                             Screen.AssignmentDetails.createRoute(
                                 connectionId = connectionId.toString(),
                                 assignmentId = assignmentId.toString(),
-                                role = role.name
+                                role = role.name,
                             )
                         )
-                    }
+                    },
                 )
             }
 
@@ -233,15 +240,14 @@ fun SmartJamNavGraph(
                 val assignmentId = UUID.fromString(assignmentIdStr)
                 val role = com.smartjam.app.domain.model.UserRole.valueOf(roleStr)
 
-                val viewModel: RoomViewModel = viewModel(
-                    factory = RoomViewModelFactory(connectionId, roomRepository)
-                )
+                val viewModel: RoomViewModel =
+                    viewModel(factory = RoomViewModelFactory(connectionId, roomRepository))
 
                 AssignmentDetailsScreen(
                     assignmentId = assignmentId,
                     role = role,
                     viewModel = viewModel,
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
                 )
             }
         }

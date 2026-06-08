@@ -1,5 +1,6 @@
 package com.smartjam.app.ui.screens.home
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -23,7 +24,7 @@ data class HomeState(
     val isLoading: Boolean = false,
     val isPaging: Boolean = false,
     val endReached: Boolean = false,
-    val nextPage: Int = 1,
+    val nextPage: Int = 0,
     val pageSize: Int = 20,
     val errorMessage: String? = null,
 )
@@ -90,7 +91,7 @@ class HomeViewModel(
         connectionJob?.cancel()
         pollingJob?.cancel()
 
-        _state.update { it.copy(nextPage = 1, endReached = false) }
+        _state.update { it.copy(nextPage = 0, endReached = false) }
 
         connectionJob = viewModelScope.launch {
             val role = _state.value.currentRole
@@ -100,25 +101,23 @@ class HomeViewModel(
                     _state.update { currentState -> currentState.copy(connections = connections) }
                 }
             }
-
-            refreshFirstPage()
-            startPolling()
         }
+        startPolling()
     }
 
     private fun startPolling() {
         pollingJob?.cancel()
         pollingJob = viewModelScope.launch {
             while (true) {
-                kotlinx.coroutines.delay(50_000)
                 refreshFirstPage()
+                kotlinx.coroutines.delay(50_000)
             }
         }
     }
 
     fun onListScrolled(lastVisibleIndex: Int, totalCount: Int) {
         val state = _state.value
-        if (state.isPaging || state.endReached || totalCount == 0) return
+        if (state.isLoading || state.isPaging || state.endReached || totalCount == 0) return
 
         val threshold = (state.pageSize / 2).coerceAtLeast(1)
         if (lastVisibleIndex >= totalCount - threshold) {
@@ -126,35 +125,24 @@ class HomeViewModel(
         }
     }
 
-    private fun refreshFirstPage() {
-        viewModelScope.launch {
-            // 1. Включаем загрузку и сбрасываем старую ошибку
-            _state.update { it.copy(isLoading = true, errorMessage = null) }
+    private suspend fun refreshFirstPage() {
 
-            val result =
-                connectionRepository.syncConnectionsPage(
-                    _state.value.currentRole,
-                    page = 0,
-                    size = _state.value.pageSize,
-                )
+        _state.update { it.copy(isLoading = true, errorMessage = null) }
 
-            // 2. Обрабатываем результат и выключаем загрузку в зависимости от исхода
-            if (result.isSuccess) {
-                _state.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = null,
-                        // Здесь также можно обновить список студентов, если они берутся из state
-                        // students = result.getOrNull()?.content ?: emptyList()
-                    )
-                }
-            } else {
-                _state.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = "Не удалось обновить данные с сервера",
-                    )
-                }
+        val result =
+            connectionRepository.syncConnectionsPage(
+                _state.value.currentRole,
+                page = 0,
+                size = _state.value.pageSize,
+            )
+
+        Log.e("SmartJam_Home_View_Model", result.toString())
+
+        if (result.isSuccess) {
+            _state.update { it.copy(isLoading = false, errorMessage = null) }
+        } else {
+            _state.update {
+                it.copy(isLoading = false, errorMessage = "Не удалось обновить данные с сервера")
             }
         }
     }
@@ -185,7 +173,7 @@ class HomeViewModel(
     }
 
     fun syncNetworkData() {
-        refreshFirstPage()
+        viewModelScope.launch { refreshFirstPage() }
     }
 
     fun onInviteCodeInputChanged(code: String) {

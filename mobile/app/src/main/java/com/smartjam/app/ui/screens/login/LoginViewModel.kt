@@ -31,8 +31,8 @@ sealed class LoginEvent {
 class LoginViewModel(
     private val authRepository: AuthRepository,
     private val tokenStorage: com.smartjam.app.data.local.TokenStorage,
-    private val connectionRepository: ConnectionRepository
-) : ViewModel(){
+    private val connectionRepository: ConnectionRepository,
+) : ViewModel() {
 
     private val _state = MutableStateFlow(LoginState())
     val state: StateFlow<LoginState> = _state.asStateFlow()
@@ -70,7 +70,7 @@ class LoginViewModel(
             try {
                 val result = authRepository.login(currentEmail, currentPassword, selectedRole)
 
-                if (result.isSuccess){
+                if (result.isSuccess) {
                     connectionRepository.clearAllConnections()
                     eventChannel.send(LoginEvent.NavigateToHome)
                 } else {
@@ -89,7 +89,7 @@ class LoginViewModel(
 class LoginViewModelFactory(
     private val authRepository: AuthRepository,
     private val tokenStorage: com.smartjam.app.data.local.TokenStorage,
-    private val connectionRepository: ConnectionRepository
+    private val connectionRepository: ConnectionRepository,
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")

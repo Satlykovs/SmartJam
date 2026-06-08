@@ -26,6 +26,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class S3WebhookService {
 
+    private static final long MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+
     private final MinioProperties minioProperties;
     private final UserRepository repository;
     private final S3Service s3Service;
@@ -35,16 +37,23 @@ public class S3WebhookService {
         String targetBucket = minioProperties.getBuckets().getAvatars();
 
         for (S3WebhookPayload.S3EventRecord record : payload.records()) {
-
             String rawKey = record.s3().object().key();
             String objectKey = URLDecoder.decode(rawKey, StandardCharsets.UTF_8);
+
+            Long objectSize = record.s3().object().size();
+            if (objectSize == null || objectSize > MAX_AVATAR_BYTES) {
+                log.warn("Avatar {} exceeds max size: {}", objectKey, objectSize);
+                s3Service.deleteObject(tempBucket, objectKey);
+                continue;
+            }
 
             try (InputStream is = s3Service.getObjectStream(tempBucket, objectKey)) {
                 byte[] fileBytes = is.readAllBytes();
                 String format = getFormat(new ByteArrayInputStream(fileBytes));
                 if (format == null || !isAllowed(format)) {
                     log.warn("Файл {} имеет недопустимый формат: {}", objectKey, format);
-                    throw new RuntimeException();
+                    s3Service.deleteObject(tempBucket, objectKey);
+                    continue;
                 }
 
                 ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -59,12 +68,18 @@ public class S3WebhookService {
                 byte[] result = os.toByteArray();
                 String contentType = "image/" + format;
                 s3Service.putObject(targetBucket, objectKey, result, contentType);
-                s3Service.deleteObject(tempBucket, objectKey);
-
-                repository.findById(UUID.fromString(objectKey)).ifPresent(user -> {
+                try {
+                    UUID userId = UUID.fromString(objectKey);
+                    var user = repository
+                            .findById(userId)
+                            .orElseThrow(() -> new IllegalStateException("User not found for avatar key " + objectKey));
                     user.setAvatarUrl(targetBucket + "/" + objectKey);
                     repository.save(user);
-                });
+                    s3Service.deleteObject(tempBucket, objectKey);
+                } catch (Exception e) {
+                    s3Service.deleteObject(targetBucket, objectKey);
+                    throw e;
+                }
 
                 log.info("Аватар {} успешно обработан и перемещен", objectKey);
                 log.info("Файл {} имеет формат: {}", objectKey, format);

@@ -95,8 +95,10 @@ public class S3Service {
             return minioProperties.getBuckets().getSubmissions();
         } else if (key != null && key.startsWith("references/")) {
             return minioProperties.getBuckets().getReferences();
+        } else if (key != null && key.startsWith("avatars/")) {
+            return minioProperties.getBuckets().getAvatars();
         }
-        return minioProperties.getBuckets().getAvatars();
+        throw new IllegalArgumentException("Unknown S3 key prefix: " + key);
     }
 
     public String generatePresignedUrlForUserAvatar(String key) {

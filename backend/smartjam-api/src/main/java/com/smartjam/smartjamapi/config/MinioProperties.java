@@ -50,17 +50,6 @@ public class MinioProperties {
 
     @Valid
     @NotNull
-    private Webhook webhook;
-
-    @Getter
-    @Setter
-    public static class Webhook {
-        @NotBlank
-        private String minioSecret;
-    }
-
-    @Valid
-    @NotNull
     private FormatAvatar formatAvatar;
 
     @Getter

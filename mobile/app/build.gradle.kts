@@ -3,7 +3,10 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("com.google.devtools.ksp")
 
-    id("org.openapi.generator") version "7.21.0"
+    id("org.openapi.generator") version "7.22.0"
+
+    alias(libs.plugins.google.services)
+
 }
 
 android {
@@ -65,32 +68,37 @@ android {
 dependencies {
 
     implementation(libs.androidx.room.common.jvm)
-    val nav_version = "2.9.7"
     // Jetpack Compose integration
-    implementation("androidx.navigation:navigation-compose:$nav_version+")
+    implementation(libs.androidx.navigation.compose)
 
     //network
-    implementation("com.squareup.retrofit2:retrofit:2.11.+")
-    implementation("com.squareup.okhttp3:okhttp:4.12.+")
+    implementation(libs.retrofit)
+    implementation(libs.okhttp)
+
+    //audio player
+    implementation("androidx.media3:media3-exoplayer:1.10.1")
+    implementation("androidx.media3:media3-exoplayer-dash:1.10.1")
+    implementation("androidx.media3:media3-ui:1.10.1")
+    implementation("androidx.media3:media3-ui-compose-material3:1.10.1")
 
     //serialization
-    implementation("com.squareup.retrofit2:converter-gson:2.11.+")
+    implementation(libs.converter.gson)
 
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    ksp("androidx.room:room-compiler:2.5.0")
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
 
     //logging
-    implementation("com.squareup.okhttp3:logging-interceptor:4.12.+")
+    implementation(libs.logging.interceptor)
 
     //database
-    implementation("androidx.datastore:datastore-preferences:1.1.+")
+    implementation(libs.androidx.datastore.preferences)
 
     //coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.+")
+    implementation(libs.kotlinx.coroutines.android)
 
     //ne pon
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.+")
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -100,6 +108,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.converter.scalars)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -108,6 +117,14 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+
+
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
+
+    implementation(libs.kotlinx.coroutines.play.services)
+    implementation(libs.coil.compose)
 }
 
 

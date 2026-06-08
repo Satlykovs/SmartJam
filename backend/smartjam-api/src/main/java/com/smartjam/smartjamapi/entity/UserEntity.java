@@ -80,10 +80,6 @@ public class UserEntity {
     @Column(name = "role", nullable = false)
     private Set<UserRole> roles = new HashSet<>();
 
-    /** Optional Firebase Cloud Messaging token used to send push notifications to the user's device. */
-    @Column(name = "fcm_token")
-    private String fcmToken;
-
     /**
      * Timestamp of when the user record was first created. Set automatically by Hibernate on insert and never updated
      * afterward.

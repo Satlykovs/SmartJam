@@ -20,6 +20,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
@@ -142,6 +143,24 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles type mismatch errors when a path variable or query parameter cannot be converted to the required type
+     * (e.g. invalid UUID format).
+     *
+     * @param e thrown exception
+     * @return bad request response
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException e) {
+        String requiredType = e.getRequiredType() != null ? e.getRequiredType().getSimpleName() : "unknown";
+
+        String message = String.format(
+                "Invalid value '%s' for parameter '%s'. Expected type: %s", e.getValue(), e.getName(), requiredType);
+
+        log.warn("Type mismatch: {}", message);
+        return buildResponse(HttpStatus.BAD_REQUEST, message);
+    }
+
+    /**
      * Handles invalid method arguments and malformed request data.
      *
      * @param e thrown exception
@@ -149,9 +168,8 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException e) {
-        log.warn("Bad request", e);
-
-        return buildResponse(HttpStatus.BAD_REQUEST, "Invalid request data");
+        log.warn("Bad request: {}", e.getMessage());
+        return buildResponse(HttpStatus.BAD_REQUEST, e.getMessage());
     }
 
     /**

@@ -19,17 +19,16 @@ data class RegisterState(
     val repeatPasswordInput: String = "",
     val selectedRole: UserRole = UserRole.STUDENT,
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
 )
 
 sealed class RegisterEvent {
     object NavigateToHome : RegisterEvent()
+
     object NavigateBack : RegisterEvent()
 }
 
-class RegisterViewModel(
-    private val authRepository: AuthRepository
-) : ViewModel() {
+class RegisterViewModel(private val authRepository: AuthRepository) : ViewModel() {
 
     private val _state = MutableStateFlow(RegisterState())
     val state = _state.asStateFlow()
@@ -37,7 +36,7 @@ class RegisterViewModel(
     private val eventChannel = Channel<RegisterEvent>(Channel.BUFFERED)
     val events = eventChannel.receiveAsFlow()
     private val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\$".toRegex()
-    private val passwordRegex = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{8,}\$".toRegex()
+    private val passwordRegex = "^(?=[^A-Z]*[A-Z])(?=[^a-z]*[a-z])(?=\\D*\\d)(?=[^#?!@\$%^&*-]*[#?!@\$%^&*-]).{8,20}\$".toRegex()
 
     fun onUsernameChanged(username: String) {
         _state.update { it.copy(usernameInput = username, errorMessage = null) }
@@ -60,14 +59,12 @@ class RegisterViewModel(
     }
 
     fun onBackClicked() {
-        viewModelScope.launch {
-            eventChannel.send(RegisterEvent.NavigateBack)
-        }
+        viewModelScope.launch { eventChannel.send(RegisterEvent.NavigateBack) }
     }
 
     fun onRegisterClicked() {
-        if (_state.value.isLoading){
-            return;
+        if (_state.value.isLoading) {
+            return
         }
         val currentState = _state.value
 
@@ -82,7 +79,9 @@ class RegisterViewModel(
         }
 
         if (!passwordRegex.matches(currentState.passwordInput)) {
-            _state.update { it.copy(errorMessage = "Пароль: мин. 8 символов, латинские буквы и цифры") }
+            _state.update {
+                it.copy(errorMessage = "Пароль: мин. 8 символов, латинские буквы и цифры")
+            }
             return
         }
 
@@ -94,28 +93,29 @@ class RegisterViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, errorMessage = null) }
 
-            val result = authRepository.register(
-                email = currentState.emailInput,
-                password = currentState.passwordInput,
-                username = currentState.usernameInput,
-                role = currentState.selectedRole
-            )
+            try {
+                val result = authRepository.register(
+                    email = currentState.emailInput,
+                    password = currentState.passwordInput,
+                    username = currentState.usernameInput,
+                    role = currentState.selectedRole
+                )
 
-            _state.update { it.copy(isLoading = false) }
-
-            if (result.isSuccess) {
-                eventChannel.send(RegisterEvent.NavigateToHome)
-            } else {
-                val error = result.exceptionOrNull()?.message ?: "Ошибка регистрации"
-                _state.update { it.copy(errorMessage = error) }
+                if (result.isSuccess) {
+                    eventChannel.send(RegisterEvent.NavigateToHome)
+                } else {
+                    val error = result.exceptionOrNull()?.message ?: "Ошибка регистрации"
+                    _state.update { it.copy(errorMessage = error) }
+                }
+            } finally {
+                _state.update { it.copy(isLoading = false) }
             }
         }
     }
 }
 
-class RegisterViewModelFactory(
-    private val authRepository: AuthRepository
-) : ViewModelProvider.Factory {
+class RegisterViewModelFactory(private val authRepository: AuthRepository) :
+    ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(RegisterViewModel::class.java)) {

@@ -114,6 +114,45 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
 
 
+  /api/v1/devices/register:
+    post:
+      tags:
+        - Devices
+      summary: Register device
+      description: Links the FCM token of the current device to the user account.
+      operationId: registerDevice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceRegistrationRequest'
+      responses:
+        '200':
+          description: Device registered successfully.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/devices/unregister:
+    post:
+      tags:
+        - Devices
+      summary: Unregister device
+      description: Removes FCM token link for user. Call it during user's logout.
+      operationId: unregisterDevice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceRegistrationRequest'
+      responses:
+        '204':
+          description: Device unregistered successfully.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+
   /api/v1/users/me:
     get:
       tags:
@@ -162,6 +201,9 @@ paths:
 
         '409':
           $ref: '#/components/responses/ConflictError'
+
+
+
 
   /api/v1/connections/invite:
     post:
@@ -396,6 +438,85 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/assignments/{assignmentId}/comments:
+    parameters:
+      - name: assignmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags:
+        - Comments
+      summary: Add a comment to an assignment
+      description: Creates a new comment on the specified assignment.
+      operationId: createComment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentRequest'
+      responses:
+        '201':
+          description: Comment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    get:
+      tags:
+        - Comments
+      summary: Get comments for an assignment
+      description: Returns a paginated list of comments using cursor-based pagination.
+      operationId: getComments
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: How many comments to return
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 50
+        - name: cursor
+          in: query
+          required: false
+          description: |
+            Opaque cursor for the next page, in the form "<createdAt>,<commentId>"
+            where createdAt is an ISO-8601 instant (UTC, e.g. "2026-06-03T22:53:04.123Z")
+            and commentId is a UUID.
+            Use the nextCursor value from a previous response.
+          schema:
+            type: string
+            example: "2026-06-03T22:53:04.123Z,3fa85f64-5717-4562-b3fc-2c963f66afa6"
+      responses:
+        '200':
+          description: A paginated list of comments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentPageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -536,6 +657,31 @@ components:
           type: boolean
           nullable: false
           description: Indicates whether the avatar image was updated successfully.
+
+    CommentRequest:
+      type: object
+      description: Payload to create a new comment.
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          x-oap-annotation: notBlank
+          example: "Go redo it"
+
+    CommentPageResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommentResponse'
+        nextCursor:
+          type: string
+          nullable: true
+          description: "Send this value in the next request to get the next page"
+        hasNext:
+          type: boolean
 
     AuthResponse:
       type: object
@@ -788,6 +934,31 @@ components:
           type: string
           format: uri
 
+    CommentResponse:
+      type: object
+      description: Returns the created comment with its ID, text, author, assignment and creation timestamp.
+      required:
+        - commentId
+        - text
+        - authorId
+        - assignmentId
+        - createdAt
+      properties:
+        commentId:
+          type: string
+          format: uuid
+        text:
+          type: string
+        authorId:
+          type: string
+          format: uuid
+        assignmentId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+
     SubmissionResultResponse:
       type: object
       description: Information about student's attempt on an assignment.
@@ -825,6 +996,32 @@ components:
           description: Array of errors detected during performance.
           items:
             $ref: './common-models.yaml#/components/schemas/FeedbackEvent'
+        teacherWaveform:
+          type: array
+          description: "RMS energy vector of the teacher's reference audio"
+          items:
+            type: number
+            format: float
+        studentWaveform:
+            type: array
+            description: "RMS energy vector of the student's submission"
+            items:
+              type: number
+              format: float
+
+
+    DeviceRegistrationRequest:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          minLength: 1
+          pattern: '.*\S.*'
+          example: "bk3rn1...v2"
+          description: "FCM registration token from Firebase SDK"
+
 
     ErrorResponse:
       type: object
@@ -876,7 +1073,6 @@ components:
             error: "Unauthorized"
             message: "Auth is required to access this resource"
 
-
     ForbiddenError:
       description: You do not have the required role to access this resource.
       content:
@@ -895,3 +1091,26 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+    NotFoundError:
+      description: The requested resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            timestamp: "2026-04-05T12:00:00Z"
+            status: 404
+            error: "Not Found"
+            message: "Assignment not found"
+
+    BadRequestError:
+      description: The request is invalid (e.g. malformed cursor, invalid parameters).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            timestamp: "2026-04-05T12:00:00Z"
+            status: 400
+            error: "Bad Request"
+            message: "Invalid cursor format"

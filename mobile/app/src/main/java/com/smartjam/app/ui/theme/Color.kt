@@ -10,7 +10,6 @@ val Purple40 = Color(0xFF6650a4)
 val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
 
-
 val CoreBackground = Color(0xFF05050A)
 val BrandCyan = Color(0xFF00E5FF)
 val BrandGold = Color(0xFFFFD700)

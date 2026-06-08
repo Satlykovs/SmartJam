@@ -1,8 +1,8 @@
 package com.smartjam.app.data.model
 
-data class LoginState (
+data class LoginState(
     val email: String = "",
     val password: String = "",
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
 )

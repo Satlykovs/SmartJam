@@ -101,6 +101,13 @@ public class S3Service {
         throw new IllegalArgumentException("Unknown S3 key prefix: " + key);
     }
 
+    public String generateUrlForUserAvatar(String key) {
+        return s3Client.utilities()
+                .getUrl(builder -> builder.bucket(minioProperties.getBuckets().getAvatars())
+                        .key(key))
+                .toExternalForm();
+    }
+
     public String generatePresignedUrlForUserAvatar(String key) {
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(minioProperties.getBuckets().getTempAvatars())

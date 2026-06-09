@@ -129,6 +129,7 @@ services:
         provision_primary_bucket submissions
         
         /usr/bin/mc mb --ignore-existing myminio/avatars
+        /usr/bin/mc anonymous set download myminio/avatars
         
         provision_avatar_bucket temp-avatars
         

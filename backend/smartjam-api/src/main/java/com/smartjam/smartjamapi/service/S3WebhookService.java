@@ -73,7 +73,7 @@ public class S3WebhookService {
                     var user = repository
                             .findById(userId)
                             .orElseThrow(() -> new IllegalStateException("User not found for avatar key " + objectKey));
-                    user.setAvatarUrl(targetBucket + "/" + objectKey);
+                    user.setAvatarUrl(s3Service.generateUrlForUserAvatar(objectKey));
                     repository.save(user);
                     s3Service.deleteObject(tempBucket, objectKey);
                 } catch (Exception e) {

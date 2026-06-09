@@ -27,7 +27,7 @@ public class ApplicationConfig {
     @Bean
     public S3Client s3Client(MinioProperties minioProperties) {
         return S3Client.builder()
-                .endpointOverride(URI.create(minioProperties.getEndpoint()))
+                .endpointOverride(URI.create(minioProperties.getPublicEndpoint()))
                 .region(Region.US_EAST_1)
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(minioProperties.getAccessKey(), minioProperties.getSecretKey())))

@@ -14,7 +14,14 @@ public class S3AvatarEventListener {
 
     private final S3WebhookService s3WebhookService;
 
-    @KafkaListener(topics = "s3-avatar-events", groupId = "smartjam-avatar-processor")
+    @KafkaListener(
+            topics = "s3-avatar-events",
+            groupId = "smartjam-avatar-processor",
+            concurrency = "3",
+            properties = {
+                "spring.json.use.type.headers=false",
+                "spring.json.value.default.type=com.smartjam.smartjamapi.record.S3WebhookPayload"
+            })
     public void onAvatarEvent(S3WebhookPayload payload) {
         log.info("Received avatar event: {} records", payload.records().size());
         try {

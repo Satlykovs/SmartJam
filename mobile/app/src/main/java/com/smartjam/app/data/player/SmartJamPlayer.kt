@@ -3,33 +3,37 @@ package com.smartjam.app.data.player
 import android.content.Context
 import android.net.Uri
 import androidx.annotation.OptIn
-import androidx.media3.common.AudioAttributes
-import androidx.media3.common.C
-import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
+import androidx.media3.common.*
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import com.smartjam.app.domain.player.MusicPlayer
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import okhttp3.Call
 
 @OptIn(UnstableApi::class)
-class SmartJamPlayer(private val context: Context) : MusicPlayer {
+class SmartJamPlayer(private val context: Context, private val callFactory: Call.Factory) :
+    MusicPlayer {
 
+    private val httpDataSourceFactory = OkHttpDataSource.Factory(callFactory)
+    private val dataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
     private val player =
-        ExoPlayer.Builder(context).build().apply {
-            setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(C.USAGE_MEDIA)
-                    .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
-                    .build(),
-                true,
-            )
-        }
+        ExoPlayer.Builder(context)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
+            .build()
+            .apply {
+                setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(C.USAGE_MEDIA)
+                        .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                        .build(),
+                    true,
+                )
+            }
 
     private val _currentPosition = MutableStateFlow(0L)
     override val currentPosition: StateFlow<Long> = _currentPosition
@@ -50,34 +54,33 @@ class SmartJamPlayer(private val context: Context) : MusicPlayer {
         player.addListener(
             object : Player.Listener {
                 override fun onPlaybackStateChanged(state: Int) {
-                    _isReady.value = state == Player.STATE_READY
-                    _duration.value = if (player.duration > 0) player.duration else 0L
+                    if (state == Player.STATE_READY) {
+                        _isReady.value = true
+                        _duration.value = if (player.duration > 0) player.duration else 0L
+                    }
                 }
 
                 override fun onIsPlayingChanged(playing: Boolean) {
                     _isPlaying.value = playing
                     if (playing) startPositionUpdates() else job?.cancel()
                 }
+
+                override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+                    val dur = player.duration
+                    if (dur > 0) _duration.value = dur
+                }
             }
         )
     }
 
     override fun prepare(uri: Uri) {
-        val finalUri =
-            if (uri.host == "localhost" || uri.host == "127.0.0.1") {
-                uri.buildUpon()
-                    .encodedAuthority("10.0.2.2:${uri.port.takeIf { it > 0 } ?: ""}")
-                    .build()
-            } else uri
+        val mediaItem =
+            MediaItem.Builder()
+                .setUri(uri)
+                .setMimeType(androidx.media3.common.MimeTypes.AUDIO_MPEG)
+                .build()
 
-        val httpFactory = DefaultHttpDataSource.Factory()
-        uri.host?.let { httpFactory.setDefaultRequestProperties(mapOf("Host" to it)) }
-
-        val dsFactory = DefaultDataSource.Factory(context, httpFactory)
-        val mediaSource =
-            DefaultMediaSourceFactory(dsFactory).createMediaSource(MediaItem.fromUri(finalUri))
-
-        player.setMediaSource(mediaSource)
+        player.setMediaItem(mediaItem)
         player.prepare()
     }
 
@@ -98,7 +101,8 @@ class SmartJamPlayer(private val context: Context) : MusicPlayer {
         job = scope.launch {
             while (isActive) {
                 _currentPosition.value = player.currentPosition
-                delay(200)
+                if (player.duration > 0) _duration.value = player.duration
+                delay(16L)
             }
         }
     }

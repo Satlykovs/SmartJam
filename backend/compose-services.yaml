@@ -19,8 +19,12 @@ services:
         limits:
           memory: 512M
     depends_on:
-      postgres:
-        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+      kafka-init:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
 
   smartjam-analyzer:
     build:
@@ -39,7 +43,12 @@ services:
         limits:
           memory: 768M
     depends_on:
-      - kafka
+      db-init:
+        condition: service_completed_successfully
+      kafka-init:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
 
   smartjam-notification:
     build:
@@ -57,4 +66,9 @@ services:
         limits:
           memory: 256M
     depends_on:
-      - kafka
+      db-init:
+        condition: service_completed_successfully
+      kafka-init:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully

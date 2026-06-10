@@ -1,166 +1,150 @@
 package com.smartjam.app.ui.screens.room
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.smartjam.app.data.local.entity.AssignmentEntity
 import com.smartjam.app.data.local.entity.SubmissionResultEntity
+import com.smartjam.app.domain.repository.ConnectionRepository
 import com.smartjam.app.domain.repository.RoomRepository
 import com.smartjam.app.model.CreateAssignmentRequest
 import com.smartjam.app.model.FeedbackEvent
+import dagger.hilt.android.lifecycle.HiltViewModel
+import jakarta.inject.Inject
 import java.io.File
 import java.util.*
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 data class RoomUiState(
+    val peerName: String = "Загрузка...",
     val assignments: List<AssignmentEntity> = emptyList(),
     val submissionsByAssignment: Map<UUID, List<SubmissionResultEntity>> = emptyMap(),
     val feedbackBySubmission: Map<UUID, List<FeedbackEvent>> = emptyMap(),
     val isLoading: Boolean = false,
-    val isPaging: Boolean = false,
-    val endReached: Boolean = false,
-    val nextPage: Int = 1,
-    val pageSize: Int = 20,
     val isUploading: Boolean = false,
     val error: String? = null,
 )
 
-class RoomViewModel(private val connectionId: UUID, private val repository: RoomRepository) :
-    ViewModel() {
+@HiltViewModel
+class RoomViewModel
+@Inject
+constructor(
+    private val repository: RoomRepository,
+    private val connectionRepository: ConnectionRepository,
+    private val savedStateHandle: SavedStateHandle,
+) : ViewModel() {
 
-    private val _uiState = kotlinx.coroutines.flow.MutableStateFlow(RoomUiState())
+    private val connectionId: UUID = UUID.fromString(checkNotNull(savedStateHandle["connectionId"]))
+    private val _uiState = MutableStateFlow(RoomUiState())
     val uiState = _uiState.asStateFlow()
 
-    private var submissionsJobs: MutableMap<UUID, Job> = mutableMapOf()
+    private val submissionPollingJobs = mutableMapOf<UUID, Job>()
+    private var isSyncingAssignments = false
+
+    val roomTicker = flow {
+        while (true) {
+            emit(Unit)
+            delay(15_000L)
+        }
+    }
 
     init {
+        loadPeerName()
         observeAssignments()
-        refreshFirstPage()
+    }
+
+    private fun loadPeerName() {
+        viewModelScope.launch {
+            val name = connectionRepository.getPeerName(connectionId)
+            _uiState.update { it.copy(peerName = name ?: "Комната") }
+        }
     }
 
     private fun observeAssignments() {
         viewModelScope.launch {
-            repository.getAssignmentsFlow(connectionId).collect { assignments ->
-                _uiState.update { it.copy(assignments = assignments) }
+            repository.getAssignmentsFlow(connectionId).collect { list ->
+                _uiState.update { it.copy(assignments = list) }
             }
         }
     }
 
-    fun onListScrolled(lastVisibleIndex: Int, totalCount: Int) {
-        val state = _uiState.value
-        if (state.isPaging || state.endReached || totalCount == 0) return
+    fun observeSubmissionsForAssignment(assignmentId: UUID) {
+        if (submissionPollingJobs.containsKey(assignmentId)) return
 
-        val threshold = (state.pageSize / 2).coerceAtLeast(1)
-        if (lastVisibleIndex >= totalCount - threshold) {
-            loadNextPage()
-        }
-    }
-
-    fun refreshFirstPage() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
-            val result =
-                repository.syncAssignmentsPage(
-                    connectionId,
-                    page = 0,
-                    size = _uiState.value.pageSize,
-                )
-            if (result.isFailure) {
-                _uiState.update { it.copy(error = "Не удалось обновить список уроков") }
-            }
-            _uiState.update { it.copy(isLoading = false) }
-        }
-    }
-
-    private fun loadNextPage() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isPaging = true, error = null) }
-            val result =
-                repository.syncAssignmentsPage(
-                    connectionId,
-                    page = _uiState.value.nextPage,
-                    size = _uiState.value.pageSize,
-                )
-            if (result.isSuccess) {
-                val pageInfo = result.getOrNull()!!
-                val endReached = pageInfo.pageNumber + 1 >= pageInfo.totalPages
-                _uiState.update {
-                    it.copy(nextPage = pageInfo.pageNumber + 1, endReached = endReached)
+        submissionPollingJobs[assignmentId] = viewModelScope.launch {
+            repository.getSubmissionsFlow(assignmentId).collect { subs ->
+                _uiState.update { state ->
+                    val newMap = state.submissionsByAssignment.toMutableMap()
+                    newMap[assignmentId] = subs
+                    state.copy(submissionsByAssignment = newMap)
                 }
-            } else {
-                _uiState.update { it.copy(error = "Не удалось загрузить следующую страницу") }
             }
-            _uiState.update { it.copy(isPaging = false) }
         }
     }
 
     fun onAssignmentExpanded(assignmentId: UUID) {
         viewModelScope.launch {
+            observeSubmissionsForAssignment(assignmentId)
+
             repository.ensureAssignmentDetailsCached(assignmentId)
-            repository.syncSubmissions(assignmentId)
-            observeSubmissions(assignmentId)
-        }
-    }
-
-    fun uploadAssignment(file: File, title: String, description: String?) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isUploading = true, error = null) }
-            val request = CreateAssignmentRequest(connectionId, title, description)
-            val result = repository.createAssignment(request)
-
-            if (result.isSuccess) {
-                val uploadInfo = result.getOrNull()!!
-                val uploadResult = repository.uploadFileToS3(uploadInfo.uploadUrl.toString(), file)
-                if (uploadResult.isSuccess) {
-                    refreshFirstPage()
-                } else {
-                    _uiState.update { it.copy(error = "Upload failed") }
+            repository.syncSubmissions(assignmentId).onSuccess {
+                _uiState.value.submissionsByAssignment[assignmentId]?.forEach { sub ->
+                    if (sub.status == "ANALYZING" || sub.status == "UPLOADED") {
+                        startSubmissionPolling(sub.id, assignmentId)
+                    }
                 }
-            } else {
-                _uiState.update { it.copy(error = "Creation failed") }
             }
-            _uiState.update { it.copy(isUploading = false) }
         }
     }
 
-    fun uploadSubmission(assignmentId: UUID, file: File) {
+    fun refreshRoomData() {
+        if (isSyncingAssignments) return
         viewModelScope.launch {
-            _uiState.update { it.copy(isUploading = true, error = null) }
-            val result = repository.createSubmission(assignmentId)
-
-            if (result.isSuccess) {
-                val uploadInfo = result.getOrNull()!!
-                val uploadResult = repository.uploadFileToS3(uploadInfo.uploadUrl.toString(), file)
-                if (uploadResult.isSuccess) {
-                    repository.syncSubmissions(assignmentId)
-                    observeSubmissions(assignmentId)
-                    startSubmissionPolling(uploadInfo.submissionId, assignmentId)
-                } else {
-                    _uiState.update { it.copy(error = "Upload failed") }
-                }
-            } else {
-                _uiState.update { it.copy(error = "Submission creation failed") }
+            isSyncingAssignments = true
+            try {
+                repository.syncAssignmentsPage(connectionId, 0, 20)
+            } finally {
+                isSyncingAssignments = false
             }
-            _uiState.update { it.copy(isUploading = false) }
         }
     }
 
-    /**
-     * Ensure reference audio for assignment is cached locally. Calls onResult with local path or
-     * null on failure.
-     */
+    private fun syncSubmissionsFor(assignmentId: UUID) {
+        viewModelScope.launch {
+            repository.syncSubmissions(assignmentId).onSuccess {
+                repository.getSubmissionsFlow(assignmentId).first().forEach { sub ->
+                    if (sub.status == "ANALYZING" || sub.status == "UPLOADED") {
+                        startSubmissionPolling(sub.id, assignmentId)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun startSubmissionPolling(submissionId: UUID, assignmentId: UUID) {
+        if (submissionPollingJobs[submissionId]?.isActive == true) return
+        submissionPollingJobs[submissionId] = viewModelScope.launch {
+            var currentDelay = 2_000L
+            while (isActive) {
+                val res = repository.getSubmissionResult(submissionId, assignmentId)
+                if (res.isSuccess) {
+                    val status = res.getOrNull()!!.status.name
+                    if (status == "COMPLETED" || status == "FAILED") break
+                }
+                delay(currentDelay)
+                currentDelay = (currentDelay * 1.5).toLong().coerceAtMost(10000L)
+            }
+        }
+    }
+
     fun downloadReference(assignmentId: UUID, onResult: (String?) -> Unit) {
         viewModelScope.launch {
             val res = repository.ensureAssignmentDetailsCached(assignmentId)
-            if (res.isSuccess) {
-                onResult(res.getOrNull()?.referenceAudioLocalPath)
-            } else {
-                onResult(null)
-            }
+            onResult(res.getOrNull()?.referenceAudioLocalPath)
         }
     }
 
@@ -172,78 +156,53 @@ class RoomViewModel(private val connectionId: UUID, private val repository: Room
     ) {
         viewModelScope.launch {
             val res = repository.cacheSubmissionAudioIfNeeded(submissionId, assignmentId, fileUrl)
-            if (res.isSuccess) {
-                onResult(res.getOrNull())
-            } else {
-                onResult(null)
-            }
+            onResult(res.getOrNull())
         }
     }
 
-    private fun observeSubmissions(assignmentId: UUID) {
-        submissionsJobs[assignmentId]?.cancel()
-        submissionsJobs[assignmentId] = viewModelScope.launch {
-            repository.getSubmissionsFlow(assignmentId).collect { submissions ->
-                _uiState.update { state ->
-                    state.copy(
-                        submissionsByAssignment =
-                            state.submissionsByAssignment + (assignmentId to submissions)
-                    )
-                }
-                submissions.forEach { submission ->
-                    val hasFeedback = _uiState.value.feedbackBySubmission.containsKey(submission.id)
-                    val needsDetailFetch =
-                        submission.pitchScore == null ||
-                            submission.rhythmScore == null ||
-                            !hasFeedback
-                    if (needsDetailFetch) {
-                        viewModelScope.launch {
-                            val res = repository.getSubmissionResult(submission.id, assignmentId)
-                            if (res.isSuccess) {
-                                val dto = res.getOrNull()!!
-                                val feedback = dto.feedback ?: emptyList()
-                                _uiState.update { st ->
-                                    st.copy(
-                                        feedbackBySubmission =
-                                            st.feedbackBySubmission + (submission.id to feedback)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private fun startSubmissionPolling(submissionId: UUID, assignmentId: UUID) {
+    fun uploadAssignment(file: File, title: String, description: String?) {
         viewModelScope.launch {
-            repeat(30) {
-                val result = repository.getSubmissionResult(submissionId, assignmentId)
-                if (result.isSuccess) {
-                    val dto = result.getOrNull()!!
-                    val feedback = dto.feedback ?: emptyList()
-                    _uiState.update { state ->
-                        state.copy(
-                            feedbackBySubmission =
-                                state.feedbackBySubmission + (submissionId to feedback)
-                        )
-                    }
-                    val status = dto.status.name
-                    if (status == "COMPLETED" || status == "FAILED") {
-                        return@launch
-                    }
+            _uiState.update { it.copy(isUploading = true) }
+            // ТУТ ОПИСАНИЕ ПЕРЕДАЕТСЯ КОРРЕКТНО
+            repository
+                .createAssignment(CreateAssignmentRequest(connectionId, title, description))
+                .onSuccess { info ->
+                    repository.uploadFileToS3(info.uploadUrl.toString(), file)
+                    refreshRoomData()
                 }
-                delay(2_000)
-            }
+            _uiState.update { it.copy(isUploading = false) }
         }
     }
-}
 
-class RoomViewModelFactory(private val connectionId: UUID, private val repository: RoomRepository) :
-    ViewModelProvider.Factory {
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return RoomViewModel(connectionId, repository) as T
+    fun uploadSubmission(assignmentId: UUID, file: File) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUploading = true) }
+            repository.createSubmission(assignmentId).onSuccess { info ->
+                repository.uploadFileToS3(info.uploadUrl.toString(), file)
+                startSubmissionPolling(info.submissionId, assignmentId)
+            }
+            _uiState.update { it.copy(isUploading = false) }
+        }
+    }
+
+    fun loadFullSubmissionDetail(submissionId: UUID, assignmentId: UUID) {
+
+        observeSubmissionsForAssignment(assignmentId)
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+
+            val result = repository.getSubmissionResult(submissionId, assignmentId)
+
+            if (result.isSuccess) {
+                val dto = result.getOrNull()!!
+
+                if (dto.status.name == "ANALYZING" || dto.status.name == "UPLOADED") {
+                    startSubmissionPolling(submissionId, assignmentId)
+                }
+            }
+
+            _uiState.update { it.copy(isLoading = false) }
+        }
     }
 }

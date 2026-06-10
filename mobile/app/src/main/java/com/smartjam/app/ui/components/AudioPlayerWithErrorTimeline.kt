@@ -1,9 +1,7 @@
 package com.smartjam.app.ui.components
 
-import android.net.Uri
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,28 +16,17 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.smartjam.app.data.player.SmartJamPlayer
 import com.smartjam.app.domain.player.MusicPlayer
 import com.smartjam.app.model.FeedbackEvent
-import com.smartjam.app.model.FeedbackType
 
 @Composable
 fun AudioPlayerWithErrorTimeline(
-    audioUri: Uri,
+    player: MusicPlayer,
     feedback: List<FeedbackEvent>,
     modifier: Modifier = Modifier,
 ) {
-    val context = LocalContext.current
-
-    val player: MusicPlayer =
-        remember(audioUri) { SmartJamPlayer(context).apply { prepare(audioUri) } }
-
-    DisposableEffect(audioUri) { onDispose { player.release() } }
-
     val currentPositionMs by player.currentPosition.collectAsState()
     val durationMs by player.duration.collectAsState()
     val isPlaying by player.isPlaying.collectAsState()
@@ -57,13 +44,6 @@ fun AudioPlayerWithErrorTimeline(
                 .background(Color.White.copy(alpha = 0.08f))
                 .padding(12.dp)
     ) {
-        ErrorTimelineBar(
-            feedback = feedback,
-            durationMs = safeDurationMs,
-            currentPositionMs = currentPositionMs,
-            onSeekTo = { player.seekTo(it) },
-        )
-
         Spacer(modifier = Modifier.height(8.dp))
 
         Row(
@@ -78,11 +58,8 @@ fun AudioPlayerWithErrorTimeline(
                         .clip(CircleShape)
                         .background(Color.White.copy(alpha = 0.15f)),
             ) {
-                if (isPlaying) {
-                    PauseIcon()
-                } else {
-                    Icon(Icons.Filled.PlayArrow, "Play", tint = Color.White)
-                }
+                if (isPlaying) PauseIcon()
+                else Icon(Icons.Filled.PlayArrow, "Play", tint = Color.White)
             }
 
             Text(
@@ -126,60 +103,6 @@ private fun PauseIcon() {
 }
 
 @Composable
-private fun ErrorTimelineBar(
-    feedback: List<FeedbackEvent>,
-    durationMs: Long,
-    currentPositionMs: Long,
-    onSeekTo: (Long) -> Unit,
-) {
-    Canvas(
-        modifier =
-            Modifier.fillMaxWidth().height(40.dp).pointerInput(durationMs) {
-                detectTapGestures { offset ->
-                    val ratio = (offset.x / size.width).coerceIn(0f, 1f)
-                    onSeekTo((ratio * durationMs).toLong())
-                }
-            }
-    ) {
-        val trackHeight = 6.dp.toPx()
-        val errorHeight = 14.dp.toPx()
-        val centerY = size.height / 2f
-
-        drawRoundRect(
-            Color.White.copy(0.18f),
-            Offset(0f, centerY - trackHeight / 2),
-            Size(size.width, trackHeight),
-            CornerRadius(3.dp.toPx()),
-        )
-
-        val progressWidth = (currentPositionMs.toFloat() / durationMs) * size.width
-        drawRoundRect(
-            Color.White.copy(0.45f),
-            Offset(0f, centerY - trackHeight / 2),
-            Size(progressWidth, trackHeight),
-            CornerRadius(3.dp.toPx()),
-        )
-
-        feedback.forEach { event ->
-            val startX =
-                ((event.teacherStartTime * 1000) / durationMs.toDouble() * size.width).toFloat()
-            val endX =
-                ((event.teacherEndTime * 1000) / durationMs.toDouble() * size.width).toFloat()
-            val color =
-                if (event.type == FeedbackType.WRONG_NOTE) Color(0xFFFF5252) else Color(0xFFFFD166)
-            drawRoundRect(
-                color.copy(0.85f),
-                Offset(startX, centerY - errorHeight / 2),
-                Size((endX - startX).coerceAtLeast(4f), errorHeight),
-                CornerRadius(2.dp.toPx()),
-            )
-        }
-
-        drawCircle(Color.White, 7.dp.toPx(), Offset(progressWidth, centerY))
-    }
-}
-
-@Composable
 private fun FeedbackLegendItem(color: Color, label: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(10.dp).clip(CircleShape).background(color))
@@ -189,7 +112,6 @@ private fun FeedbackLegendItem(color: Color, label: String) {
 }
 
 private fun formatTime(ms: Long): String {
-    val sec = (ms / 1000) % 60
-    val min = (ms / 1000) / 60
-    return "%d:%02d".format(min, sec)
+    val totalSec = ms / 1000
+    return "%d:%02d".format(totalSec / 60, totalSec % 60)
 }

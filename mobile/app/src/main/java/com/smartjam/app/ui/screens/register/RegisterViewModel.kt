@@ -1,10 +1,11 @@
 package com.smartjam.app.ui.screens.register
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.smartjam.app.domain.model.UserRole
 import com.smartjam.app.domain.repository.AuthRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import jakarta.inject.Inject
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,7 +29,9 @@ sealed class RegisterEvent {
     object NavigateBack : RegisterEvent()
 }
 
-class RegisterViewModel(private val authRepository: AuthRepository) : ViewModel() {
+@HiltViewModel
+class RegisterViewModel @Inject constructor(private val authRepository: AuthRepository) :
+    ViewModel() {
 
     private val _state = MutableStateFlow(RegisterState())
     val state = _state.asStateFlow()
@@ -114,16 +117,5 @@ class RegisterViewModel(private val authRepository: AuthRepository) : ViewModel(
                 _state.update { it.copy(isLoading = false) }
             }
         }
-    }
-}
-
-class RegisterViewModelFactory(private val authRepository: AuthRepository) :
-    ViewModelProvider.Factory {
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(RegisterViewModel::class.java)) {
-            return RegisterViewModel(authRepository) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

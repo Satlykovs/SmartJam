@@ -14,6 +14,5 @@ data class ConnectionEntity(
     val peerFirstName: String? = null,
     val peerLastName: String? = null,
     val peerAvatarUrl: String? = null,
-    val peerAvatarBytes: ByteArray? = null,
     val myRole: String,
 )

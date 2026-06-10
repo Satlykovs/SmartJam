@@ -2,6 +2,7 @@ package com.smartjam.app.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.smartjam.app.model.FeedbackEvent
 import java.time.Instant
 import java.util.UUID
 
@@ -16,5 +17,8 @@ data class SubmissionResultEntity(
     val errorMessage: String?,
     val fileUrl: String?,
     val submissionAudioLocalPath: String?,
+    val teacherWaveform: List<Float>?,
+    val studentWaveform: List<Float>?,
+    val analysisFeedback: List<FeedbackEvent>?,
     val createdAt: Instant,
 )

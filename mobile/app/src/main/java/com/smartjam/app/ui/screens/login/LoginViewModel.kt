@@ -1,10 +1,11 @@
 package com.smartjam.app.ui.screens.login
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.smartjam.app.domain.repository.AuthRepository
 import com.smartjam.app.domain.repository.ConnectionRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import jakarta.inject.Inject
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,7 +29,10 @@ sealed class LoginEvent {
     data class ShowToast(val message: String) : LoginEvent()
 }
 
-class LoginViewModel(
+@HiltViewModel
+class LoginViewModel
+@Inject
+constructor(
     private val authRepository: AuthRepository,
     private val tokenStorage: com.smartjam.app.data.local.TokenStorage,
     private val connectionRepository: ConnectionRepository,
@@ -83,20 +87,5 @@ class LoginViewModel(
                 _state.value = _state.value.copy(isLoading = false)
             }
         }
-    }
-}
-
-class LoginViewModelFactory(
-    private val authRepository: AuthRepository,
-    private val tokenStorage: com.smartjam.app.data.local.TokenStorage,
-    private val connectionRepository: ConnectionRepository,
-) : ViewModelProvider.Factory {
-
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(LoginViewModel::class.java)) {
-            return LoginViewModel(authRepository, tokenStorage, connectionRepository) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

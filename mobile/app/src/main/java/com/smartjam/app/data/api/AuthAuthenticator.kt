@@ -11,13 +11,13 @@ import okhttp3.Authenticator
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.Route
-import org.openapitools.client.infrastructure.ApiClient
 
-class AuthAuthenticator(private val tokenStorage: TokenStorage, private val baseUrl: String) :
-    Authenticator {
+class AuthAuthenticator(
+    private val tokenStorage: TokenStorage,
+    private val authApiProvider: dagger.Lazy<AuthApi>,
+) : Authenticator {
 
     private val mutex = Mutex()
-    var apiClient: ApiClient? = null
 
     override fun authenticate(route: Route?, response: Response): Request? {
         if (response.responseCount > 2) return null
@@ -26,6 +26,7 @@ class AuthAuthenticator(private val tokenStorage: TokenStorage, private val base
             mutex.withLock {
                 val currentToken = tokenStorage.accessToken.first()
                 val requestToken = response.request.header("Authorization")?.removePrefix("Bearer ")
+
                 if (currentToken != null && currentToken != requestToken) {
                     return@runBlocking response.request
                         .newBuilder()
@@ -36,14 +37,13 @@ class AuthAuthenticator(private val tokenStorage: TokenStorage, private val base
                 val refreshToken = tokenStorage.refreshToken.first() ?: return@runBlocking null
                 val storedRole = tokenStorage.userRole.first()
 
-                val authApiClient = ApiClient(baseUrl = baseUrl)
-                val authApi = authApiClient.createService(AuthApi::class.java)
-
                 try {
                     val refreshResponse =
-                        authApi.refreshToken(
-                            RefreshRequest(refreshToken, storedRole?.let { toApiRole(it) })
-                        )
+                        authApiProvider
+                            .get()
+                            .refreshToken(
+                                RefreshRequest(refreshToken, storedRole?.let { toApiRole(it) })
+                            )
 
                     if (refreshResponse.isSuccessful && refreshResponse.body() != null) {
                         val newAuthResponse = refreshResponse.body()!!
@@ -53,20 +53,16 @@ class AuthAuthenticator(private val tokenStorage: TokenStorage, private val base
                             role = storedRole,
                         )
 
-                        apiClient?.setBearerToken(newAuthResponse.accessToken)
-
                         response.request
                             .newBuilder()
                             .header("Authorization", "Bearer ${newAuthResponse.accessToken}")
                             .build()
                     } else {
                         tokenStorage.clearTokens()
-                        apiClient?.setBearerToken("")
                         null
                     }
                 } catch (e: Exception) {
                     tokenStorage.clearTokens()
-                    apiClient?.setBearerToken("")
                     null
                 }
             }

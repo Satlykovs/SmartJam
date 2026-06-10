@@ -8,6 +8,7 @@
 
     <!-- чет как-то страшно звучит весь трафик так гнать -->
     <application
+        android:name=".SmartJamApplication"
         android:usesCleartextTraffic="true"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"

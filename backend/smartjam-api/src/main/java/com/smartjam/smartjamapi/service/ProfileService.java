@@ -25,6 +25,12 @@ public class ProfileService {
     private final UserMapper userMapper;
     private final S3Service s3Service;
 
+    /**
+     * Fetches the profile of the currently authenticated user.
+     *
+     * @return the authenticated user's profile as a {@code UserResponse}
+     * @throws IllegalStateException if the authenticated user record cannot be found
+     */
     @Transactional(readOnly = true)
     public UserResponse getCurrentUserProfile() {
         UUID userId = identityService.getCurrentUserId();
@@ -35,6 +41,22 @@ public class ProfileService {
         return userMapper.toUserResponse(user);
     }
 
+    /**
+     * Updates editable fields of the currently authenticated user and, when requested,
+     * returns a presigned URL for uploading a new avatar.
+     *
+     * Updates username (enforcing uniqueness), first name, and last name when the
+     * corresponding values in the request are non-null and non-blank. When
+     * `avatarUpdated` is true, a presigned S3 URL for the user's temporary avatar
+     * key is generated and returned.
+     *
+     * @param request the update request containing optional `username`, `firstName`,
+     *                `lastName`, and `avatarUpdated` flag
+     * @return a UserAvatarResponse containing the presigned avatar URL, or `null`
+     *         inside the response if no avatar URL was generated
+     * @throws IllegalStateException      if the authenticated user cannot be found
+     * @throws UserAlreadyExistsException if the requested username is already taken
+     */
     @Transactional
     public UserAvatarResponse updateCurrentUserProfile(UserProfileUpdateRequest request) {
 

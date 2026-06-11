@@ -32,6 +32,16 @@ public class S3WebhookService {
     private final UserRepository repository;
     private final S3Service s3Service;
 
+    /**
+     * Processes S3 webhook records for user avatar uploads by validating size and format,
+     * transforming and storing the final avatar in the target bucket, updating the corresponding user
+     * record with the avatar URL, and removing temporary objects.
+     *
+     * Invalid or oversized objects are deleted from the temporary bucket; if associating the avatar
+     * with a user fails after upload, the uploaded avatar is removed from the target bucket.
+     *
+     * @param payload the S3 webhook payload containing event records for temporary avatar objects
+     */
     public void validateUserAvatar(S3WebhookPayload payload) {
         String tempBucket = minioProperties.getBuckets().getTempAvatars();
         String targetBucket = minioProperties.getBuckets().getAvatars();
@@ -94,6 +104,13 @@ public class S3WebhookService {
         }
     }
 
+    /**
+     * Determines the image format name from the provided input stream.
+     *
+     * @param is an input stream positioned at the start of the image data
+     * @return the image format name in lowercase (e.g., "png", "jpeg"), or `null` if the format cannot be determined
+     * @throws IOException if an I/O error occurs while reading the stream
+     */
     private String getFormat(InputStream is) throws IOException {
         try (ImageInputStream iis = ImageIO.createImageInputStream(is)) {
             Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
@@ -109,6 +126,12 @@ public class S3WebhookService {
         return null;
     }
 
+    /**
+     * Determines whether the provided image format is permitted for user avatars.
+     *
+     * @param format the image format name to check; comparison is exact (case-sensitive) against configured values
+     * @return {@code true} if the format matches the configured JPEG, JPG, or PNG avatar formats; {@code false} otherwise
+     */
     private boolean isAllowed(String format) {
         MinioProperties.FormatAvatar formatAvatar = minioProperties.getFormatAvatar();
         return format.equals(formatAvatar.getJpeg())

@@ -14,6 +14,13 @@ public class S3AvatarEventListener {
 
     private final S3WebhookService s3WebhookService;
 
+    /**
+     * Handles incoming S3 avatar webhook events and delegates validation to the S3 webhook service.
+     *
+     * <p>If validation fails, the error is logged and processing continues without rethrowing.</p>
+     *
+     * @param payload the S3 webhook payload containing one or more record entries for avatar events
+     */
     @KafkaListener(
             topics = "s3-avatar-events",
             groupId = "smartjam-avatar-processor",

@@ -66,6 +66,8 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
      */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
-    @Query("UPDATE UserEntity u SET u.avatarUrl = :avatarUrl, u.avatarUpdatedAt = NOW() " + "WHERE u.id = :userId")
+    @Query(
+            value = "UPDATE users SET avatar_url = :avatarUrl, avatar_updated_at = NOW() WHERE id = :userId",
+            nativeQuery = true)
     int updateAvatarUrl(@Param("userId") UUID userId, @Param("avatarUrl") String avatarUrl);
 }

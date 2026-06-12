@@ -26,6 +26,7 @@ dependencies {
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
     testImplementation 'io.rest-assured:rest-assured:5.5.0'
     testImplementation 'org.apache.groovy:groovy:4.0.25'

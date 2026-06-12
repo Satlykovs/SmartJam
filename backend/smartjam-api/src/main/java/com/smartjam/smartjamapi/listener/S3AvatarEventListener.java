@@ -1,6 +1,6 @@
 package com.smartjam.smartjamapi.listener;
 
-import com.smartjam.smartjamapi.record.S3WebhookPayload;
+import com.smartjam.common.dto.s3.S3Event;
 import com.smartjam.smartjamapi.service.S3WebhookService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,9 +20,9 @@ public class S3AvatarEventListener {
             concurrency = "3",
             properties = {
                 "spring.json.use.type.headers=false",
-                "spring.json.value.default.type=com.smartjam.smartjamapi.record.S3WebhookPayload"
+                "spring.json.value.default.type=com.smartjam.common.dto.s3.S3Event"
             })
-    public void onAvatarEvent(S3WebhookPayload payload) {
+    public void onAvatarEvent(S3Event payload) {
         log.info("Received avatar event: {} records", payload.records().size());
         try {
             s3WebhookService.validateUserAvatar(payload);

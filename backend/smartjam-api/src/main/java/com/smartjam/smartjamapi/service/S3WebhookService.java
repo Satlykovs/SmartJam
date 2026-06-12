@@ -6,15 +6,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.Iterator;
 import java.util.UUID;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
 
+import com.smartjam.common.dto.s3.S3Event;
 import com.smartjam.smartjamapi.config.MinioProperties;
-import com.smartjam.smartjamapi.record.S3WebhookPayload;
 import com.smartjam.smartjamapi.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,11 +34,11 @@ public class S3WebhookService {
     private final UserRepository repository;
     private final S3Service s3Service;
 
-    public void validateUserAvatar(S3WebhookPayload payload) {
+    public void validateUserAvatar(S3Event payload) {
         String tempBucket = minioProperties.getBuckets().getTempAvatars();
         String targetBucket = minioProperties.getBuckets().getAvatars();
 
-        for (S3WebhookPayload.S3EventRecord record : payload.records()) {
+        for (S3Event.S3Record record : payload.records()) {
             String rawKey = record.s3().object().key();
             String objectKey = URLDecoder.decode(rawKey, StandardCharsets.UTF_8);
 
@@ -71,15 +70,6 @@ public class S3WebhookService {
                 UUID userId = UUID.fromString(keyParts[0]);
                 String targetKey = userId.toString();
 
-                Instant eventTime = Instant.parse(payload.eventTime());
-                Instant existingAvatarTime = s3Service.getObjectLastModified(targetBucket, targetKey);
-
-                if (existingAvatarTime != null && existingAvatarTime.isAfter(eventTime)) {
-                    log.info("Пропущено устаревшее событие. В S3 уже лежит более актуальный аватар для {}", userId);
-                    s3Service.deleteObject(tempBucket, objectKey);
-                    continue;
-                }
-
                 ByteArrayOutputStream os = new ByteArrayOutputStream();
 
                 log.info("Мы зашли, но что-то не так");
@@ -94,12 +84,15 @@ public class S3WebhookService {
                 byte[] result = os.toByteArray();
                 String contentType = "image/" + format;
                 s3Service.putObject(targetBucket, targetKey, result, contentType);
+
                 try {
-                    var user = repository
-                            .findById(userId)
-                            .orElseThrow(() -> new IllegalStateException("User not found for avatar key " + objectKey));
-                    user.setAvatarUrl(s3Service.generateUrlForUserAvatar(targetKey));
-                    repository.save(user);
+                    String newAvatarUrl = s3Service.generateUrlForUserAvatar(targetKey);
+                    int updatedRows = repository.updateAvatarUrl(userId, newAvatarUrl);
+
+                    if (updatedRows == 0) {
+                        throw new IllegalStateException("User not found for avatar key " + objectKey);
+                    }
+
                     s3Service.deleteObject(tempBucket, objectKey);
                 } catch (Exception e) {
                     s3Service.deleteObject(targetBucket, targetKey);
@@ -145,6 +138,7 @@ public class S3WebhookService {
     }
 
     private boolean isAllowed(String format) {
+        if (format == null) return false;
         MinioProperties.FormatAvatar formatAvatar = minioProperties.getFormatAvatar();
         return format.equals(formatAvatar.getJpeg())
                 || format.equals(formatAvatar.getJpg())

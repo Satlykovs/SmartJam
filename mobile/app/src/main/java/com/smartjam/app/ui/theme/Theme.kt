@@ -33,7 +33,6 @@ private val LightColorScheme =
 @Composable
 fun SmartJamTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit,
 ) {

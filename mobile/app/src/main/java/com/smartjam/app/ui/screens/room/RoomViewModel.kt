@@ -93,7 +93,11 @@ constructor(
             repository.ensureAssignmentDetailsCached(assignmentId)
             repository.syncSubmissions(assignmentId).onSuccess {
                 _uiState.value.submissionsByAssignment[assignmentId]?.forEach { sub ->
-                    if (sub.status == "ANALYZING" || sub.status == "UPLOADED") {
+                    if (
+                        sub.status == "ANALYZING" ||
+                            sub.status == "AWAITING_UPLOAD" ||
+                            sub.status == "UPLOADED"
+                    ) {
                         startSubmissionPolling(sub.id, assignmentId)
                     }
                 }
@@ -163,7 +167,6 @@ constructor(
     fun uploadAssignment(file: File, title: String, description: String?) {
         viewModelScope.launch {
             _uiState.update { it.copy(isUploading = true) }
-            // ТУТ ОПИСАНИЕ ПЕРЕДАЕТСЯ КОРРЕКТНО
             repository
                 .createAssignment(CreateAssignmentRequest(connectionId, title, description))
                 .onSuccess { info ->

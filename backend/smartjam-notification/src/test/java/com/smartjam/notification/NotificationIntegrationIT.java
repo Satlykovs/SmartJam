@@ -72,8 +72,7 @@ public class NotificationIntegrationIT extends BaseIntegrationTest {
                 teacherId,
                 studentId);
 
-        // Используем наш assignmentId
-        jdbcTemplate.update(
+            jdbcTemplate.update(
                 "INSERT INTO assignments (id, connection_id, title) VALUES (?, ?, 'Task 1')",
                 assignmentId,
                 connectionId);
@@ -101,7 +100,8 @@ public class NotificationIntegrationIT extends BaseIntegrationTest {
 
         kafkaTemplate.send("analysis-results", submissionId.toString(), event);
 
-        verify(pushPublisher, timeout(5000)).sendPush(eq(List.of(TEST_FCM_TOKEN)), contains("88.5"));
+        verify(pushPublisher, timeout(5000))
+                .sendPush(eq(List.of(TEST_FCM_TOKEN)), matches(".*88[.,]50?.*"));
     }
 
     @Test

@@ -23,4 +23,7 @@ interface SubmissionResultDao {
 
     @Query("DELETE FROM submission_results WHERE assignmentId = :assignmentId")
     suspend fun clearForAssignment(assignmentId: UUID)
+
+    @Query("SELECT * FROM submission_results WHERE id = :id")
+    suspend fun getById(id: UUID): SubmissionResultEntity?
 }

@@ -8,15 +8,14 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -41,7 +40,6 @@ import com.smartjam.app.domain.model.Connection
 import com.smartjam.app.domain.model.UserRole
 import com.smartjam.app.ui.components.*
 import com.smartjam.app.ui.theme.*
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 @Composable
@@ -49,6 +47,7 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     onNavigateToRoom: (String) -> Unit,
     onNavigateToLogin: () -> Unit,
+    onNavigateToProfile: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
@@ -100,10 +99,10 @@ fun HomeScreen(
 
         Column(Modifier.fillMaxSize()) {
             HomeHeader(
-                state.currentRole,
-                state.isLoading,
-                viewModel::onLogoutClicked,
-                viewModel::toggleDebugRole,
+                role = state.currentRole,
+                isLoading = state.isLoading,
+                onProfileClick = onNavigateToProfile,
+                onToggleRole = viewModel::toggleDebugRole,
             )
 
             if (state.errorMessage != null) {
@@ -117,7 +116,7 @@ fun HomeScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(24.dp, 24.dp, 24.dp, 100.dp),
+                contentPadding = PaddingValues(24.dp, 16.dp, 24.dp, 100.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 if (state.currentRole == UserRole.TEACHER) {
@@ -144,7 +143,7 @@ fun HomeScreen(
                 }
 
                 if (state.connections.isEmpty() && !state.isLoading) {
-                    item { Text("Список пуст", color = Color.White.copy(0.4f)) }
+                    item { Text("Список пуст", color = Color.White.copy(0.4f), fontSize = 14.sp) }
                 } else {
                     items(state.connections) {
                         ActiveConnectionCard(it) { viewModel.onConnectionClicked(it.id) }
@@ -159,26 +158,36 @@ fun HomeScreen(
 private fun HomeHeader(
     role: UserRole,
     isLoading: Boolean,
-    onLogout: () -> Unit,
+    onProfileClick: () -> Unit,
     onToggleRole: () -> Unit,
 ) {
     Row(
-        Modifier.fillMaxWidth().padding(top = 48.dp, start = 24.dp, end = 24.dp, bottom = 16.dp),
+        Modifier.fillMaxWidth().padding(top = 48.dp, start = 24.dp, end = 16.dp, bottom = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.clickable { onToggleRole() }) {
-            Text("SmartJam", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text("SmartJam", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color.White)
             Text(
-                if (role == UserRole.TEACHER) "Преподаватель" else "Ученик",
+                text = if (role == UserRole.TEACHER) "Преподаватель" else "Ученик",
                 fontSize = 12.sp,
                 color = BrandCyan,
             )
         }
+
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (isLoading) CircularProgressIndicator(Modifier.size(20.dp), Color.White, 2.dp)
-            IconButton(onClick = onLogout) {
-                Icon(Icons.AutoMirrored.Default.ExitToApp, null, tint = Color.White.copy(0.7f))
+            if (isLoading) {
+                CircularProgressIndicator(
+                    Modifier.size(18.dp).padding(end = 8.dp),
+                    Color.White,
+                    2.dp,
+                )
+            }
+            IconButton(
+                onClick = onProfileClick,
+                modifier = Modifier.clip(CircleShape).background(Color.White.copy(0.1f)),
+            ) {
+                Icon(Icons.Default.Person, null, tint = Color.White)
             }
         }
     }
@@ -203,7 +212,7 @@ private fun TeacherInviteSection(code: String?, isLoading: Boolean, onGenerate: 
                 Column(
                     modifier =
                         Modifier.fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(16.dp))
                             .background(Color.White.copy(0.05f))
                             .clickable {
                                 scope.launch {
@@ -224,13 +233,11 @@ private fun TeacherInviteSection(code: String?, isLoading: Boolean, onGenerate: 
                         color = BrandGold,
                         letterSpacing = 4.sp,
                     )
-
                     Spacer(modifier = Modifier.height(4.dp))
-
                     Text(
                         text = "Нажмите, чтобы скопировать",
                         fontSize = 12.sp,
-                        color = Color.White.copy(alpha = 0.5f),
+                        color = Color.White.copy(alpha = 0.4f),
                     )
                 }
             }
@@ -272,15 +279,12 @@ private fun StudentJoinSection(
 
 @Composable
 private fun ActiveConnectionCard(connection: Connection, onClick: () -> Unit) {
-    Box(
-        Modifier.fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(Color.White.copy(0.05f))
-            .border(1.dp, Color.White.copy(0.1f), RoundedCornerShape(20.dp))
-            .clickable { onClick() }
-            .padding(20.dp)
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(0.05f)),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             if (!connection.peerAvatarUrl.isNullOrBlank()) {
                 AsyncImage(
                     model =
@@ -289,13 +293,11 @@ private fun ActiveConnectionCard(connection: Connection, onClick: () -> Unit) {
                             .crossfade(true)
                             .build(),
                     contentDescription = null,
-                    modifier = Modifier.size(48.dp).clip(RoundedCornerShape(24.dp)),
+                    modifier = Modifier.size(48.dp).clip(CircleShape),
                 )
             } else {
                 Box(
-                    Modifier.size(48.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(Color.White.copy(0.1f)),
+                    Modifier.size(48.dp).clip(CircleShape).background(Color.White.copy(0.1f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(Icons.Default.Person, null, tint = Color.White)
@@ -309,7 +311,7 @@ private fun ActiveConnectionCard(connection: Connection, onClick: () -> Unit) {
                     fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
-                Text("Нажмите, чтобы открыть", color = Color.White.copy(0.5f), fontSize = 13.sp)
+                Text("Нажмите, чтобы открыть", color = Color.White.copy(0.4f), fontSize = 12.sp)
             }
         }
     }

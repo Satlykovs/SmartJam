@@ -16,6 +16,8 @@ subprojects {
             target("src/**/*.kt")
             targetExclude("**/build/**/*.kt", "**/generated/**/*.kt")
 
+
+
             ktfmt("0.62").kotlinlangStyle()
 
             toggleOffOn()

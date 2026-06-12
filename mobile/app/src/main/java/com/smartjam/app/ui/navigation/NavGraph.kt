@@ -1,7 +1,6 @@
 package com.smartjam.app.ui.navigation
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -37,16 +36,19 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.smartjam.app.ui.screens.assignment.AssignmentDetailsScreen
 import com.smartjam.app.ui.screens.home.HomeScreen
 import com.smartjam.app.ui.screens.home.HomeViewModel
 import com.smartjam.app.ui.screens.login.LoginScreen
 import com.smartjam.app.ui.screens.login.LoginViewModel
+import com.smartjam.app.ui.screens.profile.ProfileScreen
+import com.smartjam.app.ui.screens.profile.ProfileViewModel
 import com.smartjam.app.ui.screens.register.RegisterScreen
 import com.smartjam.app.ui.screens.register.RegisterViewModel
-import com.smartjam.app.ui.screens.room.AssignmentDetailsScreen
 import com.smartjam.app.ui.screens.room.RoomScreen
 import com.smartjam.app.ui.screens.room.RoomViewModel
 import com.smartjam.app.ui.screens.submission.SubmissionDetailScreen
+import com.smartjam.app.ui.screens.submission.SubmissionViewModel
 import com.smartjam.app.ui.theme.BlurPurpleDark
 import com.smartjam.app.ui.theme.CoreBackground
 import java.util.*
@@ -150,6 +152,7 @@ fun SmartJamNavGraph(navController: NavHostController, startDestination: String)
                             popUpTo(Screen.Home.route) { inclusive = true }
                         }
                     },
+                    onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                 )
             }
 
@@ -215,26 +218,27 @@ fun SmartJamNavGraph(navController: NavHostController, startDestination: String)
                 )
             }
 
-            composable(route = Screen.SubmissionDetail.route) { backStackEntry ->
-                val viewModel: RoomViewModel = hiltViewModel()
-                val connectionId =
-                    UUID.fromString(backStackEntry.arguments?.getString("connectionId"))
-                val assignmentId =
-                    UUID.fromString(backStackEntry.arguments?.getString("assignmentId"))
-                val submissionId =
-                    UUID.fromString(backStackEntry.arguments?.getString("submissionId"))
+            composable(route = Screen.SubmissionDetail.route) {
+                val viewModel: SubmissionViewModel = hiltViewModel()
 
                 SubmissionDetailScreen(
-                    submissionId = submissionId,
-                    assignmentId = assignmentId,
                     viewModel = viewModel,
                     onBack = { navController.popBackStack() },
                 )
             }
-        }
 
-        if (currentRoute != Screen.Login.route && currentRoute != Screen.Register.route) {
-            BottomNavigationBar(navController, currentRoute, glassBarBrush)
+            composable(route = Screen.Profile.route) {
+                val viewModel: ProfileViewModel = hiltViewModel()
+                ProfileScreen(
+                    viewModel = viewModel,
+                    onBack = { navController.popBackStack() },
+                    onNavigateToLogin = {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                )
+            }
         }
     }
 }

@@ -97,7 +97,6 @@ fun RoomScreen(
                                     enabled = !state.isUploading,
                                 )
 
-                                // ВЕРНУЛИ ПОЛЕ ОПИСАНИЯ В UI
                                 AppleGlassTextField(
                                     pendingDesc,
                                     { pendingDesc = it },
@@ -123,7 +122,6 @@ fun RoomScreen(
                                                 ?.use { input ->
                                                     file.outputStream().use { input.copyTo(it) }
                                                 }
-                                            // ПЕРЕДАЕМ И ТИТУЛ И ОПИСАНИЕ
                                             viewModel.uploadAssignment(
                                                 file,
                                                 pendingTitle,

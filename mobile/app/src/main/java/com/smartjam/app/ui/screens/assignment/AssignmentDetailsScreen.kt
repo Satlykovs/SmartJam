@@ -1,4 +1,4 @@
-package com.smartjam.app.ui.screens.room
+package com.smartjam.app.ui.screens.assignment
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -25,6 +25,7 @@ import com.smartjam.app.data.local.entity.SubmissionResultEntity
 import com.smartjam.app.domain.model.UserRole
 import com.smartjam.app.ui.components.*
 import com.smartjam.app.ui.navigation.Screen
+import com.smartjam.app.ui.screens.room.RoomViewModel
 import com.smartjam.app.ui.theme.BrandCyan
 import com.smartjam.app.ui.theme.CoreBackground
 import java.io.File
@@ -196,21 +197,39 @@ private fun SubmissionRow(submission: SubmissionResultEntity, onClick: () -> Uni
                     text =
                         when (submission.status) {
                             "COMPLETED" -> "Анализ готов"
-                            "FAILED" -> "Ошибка"
+                            "FAILED" -> "Ошибка обработки"
                             else -> "В обработке..."
                         },
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
                 )
-                if (submission.totalScore != null) {
+
+                Text(
+                    text = formatSubmissionDate(submission.createdAt),
+                    color = Color.White.copy(alpha = 0.4f),
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+
+                if (submission.totalScore != null && submission.status == "COMPLETED") {
                     Text(
                         "Точность: ${submission.totalScore.toInt()}%",
                         color = BrandCyan,
                         fontSize = 14.sp,
+                        modifier = Modifier.padding(top = 4.dp),
                     )
                 }
             }
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Color.White.copy(0.4f))
         }
     }
+}
+
+fun formatSubmissionDate(instant: java.time.Instant?): String {
+    if (instant == null) return ""
+    val formatter =
+        java.time.format.DateTimeFormatter.ofPattern("d MMMM, HH:mm", java.util.Locale("ru"))
+            .withZone(java.time.ZoneId.systemDefault())
+    return formatter.format(instant)
 }

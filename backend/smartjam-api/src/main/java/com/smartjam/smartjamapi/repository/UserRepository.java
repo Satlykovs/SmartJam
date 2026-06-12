@@ -5,6 +5,10 @@ import java.util.UUID;
 
 import com.smartjam.smartjamapi.entity.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 // TODO: fix javadoc
 /**
@@ -49,4 +53,19 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
     boolean existsByEmail(String email);
 
     Optional<UserEntity> findByEmail(String email);
+
+    /**
+     * Atomically updates a user's avatar URL using the database's current time.
+     *
+     * <p>Leverages the database server's atomic execution clock to eliminate race conditions during concurrent updates,
+     * ensuring seamless synchronization without external time tokens.
+     *
+     * @param userId the unique identifier (UUID) of the user; must not be {@code null}
+     * @param avatarUrl the new S3 storage URL of the avatar image
+     * @return the number of affected rows ({@code 1} if updated successfully)
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("UPDATE UserEntity u SET u.avatarUrl = :avatarUrl, u.avatarUpdatedAt = NOW() " + "WHERE u.id = :userId")
+    int updateAvatarUrl(@Param("userId") UUID userId, @Param("avatarUrl") String avatarUrl);
 }

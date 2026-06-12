@@ -27,6 +27,18 @@ public class ApplicationConfig {
     @Bean
     public S3Client s3Client(MinioProperties minioProperties) {
         return S3Client.builder()
+                .endpointOverride(URI.create(minioProperties.getEndpoint()))
+                .region(Region.US_EAST_1)
+                .credentialsProvider(StaticCredentialsProvider.create(
+                        AwsBasicCredentials.create(minioProperties.getAccessKey(), minioProperties.getSecretKey())))
+                .serviceConfiguration(
+                        S3Configuration.builder().pathStyleAccessEnabled(true).build())
+                .build();
+    }
+
+    @Bean("publicS3Client")
+    public S3Client publicS3Client(MinioProperties minioProperties) {
+        return S3Client.builder()
                 .endpointOverride(URI.create(minioProperties.getPublicEndpoint()))
                 .region(Region.US_EAST_1)
                 .credentialsProvider(StaticCredentialsProvider.create(
@@ -38,14 +50,8 @@ public class ApplicationConfig {
 
     @Bean
     public S3Presigner s3Presigner(MinioProperties minioProperties) {
-
-        String effectiveEndpoint = (minioProperties.getPublicEndpoint() != null
-                        && !minioProperties.getPublicEndpoint().isBlank())
-                ? minioProperties.getPublicEndpoint()
-                : minioProperties.getEndpoint();
-
         return S3Presigner.builder()
-                .endpointOverride(URI.create(effectiveEndpoint))
+                .endpointOverride(URI.create(minioProperties.getPublicEndpoint()))
                 .region(Region.US_EAST_1)
                 .serviceConfiguration(
                         S3Configuration.builder().pathStyleAccessEnabled(true).build())

@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Iterator;
 import java.util.UUID;
 import javax.imageio.ImageIO;
@@ -27,6 +28,8 @@ import org.springframework.stereotype.Service;
 public class S3WebhookService {
 
     private static final long MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+    private static final int MAX_INPUT_WIDTH = 4000;
+    private static final int MAX_INPUT_HEIGHT = 4000;
 
     private final MinioProperties minioProperties;
     private final UserRepository repository;
@@ -49,35 +52,57 @@ public class S3WebhookService {
 
             try (InputStream is = s3Service.getObjectStream(tempBucket, objectKey)) {
                 byte[] fileBytes = is.readAllBytes();
-                String format = getFormat(new ByteArrayInputStream(fileBytes));
-                if (format == null || !isAllowed(format)) {
-                    log.warn("Файл {} имеет недопустимый формат: {}", objectKey, format);
+
+                String format = validateAndGetFormat(new ByteArrayInputStream(fileBytes));
+                if (!isAllowed(format)) {
+                    log.warn(
+                            "Файл {} имеет недопустимый формат или превышает лимиты разрешения: {}", objectKey, format);
+                    s3Service.deleteObject(tempBucket, objectKey);
+                    continue;
+                }
+
+                String[] keyParts = objectKey.split("/");
+                if (keyParts.length < 2) {
+                    log.error("Неверный формат ключа в temp бакете: {}", objectKey);
+                    s3Service.deleteObject(tempBucket, objectKey);
+                    continue;
+                }
+
+                UUID userId = UUID.fromString(keyParts[0]);
+                String targetKey = userId.toString();
+
+                Instant eventTime = Instant.parse(payload.eventTime());
+                Instant existingAvatarTime = s3Service.getObjectLastModified(targetBucket, targetKey);
+
+                if (existingAvatarTime != null && existingAvatarTime.isAfter(eventTime)) {
+                    log.info("Пропущено устаревшее событие. В S3 уже лежит более актуальный аватар для {}", userId);
                     s3Service.deleteObject(tempBucket, objectKey);
                     continue;
                 }
 
                 ByteArrayOutputStream os = new ByteArrayOutputStream();
 
+                log.info("Мы зашли, но что-то не так");
                 Thumbnails.of(new ByteArrayInputStream(fileBytes))
                         .size(400, 400)
                         .crop(Positions.CENTER)
                         .outputFormat(format)
                         .outputQuality(0.85)
                         .toOutputStream(os);
+                log.info("Мы вышли, а не, всё ок");
 
                 byte[] result = os.toByteArray();
                 String contentType = "image/" + format;
-                s3Service.putObject(targetBucket, objectKey, result, contentType);
+                s3Service.putObject(targetBucket, targetKey, result, contentType);
                 try {
-                    UUID userId = UUID.fromString(objectKey);
                     var user = repository
                             .findById(userId)
                             .orElseThrow(() -> new IllegalStateException("User not found for avatar key " + objectKey));
-                    user.setAvatarUrl(s3Service.generateUrlForUserAvatar(objectKey));
+                    user.setAvatarUrl(s3Service.generateUrlForUserAvatar(targetKey));
                     repository.save(user);
                     s3Service.deleteObject(tempBucket, objectKey);
                 } catch (Exception e) {
-                    s3Service.deleteObject(targetBucket, objectKey);
+                    s3Service.deleteObject(targetBucket, targetKey);
                     throw e;
                 }
 
@@ -94,12 +119,22 @@ public class S3WebhookService {
         }
     }
 
-    private String getFormat(InputStream is) throws IOException {
+    private String validateAndGetFormat(InputStream is) throws IOException {
         try (ImageInputStream iis = ImageIO.createImageInputStream(is)) {
             Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
             if (readers.hasNext()) {
                 ImageReader reader = readers.next();
                 try {
+                    reader.setInput(iis, true, true);
+
+                    int width = reader.getWidth(0);
+                    int height = reader.getHeight(0);
+
+                    if (width > MAX_INPUT_WIDTH || height > MAX_INPUT_HEIGHT) {
+                        log.error("Bomb has not been planted! Разрешение файла: {}x{}", width, height);
+                        return null;
+                    }
+
                     return reader.getFormatName().toLowerCase();
                 } finally {
                     reader.dispose();

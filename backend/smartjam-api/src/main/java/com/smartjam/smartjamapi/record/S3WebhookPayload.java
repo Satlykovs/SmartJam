@@ -9,8 +9,10 @@ import jakarta.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+// TODO: сделать тест с гонками
 public record S3WebhookPayload(
-        @JsonProperty("Records") @NotEmpty List<@Valid S3EventRecord> records) {
+        @JsonProperty("Records") @NotEmpty List<@Valid S3EventRecord> records,
+        @JsonProperty("eventTime") String eventTime) {
     public record S3EventRecord(@NotNull @Valid S3Entity s3) {}
 
     public record S3Entity(

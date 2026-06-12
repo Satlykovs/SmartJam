@@ -9,8 +9,9 @@ import com.smartjam.api.model.UserRole;
 import com.smartjam.smartjamapi.entity.UserEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public abstract class UserMapper {
     public abstract UserEntity toEntity(RegisterRequest request);
 

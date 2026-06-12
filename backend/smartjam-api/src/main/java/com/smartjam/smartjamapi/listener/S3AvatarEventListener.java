@@ -28,6 +28,7 @@ public class S3AvatarEventListener {
             s3WebhookService.validateUserAvatar(payload);
         } catch (Exception e) {
             log.error("Failed to process avatar event: {}", e.getMessage(), e);
+            throw e;
         }
     }
 }

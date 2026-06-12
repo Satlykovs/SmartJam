@@ -13,7 +13,10 @@ import com.smartjam.app.model.AssignmentUploadResponse
 import com.smartjam.app.model.CreateAssignmentRequest
 import com.smartjam.app.model.SubmissionResultResponse
 import com.smartjam.app.model.SubmissionUploadResponse
+import jakarta.inject.Inject
+import jakarta.inject.Singleton
 import java.io.File
+import java.time.Instant
 import java.util.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -22,12 +25,16 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 
-class RoomRepository(
+@Singleton
+class RoomRepository
+@Inject
+constructor(
     private val assignmentsApi: AssignmentsApi,
     private val submissionsApi: SubmissionsApi,
     private val assignmentDao: AssignmentDao,
     private val submissionResultDao: SubmissionResultDao,
     private val audioFileStore: AudioFileStore,
+    private val httpClient: okhttp3.OkHttpClient,
 ) {
 
     data class AssignmentPageInfo(
@@ -36,9 +43,6 @@ class RoomRepository(
         val pageSize: Int,
         val totalElements: Long,
     )
-
-    private val httpClient =
-        OkHttpClient.Builder().followRedirects(true).followSslRedirects(true).build()
 
     fun getAssignmentsFlow(connectionId: UUID): Flow<List<AssignmentEntity>> {
         return assignmentDao.getAssignmentsForConnection(connectionId)
@@ -108,15 +112,9 @@ class RoomRepository(
             val response = assignmentsApi.getAssignment(assignmentId)
             if (response.isSuccessful && response.body() != null) {
                 val dto = response.body()!!
-                Log.d(
-                    "RoomRepository",
-                    "Fetched assignment details: id=${dto.id} description=${dto.description?.take(100)} referenceAudioUrl=${dto.referenceAudioUrl}",
-                )
+
                 val localPath = cacheReferenceAudioIfNeeded(existing, dto)
-                Log.d(
-                    "RoomRepository",
-                    "Reference audio localPath for assignment ${existing.id}: $localPath",
-                )
+
                 val updated =
                     existing.copy(
                         title = dto.title,
@@ -143,15 +141,9 @@ class RoomRepository(
             if (response.isSuccessful && response.body() != null) {
                 Result.success(response.body()!!)
             } else {
-                val errorBody = response.errorBody()?.string()
-                Log.w(
-                    "RoomRepository",
-                    "createAssignment failed: code=${response.code()} body=$errorBody",
-                )
                 Result.failure(Exception("Failed to create assignment: ${response.code()}"))
             }
         } catch (e: Exception) {
-            Log.w("RoomRepository", "createAssignment exception", e)
             Result.failure(e)
         }
     }
@@ -161,14 +153,13 @@ class RoomRepository(
             val response = submissionsApi.getSubmissionsByAssignment(assignmentId)
             if (response.isSuccessful && response.body() != null) {
                 val body = response.body()!!
-                val existing =
+                val existingMap =
                     submissionResultDao.getResultsForAssignmentOnce(assignmentId).associateBy {
                         it.id
                     }
-
                 val entities =
                     body.content.map { dto ->
-                        val cached = existing[dto.id]
+                        val cached = existingMap[dto.id]
                         SubmissionResultEntity(
                             id = dto.id,
                             assignmentId = assignmentId,
@@ -179,14 +170,15 @@ class RoomRepository(
                             errorMessage = cached?.errorMessage,
                             fileUrl = cached?.fileUrl,
                             submissionAudioLocalPath = cached?.submissionAudioLocalPath,
+                            teacherWaveform = cached?.teacherWaveform,
+                            studentWaveform = cached?.studentWaveform,
+                            analysisFeedback = cached?.analysisFeedback,
                             createdAt = dto.createdAt,
                         )
                     }
                 submissionResultDao.insertAll(entities)
                 Result.success(Unit)
-            } else {
-                Result.failure(Exception("Failed to fetch submissions"))
-            }
+            } else Result.failure(Exception("Sync Error"))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -198,15 +190,9 @@ class RoomRepository(
             if (response.isSuccessful && response.body() != null) {
                 Result.success(response.body()!!)
             } else {
-                val errorBody = response.errorBody()?.string()
-                Log.w(
-                    "RoomRepository",
-                    "createSubmission failed: code=${response.code()} body=$errorBody",
-                )
                 Result.failure(Exception("Failed to create submission"))
             }
         } catch (e: Exception) {
-            Log.w("RoomRepository", "createSubmission exception", e)
             Result.failure(e)
         }
     }
@@ -219,31 +205,29 @@ class RoomRepository(
             val response = submissionsApi.getSubmissionResult(submissionId)
             if (response.isSuccessful && response.body() != null) {
                 val dto = response.body()!!
-                val created = java.time.Instant.now()
                 val existing =
-                    submissionResultDao
-                        .getResultsForAssignmentOnce(assignmentId)
-                        .associateBy { it.id }[dto.id]
-                submissionResultDao.insertAll(
-                    listOf(
-                        SubmissionResultEntity(
-                            id = dto.id,
-                            assignmentId = assignmentId,
-                            status = dto.status.name,
-                            totalScore = dto.totalScore?.toFloat(),
-                            pitchScore = dto.pitchScore?.toFloat(),
-                            rhythmScore = dto.rhythmScore?.toFloat(),
-                            errorMessage = dto.errorMessage,
-                            fileUrl = dto.submissionAudioUrl?.toString(),
-                            submissionAudioLocalPath = existing?.submissionAudioLocalPath,
-                            createdAt = created,
-                        )
+                    submissionResultDao.getResultsForAssignmentOnce(assignmentId).find {
+                        it.id == dto.id
+                    }
+                val entity =
+                    SubmissionResultEntity(
+                        id = dto.id,
+                        assignmentId = assignmentId,
+                        status = dto.status.name,
+                        totalScore = dto.totalScore?.toFloat(),
+                        pitchScore = dto.pitchScore?.toFloat(),
+                        rhythmScore = dto.rhythmScore?.toFloat(),
+                        errorMessage = dto.errorMessage,
+                        fileUrl = dto.submissionAudioUrl?.toString(),
+                        submissionAudioLocalPath = existing?.submissionAudioLocalPath,
+                        teacherWaveform = dto.teacherWaveform,
+                        studentWaveform = dto.studentWaveform,
+                        analysisFeedback = dto.feedback,
+                        createdAt = existing?.createdAt ?: Instant.now(),
                     )
-                )
+                submissionResultDao.insertAll(listOf(entity))
                 Result.success(dto)
-            } else {
-                Result.failure(Exception("Failed to fetch submission result"))
-            }
+            } else Result.failure(Exception("Fetch Error"))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -256,102 +240,61 @@ class RoomRepository(
     ): Result<String?> =
         withContext(Dispatchers.IO) {
             try {
-                if (urlString.isNullOrBlank()) {
-                    return@withContext Result.success(null)
-                }
-
+                if (urlString.isNullOrBlank()) return@withContext Result.success(null)
                 val existing =
-                    submissionResultDao
-                        .getResultsForAssignmentOnce(assignmentId)
-                        .associateBy { it.id }[submissionId]
+                    submissionResultDao.getResultsForAssignmentOnce(assignmentId).find {
+                        it.id == submissionId
+                    }
                 val existingPath = existing?.submissionAudioLocalPath
-                if (!existingPath.isNullOrBlank()) {
-                    val f = java.io.File(existingPath)
-                    if (f.exists()) return@withContext Result.success(existingPath)
-                }
-                val uri = java.net.URI(urlString)
-                val originalHost = if (uri.port == -1) uri.host else "${uri.host}:${uri.port}"
-
-                val fixedUrl =
-                    urlString.replace("localhost", "10.0.2.2").replace("127.0.0.1", "10.0.2.2")
+                if (!existingPath.isNullOrBlank() && File(existingPath).exists())
+                    return@withContext Result.success(existingPath)
 
                 val target = audioFileStore.getSubmissionAudioFile(submissionId)
-                val request = Request.Builder().url(fixedUrl).header("Host", originalHost).build()
+                val request = Request.Builder().url(urlString).build()
 
-            httpClient.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    val errorBody = response.body?.string()
-                    Log.w("RoomRepository", "cacheSubmissionAudioIfNeeded failed: code=${response.code} body=$errorBody")
-                    return@withContext Result.failure(Exception("Audio download failed: ${response.code}"))
-                }
-
-                val body = response.body
-                if (body == null || body.contentLength() == 0L) {
-                    Log.w("RoomRepository", "cacheSubmissionAudioIfNeeded empty body for $urlString")
-                    return@withContext Result.failure(Exception("Audio download empty"))
-                }
-
-                body.byteStream().use { input ->
-                    target.outputStream().use { output ->
-                        input.copyTo(output)
+                httpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful)
+                        return@withContext Result.failure<String?>(Exception("Download failed"))
+                    response.body?.byteStream()?.use { input ->
+                        target.outputStream().use { input.copyTo(it) }
                     }
-                }
 
-                val updated =
-                    SubmissionResultEntity(
-                        id = submissionId,
-                        assignmentId = assignmentId,
-                        status = existing?.status ?: "",
-                        totalScore = existing?.totalScore,
-                        pitchScore = existing?.pitchScore,
-                        rhythmScore = existing?.rhythmScore,
-                        errorMessage = existing?.errorMessage,
-                        fileUrl = existing?.fileUrl,
-                        submissionAudioLocalPath = target.absolutePath,
-                        createdAt = existing?.createdAt ?: java.time.Instant.now(),
-                    )
-                submissionResultDao.insertAll(listOf(updated))
-                Result.success(target.absolutePath)
+                    val updated =
+                        existing?.copy(submissionAudioLocalPath = target.absolutePath)
+                            ?: SubmissionResultEntity(
+                                id = submissionId,
+                                assignmentId = assignmentId,
+                                status = "DOWNLOADED",
+                                totalScore = null,
+                                pitchScore = null,
+                                rhythmScore = null,
+                                errorMessage = null,
+                                fileUrl = urlString,
+                                submissionAudioLocalPath = target.absolutePath,
+                                teacherWaveform = null,
+                                studentWaveform = null,
+                                analysisFeedback = null,
+                                createdAt = Instant.now(),
+                            )
+
+                    submissionResultDao.insertAll(listOf(updated))
+                    Result.success(target.absolutePath)
+                }
             } catch (e: Exception) {
-                Log.w("RoomRepository", "cacheSubmissionAudioIfNeeded exception", e)
-                Result.failure(e)
+                Result.failure<String?>(e)
             }
         }
 
     suspend fun uploadFileToS3(uploadUrl: String, file: File): Result<Unit> =
         withContext(Dispatchers.IO) {
             try {
-                val uri = java.net.URI(uploadUrl)
-                val originalHost = if (uri.port == -1) uri.host else "${uri.host}:${uri.port}"
-
-                val fixedUrl =
-                    uploadUrl
-                        .replace("localhost", "10.0.2.2")
-                        .replace("127.0.0.1", "10.0.2.2")
-                        .replace("references.localhost", "10.0.2.2")
-
-                val requestBody = file.asRequestBody(null)
-                val request =
-                    Request.Builder()
-                        .url(fixedUrl)
-                        .header("Host", originalHost)
-                        .put(requestBody)
-                        .build()
+                val request = Request.Builder().url(uploadUrl).put(file.asRequestBody(null)).build()
 
                 httpClient.newCall(request).execute().use { response ->
-                    if (response.isSuccessful) {
-                        Result.success(Unit)
-                    } else {
-                        val errorBody = response.body?.string()
-                        Log.w(
-                            "RoomRepository",
-                            "uploadFileToS3 failed: code=${response.code} body=$errorBody",
-                        )
-                        Result.failure(Exception("S3 upload failed: ${response.code}"))
-                    }
+                    if (response.isSuccessful) Result.success(Unit)
+                    else Result.failure(Exception("S3 upload failed: ${response.code}"))
                 }
             } catch (e: Exception) {
-                Log.w("RoomRepository", "uploadFileToS3 exception", e)
                 Result.failure(e)
             }
         }
@@ -362,35 +305,28 @@ class RoomRepository(
     ): String? =
         withContext(Dispatchers.IO) {
             val url =
-                dto.referenceAudioUrl.toString().takeIf { it.isNotBlank() }
+                dto.referenceAudioUrl?.toString()?.takeIf { it.isNotBlank() }
                     ?: return@withContext existing.referenceAudioLocalPath
 
             val existingPath = existing.referenceAudioLocalPath
-            if (!existingPath.isNullOrBlank()) {
-                val file = File(existingPath)
-                if (file.exists()) {
-                    return@withContext existingPath
-                }
-            }
+            if (!existingPath.isNullOrBlank() && File(existingPath).exists())
+                return@withContext existingPath
 
             val target = audioFileStore.getAssignmentAudioFile(existing.id)
 
-            val uri = java.net.URI(url)
-            val originalHost = if (uri.port == -1) uri.host else "${uri.host}:${uri.port}"
-            val fixedUrl = url.replace("localhost", "10.0.2.2").replace("127.0.0.1", "10.0.2.2")
-
-            val request = Request.Builder().url(fixedUrl).header("Host", originalHost).build()
-
-            httpClient.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    return@withContext existing.referenceAudioLocalPath
+            val request = Request.Builder().url(url).build()
+            try {
+                httpClient.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        response.body?.byteStream()?.use { input ->
+                            target.outputStream().use { output -> input.copyTo(output) }
+                        }
+                        return@withContext target.absolutePath
+                    }
                 }
-
-                response.body?.byteStream()?.use { input ->
-                    target.outputStream().use { output -> input.copyTo(output) }
-                }
+            } catch (e: Exception) {
+                Log.e("RoomRepository", "Error caching reference", e)
             }
-
-            target.absolutePath
+            existing.referenceAudioLocalPath
         }
 }

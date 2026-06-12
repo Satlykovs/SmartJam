@@ -45,7 +45,7 @@ public class ProcessAnalysisResultUseCase {
 
                 String message = (event.type() == AnalysisType.SUBMISSION)
                         ? "Твоя игра проанализирована! Балл: " + formattedScore
-                        : "Твой запись успешно обработана! 🎸";
+                        : "Твоя запись успешно обработана! 🎸";
                 pushPublisher.sendPush(tokens, message);
             } catch (Exception e) {
                 log.error("Failed to send push notification for {}: {}", event.targetId(), e.getMessage());

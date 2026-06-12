@@ -11,13 +11,18 @@ import com.smartjam.app.model.DeviceRegistrationRequest
 import com.smartjam.app.model.LoginRequest
 import com.smartjam.app.model.RefreshRequest
 import com.smartjam.app.model.RegisterRequest
+import jakarta.inject.Inject
+import jakarta.inject.Singleton
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.tasks.await
 import org.openapitools.client.infrastructure.ApiClient
 
-class AuthRepository(
+@Singleton
+class AuthRepository
+@Inject
+constructor(
     private val tokenStorage: TokenStorage,
     private val authApi: AuthApi,
     private val apiClient: ApiClient,

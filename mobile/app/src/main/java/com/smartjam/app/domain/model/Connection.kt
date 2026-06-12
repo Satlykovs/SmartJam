@@ -5,5 +5,4 @@ data class Connection(
     val peerId: String,
     val peerName: String,
     val peerAvatarUrl: String? = null,
-    val peerAvatarBytes: ByteArray? = null,
 )

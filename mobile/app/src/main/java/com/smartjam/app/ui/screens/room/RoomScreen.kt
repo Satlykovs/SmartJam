@@ -4,40 +4,27 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.*
+import androidx.compose.ui.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.*
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import com.smartjam.app.data.local.entity.AssignmentEntity
 import com.smartjam.app.domain.model.UserRole
-import com.smartjam.app.ui.components.AppleGlassTextField
-import com.smartjam.app.ui.components.AppleLiquidBackground
-import com.smartjam.app.ui.components.GlassContainer
-import com.smartjam.app.ui.components.GoldenStringsButton
-import com.smartjam.app.ui.theme.BrandGold
+import com.smartjam.app.ui.components.*
+import com.smartjam.app.ui.theme.*
 import java.io.File
 import java.util.UUID
 
@@ -47,151 +34,137 @@ fun RoomScreen(
     role: UserRole,
     viewModel: RoomViewModel,
     onBack: () -> Unit,
-    onOpenAssignment: (UUID) -> Unit
+    onOpenAssignment: (UUID) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    val listState = rememberLazyListState()
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    var pendingAssignmentTitle by remember { mutableStateOf("") }
-    var pendingAssignmentDescription by remember { mutableStateOf("") }
-    var pendingSavePath by remember { mutableStateOf<String?>(null) }
-
-    val assignmentPicker =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) {
-            uri: Uri? ->
-            uri?.let {
-                val file = File(context.cacheDir, "temp_assignment_upload.wav")
-                context.contentResolver.openInputStream(it)?.use { input ->
-                    file.outputStream().use { output -> input.copyTo(output) }
-                }
-                viewModel.uploadAssignment(
-                    file,
-                    pendingAssignmentTitle,
-                    pendingAssignmentDescription.ifBlank { null },
-                )
-                pendingAssignmentTitle = ""
-                pendingAssignmentDescription = ""
-            }
+    LaunchedEffect(Unit) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.roomTicker.collect { viewModel.refreshRoomData() }
         }
-
-    val saveToDeviceLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("audio/wav")
-    ) { uri: Uri? ->
-        val path = pendingSavePath
-        if (uri != null && !path.isNullOrBlank()) {
-            val input = File(path)
-            context.contentResolver.openOutputStream(uri)?.use { output ->
-                input.inputStream().use { it.copyTo(output) }
-            }
-            pendingSavePath = null
-        }
-
-    LaunchedEffect(listState) {
-        snapshotFlow {
-                val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                val total = listState.layoutInfo.totalItemsCount
-                lastVisible to total
-            }
-            .collect { (lastVisible, total) -> viewModel.onListScrolled(lastVisible, total) }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color(0xFF05050A))) {
+    var pendingTitle by remember { mutableStateOf("") }
+    var pendingDesc by remember { mutableStateOf("") } // ВЕРНУЛИ ОПИСАНИЕ
+    var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
+
+    val audioPicker =
+        rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {
+            selectedFileUri = it
+        }
+
+    Box(Modifier.fillMaxSize().background(CoreBackground)) {
         AppleLiquidBackground()
 
-        Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp)) {
+        Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
             Spacer(
-                modifier =
-                    Modifier.height(
-                        WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 16.dp
-                    )
+                Modifier.height(
+                    WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 16.dp
+                )
             )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Color.White,
-                    )
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White)
                 }
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(Modifier.width(8.dp))
                 Text(
-                    text = "Room",
-                    fontSize = 28.sp,
+                    text = state.peerName,
+                    fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (role == UserRole.TEACHER) {
-                GlassContainer {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Новый урок", color = BrandGold, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        AppleGlassTextField(
-                            value = pendingAssignmentTitle,
-                            onValueChange = { pendingAssignmentTitle = it },
-                            hint = "Название урока",
-                            icon = Icons.Default.Edit,
-                            enabled = !state.isUploading,
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        AppleGlassTextField(
-                            value = pendingAssignmentDescription,
-                            onValueChange = { pendingAssignmentDescription = it },
-                            hint = "Описание (опционально)",
-                            icon = Icons.Default.Edit,
-                            enabled = !state.isUploading,
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        GoldenStringsButton(
-                            text =
-                                if (state.isUploading) "Загрузка..." else "Загрузить эталон (.wav)",
-                            enabled = !state.isUploading && pendingAssignmentTitle.isNotBlank(),
-                            onClick = { assignmentPicker.launch("audio/*") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            if (state.error != null) {
-                Text(
-                    state.error ?: "",
-                    color = Color(0xFFFF5252),
-                    modifier = Modifier.padding(vertical = 8.dp),
-                )
-            }
-
             LazyColumn(
-                state = listState,
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp),
             ) {
-                items(state.assignments) { assignment ->
-                    AssignmentCard(
-                        assignment = assignment,
-                        role = role,
-                        onOpenAssignment = { onOpenAssignment(assignment.id) },
-                        onSaveAudio = { path ->
-                            pendingSavePath = path
-                            saveToDeviceLauncher.launch("${assignment.title}.wav")
-                        },
-                        onDownloadReference = { aId ->
-                            viewModel.downloadReference(aId) { path ->
-                                if (!path.isNullOrBlank()) {
-                                    pendingSavePath = path
-                                    saveToDeviceLauncher.launch("${assignment.title}.wav")
+                if (role == UserRole.TEACHER) {
+                    item {
+                        Text("Новое задание", color = BrandGold, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(8.dp))
+                        GlassContainer {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                AppleGlassTextField(
+                                    pendingTitle,
+                                    { pendingTitle = it },
+                                    "Название урока",
+                                    Icons.Default.Edit,
+                                    enabled = !state.isUploading,
+                                )
+
+                                // ВЕРНУЛИ ПОЛЕ ОПИСАНИЯ В UI
+                                AppleGlassTextField(
+                                    pendingDesc,
+                                    { pendingDesc = it },
+                                    "Описание (необязательно)",
+                                    Icons.Default.Edit,
+                                    enabled = !state.isUploading,
+                                )
+
+                                GoldenStringsButton(
+                                    text =
+                                        if (selectedFileUri == null) "Выбрать аудиофайл"
+                                        else "Файл готов ✓",
+                                    onClick = { audioPicker.launch("audio/*") },
+                                    enabled = !state.isUploading,
+                                )
+
+                                if (selectedFileUri != null && pendingTitle.isNotBlank()) {
+                                    Button(
+                                        onClick = {
+                                            val file = File(context.cacheDir, "temp_up")
+                                            context.contentResolver
+                                                .openInputStream(selectedFileUri!!)
+                                                ?.use { input ->
+                                                    file.outputStream().use { input.copyTo(it) }
+                                                }
+                                            // ПЕРЕДАЕМ И ТИТУЛ И ОПИСАНИЕ
+                                            viewModel.uploadAssignment(
+                                                file,
+                                                pendingTitle,
+                                                pendingDesc.ifBlank { null },
+                                            )
+                                            pendingTitle = ""
+                                            pendingDesc = ""
+                                            selectedFileUri = null
+                                        },
+                                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                                        shape = RoundedCornerShape(20.dp),
+                                        colors =
+                                            ButtonDefaults.buttonColors(containerColor = BrandCyan),
+                                        enabled = !state.isUploading,
+                                    ) {
+                                        Text("Опубликовать урок", fontWeight = FontWeight.Bold)
+                                    }
                                 }
                             }
                         }
-                    )
+                    }
+                }
+
+                item {
+                    Text("Уроки", color = Color.White.copy(0.6f), fontWeight = FontWeight.SemiBold)
+                }
+
+                val displayList =
+                    if (role == UserRole.STUDENT) state.assignments.filter { it.status != "FAILED" }
+                    else state.assignments
+
+                if (displayList.isEmpty() && !state.isLoading) {
+                    item {
+                        val msg =
+                            if (role == UserRole.TEACHER) "У вас нет уроков" else "Уроков пока нет"
+                        Text(msg, color = Color.White.copy(0.4f), fontSize = 14.sp)
+                    }
+                }
+
+                items(displayList) { assignment ->
+                    AssignmentListCard(assignment) { onOpenAssignment(assignment.id) }
                 }
             }
         }
@@ -199,72 +172,35 @@ fun RoomScreen(
 }
 
 @Composable
-private fun AssignmentCard(
-    assignment: AssignmentEntity,
-    role: UserRole,
-    onOpenAssignment: () -> Unit,
-    onSaveAudio: (String) -> Unit,
-    onDownloadReference: (UUID) -> Unit
-) {
-    GlassContainer {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        assignment.title,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                    )
-                    Text(
-                        "Статус: ${assignment.status}",
-                        color = Color.White.copy(alpha = 0.7f),
-                        fontSize = 12.sp,
-                    )
-                }
-                IconButton(onClick = onOpenAssignment) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = "Open",
-                        tint = Color.White
-                    )
+private fun AssignmentListCard(assignment: AssignmentEntity, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        shape = RoundedCornerShape(24.dp),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    if (assignment.status == "FAILED") ErrorRed.copy(0.1f)
+                    else Color.White.copy(0.06f)
+            ),
+    ) {
+        Row(
+            modifier = Modifier.padding(20.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    assignment.title,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                )
+                if (assignment.status != "COMPLETED") {
+                    val color = if (assignment.status == "FAILED") ErrorRed else BrandCyan
+                    Text(text = "Статус: ${assignment.status}", color = color, fontSize = 12.sp)
                 }
             }
-
-            assignment.description?.let {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(it, color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
-            }
-
-            val localPath = assignment.referenceAudioLocalPath
-            if (!localPath.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(12.dp))
-                GoldenStringsButton(
-                    text = "Сохранить эталон",
-                    onClick = { onSaveAudio(localPath) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            } else if (role == UserRole.STUDENT) {
-                Spacer(modifier = Modifier.height(12.dp))
-                GoldenStringsButton(
-                    text = "Скачать эталон",
-                    onClick = { onDownloadReference(assignment.id) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            if (role == UserRole.STUDENT) {
-                Spacer(modifier = Modifier.height(12.dp))
-                GoldenStringsButton(
-                    text = "Открыть урок",
-                    onClick = onOpenAssignment,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Color.White.copy(0.4f))
         }
     }
 }

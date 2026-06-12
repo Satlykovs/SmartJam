@@ -87,6 +87,7 @@ public class S3Service {
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()
                 .bucket(bucket)
                 .key(getRelativeKey(path))
+                .responseContentType("audio/mpeg")
                 .build();
 
         PresignedGetObjectRequest presignedGetObjectRequest = presigner.presignGetObject(

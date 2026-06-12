@@ -1,0 +1,74 @@
+services:
+  smartjam-api:
+    build:
+      context: ..
+      dockerfile: backend/service.Dockerfile
+      args:
+        SERVICE_NAME: smartjam-api
+    container_name: smartjam-api
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=debug
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/smartjam
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_PUBLIC_ENDPOINT=http://localhost:9000
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      kafka-init:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+
+  smartjam-analyzer:
+    build:
+      context: ..
+      dockerfile: backend/service.Dockerfile
+      args:
+        SERVICE_NAME: smartjam-analyzer
+    container_name: smartjam-analyzer
+    environment:
+      - SPRING_PROFILES_ACTIVE=debug
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/smartjam
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - MINIO_URL=http://minio:9000
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      kafka-init:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+
+  smartjam-notification:
+    build:
+      context: ..
+      dockerfile: backend/service.Dockerfile
+      args:
+        SERVICE_NAME: smartjam-notification
+    container_name: smartjam-notification
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/smartjam
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      kafka-init:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully

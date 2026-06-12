@@ -1,14 +1,10 @@
 package com.smartjam.app.ui.navigation
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,34 +32,33 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.smartjam.app.data.local.TokenStorage
-import com.smartjam.app.domain.repository.AuthRepository
-import com.smartjam.app.domain.repository.ConnectionRepository
-import com.smartjam.app.domain.repository.RoomRepository
 import com.smartjam.app.ui.screens.home.HomeScreen
 import com.smartjam.app.ui.screens.home.HomeViewModel
-import com.smartjam.app.ui.screens.home.HomeViewModelFactory
 import com.smartjam.app.ui.screens.login.LoginScreen
 import com.smartjam.app.ui.screens.login.LoginViewModel
-import com.smartjam.app.ui.screens.login.LoginViewModelFactory
 import com.smartjam.app.ui.screens.register.RegisterScreen
 import com.smartjam.app.ui.screens.register.RegisterViewModel
-import com.smartjam.app.ui.screens.register.RegisterViewModelFactory
+import com.smartjam.app.ui.screens.room.AssignmentDetailsScreen
 import com.smartjam.app.ui.screens.room.RoomScreen
 import com.smartjam.app.ui.screens.room.RoomViewModel
-import com.smartjam.app.ui.screens.room.RoomViewModelFactory
-import com.smartjam.app.ui.screens.room.AssignmentDetailsScreen
-import com.smartjam.app.ui.theme.BlurCyan
+import com.smartjam.app.ui.screens.submission.SubmissionDetailScreen
 import com.smartjam.app.ui.theme.BlurPurpleDark
 import com.smartjam.app.ui.theme.CoreBackground
 import java.util.*
 
 sealed class Screen(val route: String) {
+
+    object SubmissionDetail :
+        Screen("submission_detail/{connectionId}/{assignmentId}/{submissionId}") {
+        fun createRoute(connectionId: String, assignmentId: String, submissionId: String) =
+            "submission_detail/$connectionId/$assignmentId/$submissionId"
+    }
+
     object Login : Screen("login_screen")
 
     object Register : Screen("register_screen")
@@ -77,6 +72,7 @@ sealed class Screen(val route: String) {
     object Room : Screen("room_screen/{connectionId}/{role}") {
         fun createRoute(connectionId: String, role: String) = "room_screen/$connectionId/$role"
     }
+
     object AssignmentDetails : Screen("assignment_screen/{connectionId}/{assignmentId}/{role}") {
         fun createRoute(connectionId: String, assignmentId: String, role: String) =
             "assignment_screen/$connectionId/$assignmentId/$role"
@@ -84,17 +80,10 @@ sealed class Screen(val route: String) {
 }
 
 @Composable
-fun SmartJamNavGraph(
-    navController: NavHostController,
-    authRepository: AuthRepository,
-    connectionRepository: ConnectionRepository,
-    roomRepository: RoomRepository,
-    tokenStorage: TokenStorage,
-    startDestination: String = Screen.Login.route,
-) {
-
+fun SmartJamNavGraph(navController: NavHostController, startDestination: String) {
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
+
     val appBackground =
         Brush.verticalGradient(
             colors =
@@ -105,7 +94,6 @@ fun SmartJamNavGraph(
                     CoreBackground,
                 )
         )
-    val glassShape = RoundedCornerShape(38.dp)
     val glassBarBrush =
         Brush.verticalGradient(
             colors =
@@ -116,14 +104,6 @@ fun SmartJamNavGraph(
                     Color(0xFF0A0A14).copy(alpha = 0.44f),
                 )
         )
-    val navBarTransition = rememberInfiniteTransition(label = "nav_bar_bg")
-    val navBarPhase by
-        navBarTransition.animateFloat(
-            initialValue = 0f,
-            targetValue = 360f,
-            animationSpec = infiniteRepeatable(tween(14000, easing = LinearEasing)),
-            label = "nav_bar_phase",
-        )
 
     Box(modifier = Modifier.fillMaxSize().background(appBackground)) {
         NavHost(
@@ -132,12 +112,9 @@ fun SmartJamNavGraph(
             modifier = Modifier.fillMaxSize(),
         ) {
             composable(route = Screen.Login.route) {
-                val loginViewModel: LoginViewModel = viewModel(
-                    factory = LoginViewModelFactory(authRepository, tokenStorage, connectionRepository)
-                )
-
+                val viewModel: LoginViewModel = hiltViewModel()
                 LoginScreen(
-                    viewModel = loginViewModel,
+                    viewModel = viewModel,
                     onNavigateToHome = {
                         navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.Login.route) { inclusive = true }
@@ -148,9 +125,7 @@ fun SmartJamNavGraph(
             }
 
             composable(route = Screen.Register.route) {
-                val viewModel: RegisterViewModel =
-                    viewModel(factory = RegisterViewModelFactory(authRepository))
-
+                val viewModel: RegisterViewModel = hiltViewModel()
                 RegisterScreen(
                     viewModel = viewModel,
                     onNavigateToHome = {
@@ -163,9 +138,7 @@ fun SmartJamNavGraph(
             }
 
             composable(route = Screen.Home.route) {
-                val viewModel: HomeViewModel =
-                    viewModel(factory = HomeViewModelFactory(connectionRepository, authRepository))
-
+                val viewModel: HomeViewModel = hiltViewModel()
                 HomeScreen(
                     viewModel = viewModel,
                     onNavigateToRoom = { connectionId ->
@@ -183,7 +156,7 @@ fun SmartJamNavGraph(
             composable(route = Screen.Profile.route) {
                 PlaceholderScreen(
                     title = "Профиль",
-                    subtitle = "Здесь появится аватар, настройки и данные аккаунта",
+                    subtitle = "Настройки аккаунта",
                     icon = Icons.Filled.Person,
                 )
             }
@@ -191,20 +164,18 @@ fun SmartJamNavGraph(
             composable(route = Screen.Comments.route) {
                 PlaceholderScreen(
                     title = "Комментарии",
-                    subtitle = "Здесь будут сообщения, обсуждения и обратная связь",
+                    subtitle = "Ваши чаты",
                     icon = Icons.Filled.Email,
                 )
             }
 
-            composable(route = Screen.Room.route) { backStackEntry ->
-                val connectionIdStr =
-                    backStackEntry.arguments?.getString("connectionId") ?: return@composable
-                val roleStr = backStackEntry.arguments?.getString("role") ?: return@composable
-                val connectionId = UUID.fromString(connectionIdStr)
-                val role = com.smartjam.app.domain.model.UserRole.valueOf(roleStr)
-
-                val viewModel: RoomViewModel =
-                    viewModel(factory = RoomViewModelFactory(connectionId, roomRepository))
+            composable(route = Screen.Room.route) {
+                val viewModel: RoomViewModel = hiltViewModel()
+                val connectionId = UUID.fromString(it.arguments?.getString("connectionId"))
+                val role =
+                    com.smartjam.app.domain.model.UserRole.valueOf(
+                        it.arguments?.getString("role") ?: "STUDENT"
+                    )
 
                 RoomScreen(
                     connectionId = connectionId,
@@ -214,126 +185,114 @@ fun SmartJamNavGraph(
                     onOpenAssignment = { assignmentId ->
                         navController.navigate(
                             Screen.AssignmentDetails.createRoute(
-                                connectionId = connectionId.toString(),
-                                assignmentId = assignmentId.toString(),
-                                role = role.name
+                                connectionId.toString(),
+                                assignmentId.toString(),
+                                role.name,
                             )
                         )
-                    }
+                    },
                 )
             }
 
             composable(route = Screen.AssignmentDetails.route) { backStackEntry ->
-                val connectionIdStr =
-                    backStackEntry.arguments?.getString("connectionId") ?: return@composable
-                val assignmentIdStr =
-                    backStackEntry.arguments?.getString("assignmentId") ?: return@composable
-                val roleStr = backStackEntry.arguments?.getString("role") ?: return@composable
-                val connectionId = UUID.fromString(connectionIdStr)
-                val assignmentId = UUID.fromString(assignmentIdStr)
-                val role = com.smartjam.app.domain.model.UserRole.valueOf(roleStr)
-
-                val viewModel: RoomViewModel = viewModel(
-                    factory = RoomViewModelFactory(connectionId, roomRepository)
-                )
+                val viewModel: RoomViewModel = hiltViewModel()
+                val connectionId =
+                    UUID.fromString(backStackEntry.arguments?.getString("connectionId"))
+                val assignmentId =
+                    UUID.fromString(backStackEntry.arguments?.getString("assignmentId"))
+                val role =
+                    com.smartjam.app.domain.model.UserRole.valueOf(
+                        backStackEntry.arguments?.getString("role") ?: "STUDENT"
+                    )
 
                 AssignmentDetailsScreen(
                     assignmentId = assignmentId,
+                    connectionId = connectionId,
                     role = role,
                     viewModel = viewModel,
-                    onBack = { navController.popBackStack() }
+                    navController = navController,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(route = Screen.SubmissionDetail.route) { backStackEntry ->
+                val viewModel: RoomViewModel = hiltViewModel()
+                val connectionId =
+                    UUID.fromString(backStackEntry.arguments?.getString("connectionId"))
+                val assignmentId =
+                    UUID.fromString(backStackEntry.arguments?.getString("assignmentId"))
+                val submissionId =
+                    UUID.fromString(backStackEntry.arguments?.getString("submissionId"))
+
+                SubmissionDetailScreen(
+                    submissionId = submissionId,
+                    assignmentId = assignmentId,
+                    viewModel = viewModel,
+                    onBack = { navController.popBackStack() },
                 )
             }
         }
 
         if (currentRoute != Screen.Login.route && currentRoute != Screen.Register.route) {
-            Box(
-                modifier =
-                    Modifier.align(Alignment.BottomCenter)
-                        .padding(horizontal = 16.dp, vertical = 14.dp)
-                        .fillMaxWidth()
-                        .height(88.dp)
-                        .clip(glassShape)
-                        .shadow(
-                            elevation = 28.dp,
-                            shape = glassShape,
-                            ambientColor = Color.Black.copy(alpha = 0.12f),
-                            spotColor = Color.Black.copy(alpha = 0.22f),
-                        )
-                        .background(glassBarBrush)
-            ) {
-                Box(
-                    modifier =
-                        Modifier.matchParentSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors =
-                                        listOf(
-                                            Color.White.copy(alpha = 0.08f),
-                                            Color.Transparent,
-                                            Color.White.copy(alpha = 0.03f),
-                                        )
-                                )
-                            )
-                )
+            BottomNavigationBar(navController, currentRoute, glassBarBrush)
+        }
+    }
+}
 
-                NavigationBar(
-                    modifier = Modifier.fillMaxSize().background(Color.Transparent),
-                    containerColor = Color.Transparent,
-                    tonalElevation = 0.dp,
-                    windowInsets = androidx.compose.foundation.layout.WindowInsets(0),
-                ) {
-                    val items = listOf(Screen.Home, Screen.Profile, Screen.Comments)
-                    items.forEach { screen ->
-                        NavigationBarItem(
-                            selected = currentRoute == screen.route,
-                            onClick = {
-                                navController.navigate(screen.route) { popUpTo(Screen.Home.route) }
-                            },
-                            icon = {
+@Composable
+fun BoxScope.BottomNavigationBar(
+    navController: NavHostController,
+    currentRoute: String?,
+    brush: Brush,
+) {
+    val glassShape = RoundedCornerShape(38.dp)
+    Box(
+        modifier =
+            Modifier.align(Alignment.BottomCenter)
+                .padding(horizontal = 16.dp, vertical = 14.dp)
+                .fillMaxWidth()
+                .height(88.dp)
+                .clip(glassShape)
+                .shadow(elevation = 28.dp, shape = glassShape)
+                .background(brush)
+    ) {
+        NavigationBar(containerColor = Color.Transparent, tonalElevation = 0.dp) {
+            val items = listOf(Screen.Home, Screen.Profile, Screen.Comments)
+            items.forEach { screen ->
+                NavigationBarItem(
+                    selected = currentRoute == screen.route,
+                    onClick = {
+                        navController.navigate(screen.route) { popUpTo(Screen.Home.route) }
+                    },
+                    icon = {
+                        val icon =
+                            when (screen) {
+                                is Screen.Home -> Icons.Filled.Home
+                                is Screen.Profile -> Icons.Filled.Person
+                                is Screen.Comments -> Icons.Filled.Email
+                                else -> Icons.Filled.Home
+                            }
+                        Icon(imageVector = icon, contentDescription = null)
+                    },
+                    label = {
+                        Text(
+                            text =
                                 when (screen) {
-                                    is Screen.Home ->
-                                        Icon(
-                                            imageVector = Icons.Filled.Home,
-                                            contentDescription = "Home",
-                                        )
-                                    is Screen.Profile ->
-                                        Icon(
-                                            imageVector = Icons.Filled.Person,
-                                            contentDescription = "Profile",
-                                        )
-                                    is Screen.Comments ->
-                                        Icon(
-                                            imageVector = Icons.Filled.Email,
-                                            contentDescription = "Comments",
-                                        )
-                                    else -> {}
-                                }
-                            },
-                            label = {
-                                Text(
-                                    text =
-                                        when (screen) {
-                                            is Screen.Home -> "Комнаты"
-                                            is Screen.Profile -> "Профиль"
-                                            is Screen.Comments -> "Чаты"
-                                            else -> ""
-                                        },
-                                    fontWeight = FontWeight.Medium,
-                                )
-                            },
-                            alwaysShowLabel = true,
-                            colors =
-                                NavigationBarItemDefaults.colors(
-                                    selectedIconColor = Color.White,
-                                    unselectedIconColor = Color.White.copy(alpha = 0.45f),
-                                    selectedTextColor = Color.White,
-                                    unselectedTextColor = Color.White.copy(alpha = 0.48f),
-                                    indicatorColor = Color.White.copy(alpha = 0.10f),
-                                ),
+                                    is Screen.Home -> "Комнаты"
+                                    is Screen.Profile -> "Профиль"
+                                    is Screen.Comments -> "Чаты"
+                                    else -> ""
+                                },
+                            fontWeight = FontWeight.Medium,
                         )
-                    }
-                }
+                    },
+                    colors =
+                        NavigationBarItemDefaults.colors(
+                            selectedIconColor = Color.White,
+                            unselectedIconColor = Color.White.copy(alpha = 0.45f),
+                            indicatorColor = Color.White.copy(alpha = 0.10f),
+                        ),
+                )
             }
         }
     }
@@ -349,7 +308,6 @@ private fun PlaceholderScreen(
         Brush.radialGradient(
             colors = listOf(BlurPurpleDark.copy(alpha = 0.34f), CoreBackground, CoreBackground)
         )
-
     Box(
         modifier = Modifier.fillMaxSize().background(background).padding(24.dp),
         contentAlignment = Alignment.Center,
@@ -358,10 +316,7 @@ private fun PlaceholderScreen(
             modifier = Modifier.fillMaxWidth(),
             color = Color.White.copy(alpha = 0.06f),
             shape = RoundedCornerShape(28.dp),
-            border =
-                androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
-            tonalElevation = 0.dp,
-            shadowElevation = 10.dp,
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
         ) {
             Column(
                 modifier = Modifier.padding(28.dp),
@@ -372,32 +327,17 @@ private fun PlaceholderScreen(
                     modifier =
                         Modifier.size(76.dp)
                             .clip(RoundedCornerShape(24.dp))
-                            .background(
-                                Brush.linearGradient(
-                                    colors =
-                                        listOf(
-                                            BlurCyan.copy(alpha = 0.22f),
-                                            Color.White.copy(alpha = 0.08f),
-                                        )
-                                )
-                            )
-                            .border(
-                                1.dp,
-                                Color.White.copy(alpha = 0.15f),
-                                RoundedCornerShape(24.dp),
-                            ),
+                            .background(Color.White.copy(alpha = 0.08f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = icon,
-                        contentDescription = title,
+                        contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.size(36.dp),
                     )
                 }
-
                 Text(text = title, color = Color.White, fontWeight = FontWeight.SemiBold)
-
                 Text(text = subtitle, color = Color.White.copy(alpha = 0.68f))
             }
         }

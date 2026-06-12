@@ -4,6 +4,7 @@ import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.smartjam.app.api.AuthApi
+import com.smartjam.app.api.DevicesApi
 import com.smartjam.app.data.local.SmartJamDatabase
 import com.smartjam.app.data.local.TokenStorage
 import com.smartjam.app.data.local.entity.ConnectionEntity
@@ -67,7 +68,22 @@ class ConnectionSeedInstrumentedTest {
                 }
             }
 
-        val authRepository = AuthRepository(tokenStorage, fakeAuthApi, apiClient)
+        val fakeDevicesApi =
+            object : DevicesApi {
+                override suspend fun registerDevice(
+                    deviceRegistrationRequest: com.smartjam.app.model.DeviceRegistrationRequest
+                ): Response<Unit> {
+                    return Response.success(Unit)
+                }
+
+                override suspend fun unregisterDevice(
+                    deviceRegistrationRequest: com.smartjam.app.model.DeviceRegistrationRequest
+                ): Response<Unit> {
+                    return Response.success(Unit)
+                }
+            }
+
+        val authRepository = AuthRepository(tokenStorage, fakeAuthApi, apiClient, fakeDevicesApi)
         authRepository.register(
             email = "mmm",
             password = "Qwerty1!",

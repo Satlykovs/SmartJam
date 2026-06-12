@@ -1,11 +1,14 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    id("com.google.devtools.ksp")
 
     id("org.openapi.generator") version "7.22.0"
 
     alias(libs.plugins.google.services)
+
+    alias(libs.plugins.hilt)
+    alias(libs.plugins.ksp)
+
 
 }
 
@@ -67,9 +70,12 @@ android {
 
 dependencies {
 
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.media3.datasource.okhttp)
     implementation(libs.androidx.room.common.jvm)
     // Jetpack Compose integration
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.ui.graphics)
 
     //network
     implementation(libs.retrofit)
@@ -125,6 +131,10 @@ dependencies {
 
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.coil.compose)
+
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+    implementation(libs.hilt.navigation.compose)
 }
 
 

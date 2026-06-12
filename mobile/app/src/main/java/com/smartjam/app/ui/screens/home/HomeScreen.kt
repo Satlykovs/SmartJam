@@ -1,6 +1,12 @@
 package com.smartjam.app.ui.screens.home
 
+import android.Manifest
+import android.content.ClipData
+import android.content.pm.PackageManager
+import android.os.Build
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,42 +15,34 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.smartjam.app.domain.model.Connection
 import com.smartjam.app.domain.model.UserRole
-import com.smartjam.app.ui.components.AppleGlassTextField
-import com.smartjam.app.ui.components.AppleLiquidBackground
-import com.smartjam.app.ui.components.GlassContainer
-import com.smartjam.app.ui.components.GoldenStringsButton
-import com.smartjam.app.ui.theme.BrandCyan
-import com.smartjam.app.ui.theme.BrandGold
-import com.smartjam.app.ui.theme.ErrorRed
+import com.smartjam.app.ui.components.*
+import com.smartjam.app.ui.theme.*
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
@@ -54,99 +52,102 @@ fun HomeScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val keyboard = LocalSoftwareKeyboardController.current
     val listState = rememberLazyListState()
+
+    LaunchedEffect(Unit) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.refreshTicker.collect { viewModel.syncNetworkData() }
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
                 is HomeEvent.NavigateToLogin -> onNavigateToLogin()
                 is HomeEvent.NavigateToRoom -> onNavigateToRoom(event.connectionId)
-                is HomeEvent.ShowToast -> {
+                is HomeEvent.ShowToast ->
                     Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
-                }
+            }
+        }
+    }
+
+    val permissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS,
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
     }
 
     LaunchedEffect(listState) {
-        snapshotFlow {
-                val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                val total = listState.layoutInfo.totalItemsCount
-                lastVisible to total
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
+            .collect { lastIndex ->
+                viewModel.onListScrolled(lastIndex, listState.layoutInfo.totalItemsCount)
             }
-            .collect { (lastVisible, total) -> viewModel.onListScrolled(lastVisible, total) }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color(0xFF05050A))) {
+    Box(Modifier.fillMaxSize().background(CoreBackground)) {
         AppleLiquidBackground()
 
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize()) {
             HomeHeader(
-                role = state.currentRole,
-                isLoading = state.isLoading,
-                onLogout = viewModel::onLogoutClicked,
-                onSync = viewModel::syncNetworkData,
-                onToggleDebugRole = viewModel::toggleDebugRole,
+                state.currentRole,
+                state.isLoading,
+                viewModel::onLogoutClicked,
+                viewModel::toggleDebugRole,
             )
 
             if (state.errorMessage != null) {
                 Text(
-                    text = state.errorMessage!!,
-                    color = Color(0xFFFF5252),
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-                    fontSize = 14.sp,
+                    state.errorMessage!!,
+                    color = ErrorRed,
+                    modifier = Modifier.padding(horizontal = 24.dp),
                 )
             }
 
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(24.dp),
+                contentPadding = PaddingValues(24.dp, 24.dp, 24.dp, 100.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 if (state.currentRole == UserRole.TEACHER) {
                     item {
                         TeacherInviteSection(
-                            code = state.teacherGeneratedCode,
-                            isLoading = state.isLoading,
-                            onGenerate = viewModel::onGenerateCodeClicked,
+                            state.teacherGeneratedCode,
+                            state.isLoading,
+                            viewModel::onGenerateCodeClicked,
                         )
                     }
-
-                    item { Spacer(modifier = Modifier.height(8.dp)) }
                     item { SectionTitle("Мои ученики") }
                 } else {
                     item {
                         StudentJoinSection(
-                            inputValue = state.inviteCodeInput,
-                            isLoading = state.isLoading,
-                            onInputChange = viewModel::onInviteCodeInputChanged,
-                            onJoin = {
-                                keyboard?.hide()
-                                viewModel.onJoinRoomClicked()
-                            },
-                        )
+                            state.inviteCodeInput,
+                            state.isLoading,
+                            viewModel::onInviteCodeInputChanged,
+                        ) {
+                            keyboard?.hide()
+                            viewModel.onJoinRoomClicked()
+                        }
                     }
-
-                    item { Spacer(modifier = Modifier.height(8.dp)) }
                     item { SectionTitle("Мои преподаватели") }
                 }
 
-                if (state.connections.isEmpty()) {
-                    item {
-                        Text(
-                            text = "Список пуст",
-                            color = Color.White.copy(alpha = 0.5f),
-                            modifier = Modifier.padding(top = 16.dp),
-                        )
-                    }
+                if (state.connections.isEmpty() && !state.isLoading) {
+                    item { Text("Список пуст", color = Color.White.copy(0.4f)) }
                 } else {
-                    items(state.connections) { connection ->
-                        ActiveConnectionCard(
-                            connection = connection,
-                            onClick = { viewModel.onConnectionClicked(connection.id) },
-                        )
+                    items(state.connections) {
+                        ActiveConnectionCard(it) { viewModel.onConnectionClicked(it.id) }
                     }
                 }
             }
@@ -159,46 +160,25 @@ private fun HomeHeader(
     role: UserRole,
     isLoading: Boolean,
     onLogout: () -> Unit,
-    onSync: () -> Unit,
-    onToggleDebugRole: () -> Unit,
+    onToggleRole: () -> Unit,
 ) {
     Row(
-        modifier =
-            Modifier.fillMaxWidth()
-                .padding(top = 48.dp, start = 24.dp, end = 24.dp, bottom = 16.dp),
+        Modifier.fillMaxWidth().padding(top = 48.dp, start = 24.dp, end = 24.dp, bottom = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.clickable { onToggleDebugRole() }) {
+        Column(Modifier.clickable { onToggleRole() }) {
+            Text("SmartJam", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
             Text(
-                text = "SmartJam",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-            )
-            Text(
-                text = if (role == UserRole.TEACHER) "Режим преподавателя" else "Режим ученика",
+                if (role == UserRole.TEACHER) "Преподаватель" else "Ученик",
                 fontSize = 12.sp,
                 color = BrandCyan,
             )
         }
-
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = Color.White,
-                    strokeWidth = 2.dp,
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-            }
-
+            if (isLoading) CircularProgressIndicator(Modifier.size(20.dp), Color.White, 2.dp)
             IconButton(onClick = onLogout) {
-                Icon(
-                    Icons.AutoMirrored.Default.ExitToApp,
-                    contentDescription = "Выйти",
-                    tint = Color.White.copy(alpha = 0.7f),
-                )
+                Icon(Icons.AutoMirrored.Default.ExitToApp, null, tint = Color.White.copy(0.7f))
             }
         }
     }
@@ -206,37 +186,59 @@ private fun HomeHeader(
 
 @Composable
 private fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        fontSize = 18.sp,
-        fontWeight = FontWeight.SemiBold,
-        color = Color.White.copy(alpha = 0.8f),
-    )
+    Text(text, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color.White.copy(0.8f))
 }
 
 @Composable
 private fun TeacherInviteSection(code: String?, isLoading: Boolean, onGenerate: () -> Unit) {
+    val clipboard = LocalClipboard.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
     GlassContainer {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Text("Код приглашения", color = Color.White.copy(alpha = 0.6f), fontSize = 14.sp)
-            Spacer(modifier = Modifier.height(12.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("Код приглашения", color = Color.White.copy(0.6f), fontSize = 14.sp)
 
             if (code != null) {
-                Text(
-                    text = code,
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = BrandGold,
-                    letterSpacing = 4.sp,
-                )
-                Spacer(modifier = Modifier.height(16.dp))
+                Column(
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White.copy(0.05f))
+                            .clickable {
+                                scope.launch {
+                                    clipboard.setClipEntry(
+                                        ClipEntry(ClipData.newPlainText("invite_code", code))
+                                    )
+                                    Toast.makeText(context, "Код скопирован!", Toast.LENGTH_SHORT)
+                                        .show()
+                                }
+                            }
+                            .padding(vertical = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = code,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = BrandGold,
+                        letterSpacing = 4.sp,
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = "Нажмите, чтобы скопировать",
+                        fontSize = 12.sp,
+                        color = Color.White.copy(alpha = 0.5f),
+                    )
+                }
             }
 
             GoldenStringsButton(
-                text = if (code == null) "Сгенерировать код" else "Обновить код",
+                text = if (code == null) "Создать код" else "Обновить код",
                 onClick = onGenerate,
                 enabled = !isLoading,
-                modifier = Modifier.fillMaxWidth().height(50.dp),
             )
         }
     }
@@ -244,83 +246,26 @@ private fun TeacherInviteSection(code: String?, isLoading: Boolean, onGenerate: 
 
 @Composable
 private fun StudentJoinSection(
-    inputValue: String,
+    value: String,
     isLoading: Boolean,
-    onInputChange: (String) -> Unit,
+    onValueChange: (String) -> Unit,
     onJoin: () -> Unit,
 ) {
     GlassContainer {
-        Column {
-            Text(
-                "Присоединиться к классу",
-                color = Color.White.copy(alpha = 0.6f),
-                fontSize = 14.sp,
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Присоединиться", color = Color.White.copy(0.6f), fontSize = 14.sp)
             AppleGlassTextField(
-                value = inputValue,
-                onValueChange = onInputChange,
-                hint = "Введите код (напр. A1B2C)",
-                icon = Icons.Default.Person,
-                keyboardOptions =
-                    KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { onJoin() }),
+                value,
+                onValueChange,
+                "Введите код",
+                Icons.Default.Person,
                 enabled = !isLoading,
             )
-            Spacer(modifier = Modifier.height(16.dp))
-
             GoldenStringsButton(
-                text = "Отправить заявку",
-                onClick = onJoin,
-                enabled = !isLoading && inputValue.isNotBlank(),
-                modifier = Modifier.fillMaxWidth().height(50.dp),
+                "Отправить заявку",
+                onJoin,
+                enabled = !isLoading && value.isNotBlank(),
             )
-        }
-    }
-}
-
-@Composable
-private fun PendingRequestCard(
-    connection: Connection,
-    onAccept: (String) -> Unit,
-    onReject: (String) -> Unit,
-) {
-    GlassContainer {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column {
-                Text(
-                    "Новая заявка",
-                    color = BrandGold,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    connection.peerName,
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium,
-                )
-            }
-            Row {
-                IconButton(
-                    onClick = { onReject(connection.id) },
-                    modifier = Modifier.background(ErrorRed.copy(0.2f), RoundedCornerShape(12.dp)),
-                ) {
-                    Icon(Icons.Default.Close, contentDescription = "Отклонить", tint = ErrorRed)
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                IconButton(
-                    onClick = { onAccept(connection.id) },
-                    modifier = Modifier.background(BrandCyan.copy(0.2f), RoundedCornerShape(12.dp)),
-                ) {
-                    Icon(Icons.Default.Check, contentDescription = "Принять", tint = BrandCyan)
-                }
-            }
         }
     }
 }
@@ -328,21 +273,19 @@ private fun PendingRequestCard(
 @Composable
 private fun ActiveConnectionCard(connection: Connection, onClick: () -> Unit) {
     Box(
-        modifier =
-            Modifier.fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
-                .background(Color.White.copy(alpha = 0.05f))
-                .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(20.dp))
-                .clickable { onClick() }
-                .padding(20.dp)
+        Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color.White.copy(0.05f))
+            .border(1.dp, Color.White.copy(0.1f), RoundedCornerShape(20.dp))
+            .clickable { onClick() }
+            .padding(20.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            val model = connection.peerAvatarBytes ?: connection.peerAvatarUrl
-            if (model != null) {
+            if (!connection.peerAvatarUrl.isNullOrBlank()) {
                 AsyncImage(
                     model =
                         ImageRequest.Builder(LocalContext.current)
-                            .data(model)
+                            .data(connection.peerAvatarUrl)
                             .crossfade(true)
                             .build(),
                     contentDescription = null,
@@ -350,16 +293,15 @@ private fun ActiveConnectionCard(connection: Connection, onClick: () -> Unit) {
                 )
             } else {
                 Box(
-                    modifier =
-                        Modifier.size(48.dp)
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(Color.White.copy(0.1f)),
+                    Modifier.size(48.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Color.White.copy(0.1f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(Icons.Default.Person, contentDescription = null, tint = Color.White)
+                    Icon(Icons.Default.Person, null, tint = Color.White)
                 }
             }
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(Modifier.width(16.dp))
             Column {
                 Text(
                     connection.peerName,

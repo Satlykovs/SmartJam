@@ -3,19 +3,20 @@ package com.smartjam.app.data.api
 import android.util.Log
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import com.smartjam.app.BuildConfig
 import com.smartjam.app.api.DevicesApi
-import com.smartjam.app.data.local.TokenStorage
 import com.smartjam.app.model.DeviceRegistrationRequest
+import dagger.hilt.android.AndroidEntryPoint
+import jakarta.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import okhttp3.OkHttpClient
-import org.openapitools.client.infrastructure.ApiClient
 
+@AndroidEntryPoint
 class FcmPushService : FirebaseMessagingService() {
+
+    @Inject lateinit var devicesApi: DevicesApi
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -25,18 +26,6 @@ class FcmPushService : FirebaseMessagingService() {
 
         scope.launch {
             try {
-                val tokenStorage = TokenStorage(applicationContext)
-                val baseUrl = BuildConfig.BASE_URL
-                val authenticator = AuthAuthenticator(tokenStorage, baseUrl)
-
-                val okHttpClientBuilder = OkHttpClient.Builder().authenticator(authenticator)
-
-                val apiClient =
-                    ApiClient(baseUrl = baseUrl, okHttpClientBuilder = okHttpClientBuilder)
-                authenticator.apiClient = apiClient
-
-                val devicesApi = apiClient.createService(DevicesApi::class.java)
-
                 devicesApi.registerDevice(DeviceRegistrationRequest(token = token))
                 Log.i("SmartJam_FCM", "FCM token updated successfully")
             } catch (e: Exception) {
@@ -47,10 +36,7 @@ class FcmPushService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
-
-        val body = message.notification?.body
-
-        Log.d("SmartjJam_FCM", "Push notification received: $body")
+        Log.d("SmartJam_FCM", "Push notification received: ${message.notification?.body}")
     }
 
     override fun onDestroy() {

@@ -1,0 +1,7 @@
+.gradle
+.idea
+build
+**/build
+
+
+**/src/test/resources

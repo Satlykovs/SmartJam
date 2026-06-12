@@ -10,7 +10,7 @@ import com.smartjam.app.data.local.entity.SubmissionResultEntity
 
 @Database(
     entities = [ConnectionEntity::class, AssignmentEntity::class, SubmissionResultEntity::class],
-    version = 6,
+    version = 8,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)

@@ -2,8 +2,10 @@ package com.smartjam.app.data.player
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.annotation.OptIn
 import androidx.media3.common.*
+import androidx.media3.common.Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
@@ -19,11 +21,23 @@ import okhttp3.Call
 class SmartJamPlayer(private val context: Context, private val callFactory: Call.Factory) :
     MusicPlayer {
 
+    private val extractorsFactory =
+        androidx.media3.extractor.DefaultExtractorsFactory().apply {
+            setConstantBitrateSeekingAlwaysEnabled(true)
+            setMp3ExtractorFlags(
+                androidx.media3.extractor.mp3.Mp3Extractor.FLAG_ENABLE_INDEX_SEEKING
+            )
+            setMp4ExtractorFlags(
+                androidx.media3.extractor.mp4.Mp4Extractor.FLAG_READ_WITHIN_GOP_SAMPLE_DEPENDENCIES
+            )
+        }
+
     private val httpDataSourceFactory = OkHttpDataSource.Factory(callFactory)
     private val dataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
+
     private val player =
         ExoPlayer.Builder(context)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory, extractorsFactory))
             .build()
             .apply {
                 setAudioAttributes(
@@ -56,7 +70,9 @@ class SmartJamPlayer(private val context: Context, private val callFactory: Call
                 override fun onPlaybackStateChanged(state: Int) {
                     if (state == Player.STATE_READY) {
                         _isReady.value = true
-                        _duration.value = if (player.duration > 0) player.duration else 0L
+                        if (player.duration > 0) {
+                            _duration.value = player.duration
+                        }
                     }
                 }
 
@@ -74,11 +90,36 @@ class SmartJamPlayer(private val context: Context, private val callFactory: Call
     }
 
     override fun prepare(uri: Uri) {
+
+        val realDurationMs =
+            try {
+                val retriever = android.media.MediaMetadataRetriever()
+                retriever.setDataSource(context, uri)
+                val time =
+                    retriever.extractMetadata(
+                        android.media.MediaMetadataRetriever.METADATA_KEY_DURATION
+                    )
+                retriever.release()
+                time?.toLong() ?: 0L
+            } catch (e: Exception) {
+                0L
+            }
+
+        if (realDurationMs > 0) {
+            Log.d("SmartJam_Player", "Total dur$realDurationMs")
+            _duration.value = realDurationMs
+        }
+
+        val safeUri =
+            try {
+                val urlString = uri.toString()
+                Uri.parse(Uri.decode(urlString))
+            } catch (e: Exception) {
+                uri
+            }
+
         val mediaItem =
-            MediaItem.Builder()
-                .setUri(uri)
-                .setMimeType(androidx.media3.common.MimeTypes.AUDIO_MPEG)
-                .build()
+            MediaItem.Builder().setUri(safeUri).setMimeType(MimeTypes.AUDIO_UNKNOWN).build()
 
         player.setMediaItem(mediaItem)
         player.prepare()
@@ -88,7 +129,17 @@ class SmartJamPlayer(private val context: Context, private val callFactory: Call
 
     override fun pause() = player.pause()
 
-    override fun seekTo(positionMs: Long) = player.seekTo(positionMs)
+    override fun seekTo(positionMs: Long) {
+
+        if (player.isCommandAvailable(COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)) {
+            Log.d("SmartJam_Player", "Seek is available, seeking now to $positionMs")
+            player.seekTo(positionMs)
+            _currentPosition.value = positionMs
+        } else {
+            Log.d("SmartJam_Player", "WATAFA SEEK IS NOT AVAILABLE")
+            Log.d("SmartJam_Player", player.audioFormat.toString())
+        }
+    }
 
     override fun release() {
         job?.cancel()
@@ -102,7 +153,7 @@ class SmartJamPlayer(private val context: Context, private val callFactory: Call
             while (isActive) {
                 _currentPosition.value = player.currentPosition
                 if (player.duration > 0) _duration.value = player.duration
-                delay(16L)
+                delay(100L)
             }
         }
     }

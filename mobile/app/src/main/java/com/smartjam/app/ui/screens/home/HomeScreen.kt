@@ -1,6 +1,7 @@
 package com.smartjam.app.ui.screens.home
 
 import android.Manifest
+import android.content.ClipData
 import android.content.pm.PackageManager
 import android.os.Build
 import android.widget.Toast
@@ -23,6 +24,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
@@ -39,6 +42,7 @@ import com.smartjam.app.domain.model.UserRole
 import com.smartjam.app.ui.components.*
 import com.smartjam.app.ui.theme.*
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
@@ -84,7 +88,6 @@ fun HomeScreen(
         }
     }
 
-    // Пагинация
     LaunchedEffect(listState) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
             .collect { lastIndex ->
@@ -188,21 +191,53 @@ private fun SectionTitle(text: String) {
 
 @Composable
 private fun TeacherInviteSection(code: String?, isLoading: Boolean, onGenerate: () -> Unit) {
+    val clipboard = LocalClipboard.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
     GlassContainer {
-        Column {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text("Код приглашения", color = Color.White.copy(0.6f), fontSize = 14.sp)
+
             if (code != null) {
-                Text(
-                    code,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = BrandGold,
-                    letterSpacing = 4.sp,
-                )
+                Column(
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White.copy(0.05f))
+                            .clickable {
+                                scope.launch {
+                                    clipboard.setClipEntry(
+                                        ClipEntry(ClipData.newPlainText("invite_code", code))
+                                    )
+                                    Toast.makeText(context, "Код скопирован!", Toast.LENGTH_SHORT)
+                                        .show()
+                                }
+                            }
+                            .padding(vertical = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = code,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = BrandGold,
+                        letterSpacing = 4.sp,
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = "Нажмите, чтобы скопировать",
+                        fontSize = 12.sp,
+                        color = Color.White.copy(alpha = 0.5f),
+                    )
+                }
             }
+
             GoldenStringsButton(
-                if (code == null) "Создать код" else "Обновить код",
-                onGenerate,
+                text = if (code == null) "Создать код" else "Обновить код",
+                onClick = onGenerate,
                 enabled = !isLoading,
             )
         }

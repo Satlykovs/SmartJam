@@ -75,7 +75,6 @@ fun AssignmentDetailsScreen(
         AppleLiquidBackground()
 
         Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp)) {
-            // --- ВЕРХНЯЯ ПАНЕЛЬ (Кнопка назад + Название урока) ---
             Spacer(
                 modifier =
                     Modifier.height(

@@ -53,7 +53,6 @@ constructor(private val api: ConnectionsApi, private val dao: ConnectionDao) {
                     val body = activeResponse.body()!!
                     val activeItems = body.content
 
-                    // Теперь маппинг простой и чистый, без скачивания файлов!
                     val allEntities = activeItems.map { dto ->
                         ConnectionEntity(
                             connectionId = dto.id,
@@ -62,7 +61,7 @@ constructor(private val api: ConnectionsApi, private val dao: ConnectionDao) {
                             createdAt = dto.createdAt,
                             peerFirstName = dto.peerFirstName,
                             peerLastName = dto.peerLastName,
-                            peerAvatarUrl = dto.peerAvatarUrl?.toString(), // Просто берём URL
+                            peerAvatarUrl = dto.peerAvatarUrl?.toString(),
                             myRole = role.name,
                         )
                     }

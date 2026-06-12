@@ -3,6 +3,7 @@ package com.smartjam.app.ui.screens.assignment
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.smartjam.app.data.local.entity.AssignmentEntity
 import com.smartjam.app.data.local.entity.SubmissionResultEntity
 import com.smartjam.app.domain.repository.RoomRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -11,9 +12,7 @@ import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -34,8 +33,20 @@ constructor(
     private var pollingJob: Job? = null
 
     init {
+        loadAssignmentInfo()
         observeSubmissions()
         refreshSubmissions()
+    }
+
+    private fun loadAssignmentInfo() {
+        viewModelScope.launch {
+            val entity = repository.getAssignment(assignmentId)
+            _uiState.update { it.copy(assignment = entity) }
+
+            repository.ensureAssignmentDetailsCached(assignmentId).onSuccess { updated ->
+                _uiState.update { it.copy(assignment = updated) }
+            }
+        }
     }
 
     private fun observeSubmissions() {
@@ -56,7 +67,9 @@ constructor(
     }
 
     private fun checkAndStartPolling(subs: List<SubmissionResultEntity>) {
-        val hasActive = subs.any { it.status == "ANALYZING" || it.status == "UPLOADED" }
+        val hasActive = subs.any {
+            it.status == "AWAITING_UPLOAD" || it.status == "ANALYZING" || it.status == "UPLOADED"
+        }
         if (hasActive && pollingJob?.isActive != true) {
             startPolling()
         }
@@ -84,9 +97,17 @@ constructor(
             _uiState.update { it.copy(isUploading = false) }
         }
     }
+
+    fun downloadReference(onResult: (String?) -> Unit) {
+        viewModelScope.launch {
+            val res = repository.ensureAssignmentDetailsCached(assignmentId)
+            onResult(res.getOrNull()?.referenceAudioLocalPath)
+        }
+    }
 }
 
 data class AssignmentUiState(
+    val assignment: AssignmentEntity? = null,
     val submissions: List<SubmissionResultEntity> = emptyList(),
     val isLoading: Boolean = false,
     val isUploading: Boolean = false,

@@ -187,7 +187,12 @@ private fun HomeHeader(
                 onClick = onProfileClick,
                 modifier = Modifier.clip(CircleShape).background(Color.White.copy(0.1f)),
             ) {
-                Icon(Icons.Default.Person, null, tint = Color.White)
+                Icon(
+                    Icons.Default.Person,
+                    null,
+                    tint = Color.White,
+                ) // Здесь хз, наверное, можно делать вызов к апишке, чтобы аватарку о себе брать и
+                // отрисовывать ее, если есть. А  может можно и так оставить, в целом, вроде норм.
             }
         }
     }

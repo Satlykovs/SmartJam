@@ -118,7 +118,6 @@ fun WaveformCompare(
         val stepX = width / barsCount
         val barWidth = stepX * 0.5f
 
-        // 1. Отрисовка подсветки выбранной зоны (ФОН)
         selectedRange?.let { range ->
             val startX = (range.start / totalDurationSec) * width
             val endX = (range.endInclusive / totalDurationSec) * width
@@ -129,7 +128,6 @@ fun WaveformCompare(
             )
         }
 
-        // 2. Отрисовка баров учителя
         teacherSampled.forEachIndexed { i, amp ->
             val barH = (amp / maxAmp) * (centerY * 0.85f)
             val x = i * stepX + (stepX / 2f)
@@ -142,7 +140,6 @@ fun WaveformCompare(
             )
         }
 
-        // 3. Отрисовка баров ученика с ошибками
         studentSampled.forEachIndexed { i, amp ->
             val x = i * stepX + (stepX / 2f)
             val barH = (amp / maxAmp) * (centerY * 0.85f)
@@ -167,7 +164,6 @@ fun WaveformCompare(
             )
         }
 
-        // 4. Курсор
         if (durationMs > 0) {
             val cursorX = (currentPositionMs.toFloat() / durationMs) * width
             drawLine(Color.White, Offset(cursorX, 0f), Offset(cursorX, height), 2.dp.toPx())

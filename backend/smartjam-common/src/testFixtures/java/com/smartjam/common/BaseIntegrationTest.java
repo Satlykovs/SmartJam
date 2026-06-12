@@ -57,7 +57,7 @@ public abstract class BaseIntegrationTest {
     protected static final MinIOContainer minio = new MinIOContainer(
                     DockerImageName.parse("minio/minio:RELEASE.2023-09-04T19-57-37Z"))
             .withEnv("MINIO_NOTIFY_KAFKA_ENABLE_primary", "on")
-            .withEnv("MINIO_NOTIFY_KAFKA_BROKERS_primary", "kafka:9092")
+            .withEnv("MINIO_NOTIFY_KAFKA_BROKERS_primary", "kafka:9093")
             .withEnv("MINIO_NOTIFY_KAFKA_TOPIC_primary", "s3-events")
             .withNetwork(network);
 

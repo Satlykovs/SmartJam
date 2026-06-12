@@ -102,8 +102,6 @@ class SmartJamPlayer(
     }
 
     override fun play() {
-        val intent = android.content.Intent(context, MusicService::class.java)
-        context.startForegroundService(intent)
         player.play()
     }
 

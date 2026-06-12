@@ -51,7 +51,6 @@ constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            // Достаем название и дату из локального кэша (Entity)
             val assignment = repository.getAssignment(assignmentId)
             val submissionEntity = repository.getSubmissionEntity(assignmentId, submissionId)
 

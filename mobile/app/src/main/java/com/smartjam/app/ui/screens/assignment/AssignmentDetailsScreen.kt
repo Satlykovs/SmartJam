@@ -25,7 +25,6 @@ import com.smartjam.app.data.local.entity.SubmissionResultEntity
 import com.smartjam.app.domain.model.UserRole
 import com.smartjam.app.ui.components.*
 import com.smartjam.app.ui.navigation.Screen
-import com.smartjam.app.ui.screens.room.RoomViewModel
 import com.smartjam.app.ui.theme.BrandCyan
 import com.smartjam.app.ui.theme.CoreBackground
 import java.io.File
@@ -33,16 +32,15 @@ import java.util.UUID
 
 @Composable
 fun AssignmentDetailsScreen(
-    assignmentId: UUID,
     connectionId: UUID,
     role: UserRole,
-    viewModel: RoomViewModel,
+    viewModel: AssignmentViewModel,
     navController: NavHostController,
     onBack: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    val assignment = state.assignments.firstOrNull { it.id == assignmentId }
+    val assignment = state.assignment
 
     var pendingSavePath by remember { mutableStateOf<String?>(null) }
 
@@ -53,7 +51,7 @@ fun AssignmentDetailsScreen(
                 context.contentResolver.openInputStream(it)?.use { input ->
                     file.outputStream().use { output -> input.copyTo(output) }
                 }
-                viewModel.uploadSubmission(assignmentId, file)
+                viewModel.uploadSubmission(file)
             }
         }
 
@@ -70,8 +68,6 @@ fun AssignmentDetailsScreen(
             pendingSavePath = null
         }
 
-    LaunchedEffect(assignmentId) { viewModel.onAssignmentExpanded(assignmentId) }
-
     Box(modifier = Modifier.fillMaxSize().background(CoreBackground)) {
         AppleLiquidBackground()
 
@@ -82,6 +78,8 @@ fun AssignmentDetailsScreen(
                         WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 16.dp
                     )
             )
+
+            // Шапка
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад", tint = Color.White)
@@ -126,7 +124,7 @@ fun AssignmentDetailsScreen(
                             AppleGlassButton(
                                 text = "Скачать эталон",
                                 onClick = {
-                                    viewModel.downloadReference(assignmentId) { path ->
+                                    viewModel.downloadReference { path ->
                                         if (path != null) {
                                             pendingSavePath = path
                                             saveLauncher.launch("${assignment.title}.wav")
@@ -156,19 +154,18 @@ fun AssignmentDetailsScreen(
                     )
                 }
 
-                val submissions = state.submissionsByAssignment[assignmentId].orEmpty()
-                if (submissions.isEmpty()) {
+                if (state.submissions.isEmpty() && !state.isLoading) {
                     item { Text("Попыток пока нет", color = Color.White.copy(alpha = 0.4f)) }
                 }
 
-                items(submissions) { submission ->
+                items(state.submissions) { submission ->
                     SubmissionRow(
                         submission = submission,
                         onClick = {
                             navController.navigate(
                                 Screen.SubmissionDetail.createRoute(
                                     connectionId = connectionId.toString(),
-                                    assignmentId = assignmentId.toString(),
+                                    assignmentId = assignment.id.toString(),
                                     submissionId = submission.id.toString(),
                                 )
                             )
@@ -229,7 +226,10 @@ private fun SubmissionRow(submission: SubmissionResultEntity, onClick: () -> Uni
 fun formatSubmissionDate(instant: java.time.Instant?): String {
     if (instant == null) return ""
     val formatter =
-        java.time.format.DateTimeFormatter.ofPattern("d MMMM, HH:mm", java.util.Locale("ru"))
+        java.time.format.DateTimeFormatter.ofPattern(
+                "d MMMM, HH:mm",
+                java.util.Locale.forLanguageTag("ru"),
+            )
             .withZone(java.time.ZoneId.systemDefault())
     return formatter.format(instant)
 }

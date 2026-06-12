@@ -37,7 +37,6 @@ fun ProfileScreen(viewModel: ProfileViewModel, onBack: () -> Unit, onNavigateToL
         Column(Modifier.fillMaxSize().padding(24.dp)) {
             Spacer(Modifier.height(WindowInsets.statusBars.asPaddingValues().calculateTopPadding()))
 
-            // Заголовок
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White)
@@ -47,7 +46,6 @@ fun ProfileScreen(viewModel: ProfileViewModel, onBack: () -> Unit, onNavigateToL
 
             Spacer(Modifier.weight(1f))
 
-            // Мемный контент
             GlassContainer {
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),

@@ -88,11 +88,11 @@ public abstract class BaseIntegrationTest {
 
         Locale.setDefault(Locale.US);
 
-//        try {
-//            Thread.sleep(10000);
-//        } catch (InterruptedException e) {
-//            throw new RuntimeException(e);
-//        }
+        //        try {
+        //            Thread.sleep(10000);
+        //        } catch (InterruptedException e) {
+        //            throw new RuntimeException(e);
+        //        }
     }
 
     @DynamicPropertySource

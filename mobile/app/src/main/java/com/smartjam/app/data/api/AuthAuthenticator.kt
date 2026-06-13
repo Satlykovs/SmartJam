@@ -20,6 +20,15 @@ class AuthAuthenticator(
     private val mutex = Mutex()
 
     override fun authenticate(route: Route?, response: Response): Request? {
+
+        val path = response.request.url.encodedPath
+        if (
+            path.contains("/auth/refresh") ||
+                path.contains("/auth/login") ||
+                path.contains("/auth/register")
+        ) {
+            return null
+        }
         if (response.responseCount > 2) return null
 
         return runBlocking {

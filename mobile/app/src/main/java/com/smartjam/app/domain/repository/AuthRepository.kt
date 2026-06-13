@@ -110,13 +110,16 @@ constructor(
     }
 
     suspend fun refreshToken(): Boolean {
+        Log.d("SmartJam_Auth_Repo", "Refreshing start")
         return try {
             val refreshTokenStr = tokenStorage.refreshToken.first() ?: return false
 
             val storedRole = tokenStorage.userRole.first() ?: UserRole.STUDENT.name
             val apiRole = toApiRole(storedRole)
-            val response = authApi.refreshToken(RefreshRequest(refreshTokenStr, apiRole))
 
+            Log.d("SmartJam_Auth_Repo", "Sending refresh request")
+            val response = authApi.refreshToken(RefreshRequest(refreshTokenStr, apiRole))
+            Log.d("SmartJam_Auth_Repo", "Refresh response got")
             if (response.isSuccessful && response.body() != null) {
                 val authResponse = response.body()!!
                 tokenStorage.saveToken(
@@ -127,13 +130,16 @@ constructor(
                 apiClient.setBearerToken(authResponse.accessToken)
                 true
             } else {
+                Log.d("SmartJam_Auth_Repo", "Unlucky, something got wrong =(")
                 tokenStorage.clearTokens()
                 apiClient.setBearerToken("")
                 false
             }
         } catch (e: CancellationException) {
+            Log.e("SmartJam_Auth_Repo", e.message.toString())
             throw e
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e("SmartJam_Auth_Repo", e.message.toString())
             tokenStorage.clearTokens()
             apiClient.setBearerToken("")
             false
@@ -194,6 +200,7 @@ constructor(
     }
 
     suspend fun verifyAuthentication(): Boolean {
+        Log.d("SmartJam_Auth_Repo", "Begin verifying")
         if (BuildConfig.DEBUG) {
             val token = tokenStorage.accessToken.first()
             if (token == "mock_admin_access_token") {
@@ -206,11 +213,18 @@ constructor(
             return false
         }
 
+        Log.d("SmartJam_Auth_Repo", "Refresh token checked, refreshing")
+
         val isValid = refreshToken()
 
+        Log.d("SmartJam_Auth_Repo", "After refreshing")
+
         if (isValid) {
+            Log.d("SmartJam_Auth_Repo", "Adding device fcm")
             registerDevicePushToken()
         }
+
+        Log.d("SmartJam_Auth_Repo", "Returning")
 
         return isValid
     }

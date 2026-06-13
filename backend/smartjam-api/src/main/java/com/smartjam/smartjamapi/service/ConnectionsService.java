@@ -6,6 +6,7 @@ import java.util.*;
 import jakarta.persistence.EntityNotFoundException;
 
 import com.smartjam.api.model.*;
+import com.smartjam.common.dto.connection.StudentJoinedEvent;
 import com.smartjam.smartjamapi.entity.ConnectionsEntity;
 import com.smartjam.smartjamapi.entity.UserEntity;
 import com.smartjam.smartjamapi.enums.ConnectionsStatus;
@@ -16,13 +17,17 @@ import com.smartjam.smartjamapi.repository.ConnectionsRepository;
 import com.smartjam.smartjamapi.repository.UserRepository;
 import com.smartjam.smartjamapi.security.IdentityService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ConnectionsService {
 
     private final ConnectionsRepository repository;
@@ -47,6 +52,8 @@ public class ConnectionsService {
         return new InviteResponse(inviteCode);
     }
 
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+
     @Transactional
     public void joinTeacher(JoinRequest request) {
         ConnectionsEntity connection = repository
@@ -68,6 +75,26 @@ public class ConnectionsService {
         connection.setStatus(ConnectionsStatus.ACTIVE);
 
         repository.save(connection);
+
+        String studentDisplayName = getFullName(student);
+        log.info("Sending student joined event for student: {}", studentDisplayName);
+
+        kafkaTemplate.send("connection-events", new StudentJoinedEvent(connection.getId(), studentDisplayName));
+    }
+
+    private String getFullName(UserEntity user) {
+        String firstName = user.getFirstName();
+        String lastName = user.getLastName();
+
+        if (StringUtils.hasText(firstName) && StringUtils.hasText(lastName)) {
+            return firstName + " " + lastName;
+        } else if (StringUtils.hasText(firstName)) {
+            return firstName;
+        } else if (StringUtils.hasText(lastName)) {
+            return lastName;
+        } else {
+            return user.getUsername();
+        }
     }
 
     @Transactional

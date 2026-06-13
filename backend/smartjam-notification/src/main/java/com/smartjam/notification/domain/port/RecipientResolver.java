@@ -13,6 +13,16 @@ public interface RecipientResolver {
     /** Finds the owner ID for the given target (Student or Teacher). */
     UUID findOwnerId(UUID targetId, AnalysisType type);
 
+    UUID findStudentIdByAssignment(UUID assignmentId);
+
+    UUID findTeacherIdByConnection(UUID connectionId);
+
+    /** Finds the teacher's username associated with the given assignment. */
+    String findTeacherUsernameByAssignment(UUID assignmentId);
+
+    /** Finds the title of the assignment. */
+    String findAssignmentTitle(UUID assignmentId);
+
     /** Retrieves the FCM registration tokens for a specific user. */
     List<String> findFcmTokens(UUID userId);
 }

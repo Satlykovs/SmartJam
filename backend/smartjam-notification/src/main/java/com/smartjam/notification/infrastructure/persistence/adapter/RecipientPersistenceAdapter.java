@@ -29,7 +29,38 @@ public class RecipientPersistenceAdapter implements RecipientResolver {
     }
 
     @Override
+    public UUID findStudentIdByAssignment(UUID assignmentId) {
+        String query = "SELECT c.student_id FROM connections c " + "JOIN assignments a ON a.connection_id = c.id "
+                + "WHERE a.id = ?";
+        return jdbcTemplate.queryForObject(query, UUID.class, assignmentId);
+    }
+
+    @Override
+    public UUID findTeacherIdByConnection(UUID connectionId) {
+        String query = "SELECT teacher_id FROM connections WHERE id = ?";
+        return jdbcTemplate.queryForObject(query, UUID.class, connectionId);
+    }
+
+    @Override
     public List<String> findFcmTokens(UUID userId) {
         return jdbcTemplate.queryForList("SELECT fcm_token FROM user_devices WHERE user_id = ?", String.class, userId);
+    }
+
+    @Override
+    public String findTeacherUsernameByAssignment(UUID assignmentId) {
+        String query = """
+            SELECT u.username
+            FROM users u
+            JOIN connections c ON c.teacher_id = u.id
+            JOIN assignments a ON a.connection_id = c.id
+            WHERE a.id = ?
+            """;
+        return jdbcTemplate.queryForObject(query, String.class, assignmentId);
+    }
+
+    @Override
+    public String findAssignmentTitle(UUID assignmentId) {
+        String query = "SELECT title FROM assignments WHERE id = ?";
+        return jdbcTemplate.queryForObject(query, String.class, assignmentId);
     }
 }

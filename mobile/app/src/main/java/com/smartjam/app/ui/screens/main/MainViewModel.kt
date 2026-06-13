@@ -1,5 +1,6 @@
 package com.smartjam.app.ui.screens.main
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.smartjam.app.domain.repository.AuthRepository
@@ -22,14 +23,17 @@ class MainViewModel @Inject constructor(private val authRepository: AuthReposito
 
     private fun checkAuth() {
         viewModelScope.launch {
-            val isValid =
-                try {
-                    authRepository.verifyAuthentication()
-                } catch (e: Exception) {
-                    false
-                }
+            try {
+                Log.d("SmartJam_Auth", "Starting auth verification...")
 
-            _startDestination.value = if (isValid) Screen.Home.route else Screen.Login.route
+                val isValid = authRepository.verifyAuthentication()
+
+                Log.d("SmartJam_Auth", "Verification result: $isValid")
+                _startDestination.value = if (isValid) Screen.Home.route else Screen.Login.route
+            } catch (e: Exception) {
+                Log.e("SmartJam_Auth", "Auth verification failed", e)
+                _startDestination.value = Screen.Login.route
+            }
         }
     }
 }

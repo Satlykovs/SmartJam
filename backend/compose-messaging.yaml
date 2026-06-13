@@ -46,7 +46,10 @@ services:
         
         /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic analysis-results --partitions 3 --replication-factor 1
         
-        echo "Topics s3-events and analysis-results created."
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic connection-events --partitions 3 --replication-factor 1
+        
+        echo "Topics created: s3-events, analysis-results, and connection-events."
+
 
 
 

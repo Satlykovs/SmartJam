@@ -19,7 +19,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -72,7 +71,7 @@ public class NotificationIntegrationIT extends BaseIntegrationTest {
                 teacherId,
                 studentId);
 
-            jdbcTemplate.update(
+        jdbcTemplate.update(
                 "INSERT INTO assignments (id, connection_id, title) VALUES (?, ?, 'Task 1')",
                 assignmentId,
                 connectionId);
@@ -100,8 +99,7 @@ public class NotificationIntegrationIT extends BaseIntegrationTest {
 
         kafkaTemplate.send("analysis-results", submissionId.toString(), event);
 
-        verify(pushPublisher, timeout(5000))
-                .sendPush(eq(List.of(TEST_FCM_TOKEN)), matches(".*88[.,]50?.*"));
+        verify(pushPublisher, timeout(5000)).sendPush(eq(List.of(TEST_FCM_TOKEN)), matches(".*88[.,]50?.*"));
     }
 
     @Test

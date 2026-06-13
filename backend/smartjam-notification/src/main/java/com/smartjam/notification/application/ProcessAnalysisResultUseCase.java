@@ -13,8 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
- * Core application service (orchestrator) for handling analysis results. Responsible for resolving the recipient's
- * identity and triggering notification delivery through various channels (e.g., Push notifications).
+ * Application service for handling analysis results. Responsible for resolving the recipient's identity and triggering
+ * notification delivery through various channels (e.g., Push notifications).
  */
 @Slf4j
 @Service
@@ -24,32 +24,60 @@ public class ProcessAnalysisResultUseCase {
     private final PushPublisher pushPublisher;
 
     public void execute(AnalysisFinishedEvent event) {
-        log.info(
-                "Processing analysis result for target ID: {}, type: {}, status: {}",
-                event.targetId(),
-                event.type(),
-                event.status());
+        if (event.status() != AudioProcessingStatus.COMPLETED) return;
 
-        if (event.status() == AudioProcessingStatus.COMPLETED) {
-            try {
-                UUID userId = recipientResolver.findOwnerId(event.targetId(), event.type());
+        try {
+            UUID ownerId = recipientResolver.findOwnerId(event.targetId(), event.type());
+            sendPushToUser(ownerId, getOwnerMessage(event));
+        } catch (Exception e) {
+            log.error("Primary notification failed for {}: {}", event.targetId(), e.getMessage());
+            throw e;
+        }
 
-                List<String> tokens = recipientResolver.findFcmTokens(userId);
+        try {
 
-                if (tokens.isEmpty()) {
-                    log.warn("User {} has no registered devices, push skipped", userId);
-                    return;
-                }
+            if (event.type() == AnalysisType.REFERENCE) {
+                UUID studentId = recipientResolver.findStudentIdByAssignment(event.targetId());
+                String teacherUsername = recipientResolver.findTeacherUsernameByAssignment(event.targetId());
+                String assignmentTitle = recipientResolver.findAssignmentTitle(event.targetId());
 
-                String formattedScore = String.format("%.2f", event.totalScore());
+                String msg =
+                        String.format("%s добавил урок '%s'! Пора позаниматься 🎸", teacherUsername, assignmentTitle);
 
-                String message = (event.type() == AnalysisType.SUBMISSION)
-                        ? "Твоя игра проанализирована! Балл: " + formattedScore
-                        : "Твоя запись успешно обработана! 🎸";
-                pushPublisher.sendPush(tokens, message);
-            } catch (Exception e) {
-                log.error("Failed to send push notification for {}: {}", event.targetId(), e.getMessage());
+                sendPushToUser(studentId, msg);
+            }
+
+        } catch (Exception e) {
+            log.warn(
+                    "Secondary notification failed for {}, skipping retry to avoid duplicates: {}",
+                    event.targetId(),
+                    e.getMessage());
+        }
+    }
+
+    private void sendPushToUser(UUID userId, String message) {
+        List<String> tokens = recipientResolver.findFcmTokens(userId);
+        if (!tokens.isEmpty()) {
+            pushPublisher.sendPush(tokens, message);
+        }
+    }
+
+    private String getOwnerMessage(AnalysisFinishedEvent event) {
+        if (event.type() == AnalysisType.SUBMISSION) {
+            double score = event.totalScore();
+            String formattedScore = String.format("%.1f%%", score);
+
+            if (score >= 90.0) {
+                return String.format("Ого! Это было мощно! Балл: %s 🔥 Ты звучишь как профи!", formattedScore);
+            } else if (score >= 75.0) {
+                return String.format(
+                        "Круто! Твоя игра проанализирована. Балл: %s 💪 Хороший результат!", formattedScore);
+            } else {
+                return String.format(
+                        "Анализ готов. Балл: %s 🎸 Немного практики, и всё получится. Давай еще раз!", formattedScore);
             }
         }
+
+        return "Твоя запись успешно обработана и доступна ученику! 🚀";
     }
 }

@@ -32,9 +32,15 @@ public class ConnectionsService {
 
     @Transactional
     public InviteResponse createInvite() {
-        byte[] randomBytes = new byte[16];
+        byte[] randomBytes = new byte[6];
         new SecureRandom().nextBytes(randomBytes);
-        String inviteCode = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+
+        String raw = Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString(randomBytes)
+                .substring(0, 5)
+                .toUpperCase();
+        String inviteCode = raw.substring(0, 3) + "-" + raw.substring(3);
 
         UUID userId = identityService.getCurrentUserId();
         UserEntity teacher = userRepository.getReferenceById(userId);
@@ -66,6 +72,7 @@ public class ConnectionsService {
         UserEntity student = userRepository.getReferenceById(userId);
         connection.setStudent(student);
         connection.setStatus(ConnectionsStatus.ACTIVE);
+        connection.setInviteCode(null);
 
         repository.save(connection);
     }

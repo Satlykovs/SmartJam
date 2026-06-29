@@ -36,11 +36,12 @@ android {
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             )
-            buildConfigField("String", "BASE_URL", "\"https://api.smartjam.com/\"")
+            //https://api.smartjam.ru/
+            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8081\"")
         }
-
+        //http://10.0.2.2:8081
         getByName("debug") {
-            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8081/\"")
+            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8081\"")
         }
     }
     compileOptions {

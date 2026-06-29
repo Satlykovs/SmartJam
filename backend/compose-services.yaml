@@ -14,6 +14,12 @@ services:
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - MINIO_ENDPOINT=http://minio:9000
       - MINIO_PUBLIC_ENDPOINT=http://localhost:9000
+      - OTEL_SERVICE_NAME=smartjam-api
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - OTEL_METRICS_EXPORTER=otlp
+      - OTEL_LOGS_EXPORTER=otlp
+      - OTEL_TRACES_EXPORTER=otlp
     deploy:
       resources:
         limits:
@@ -38,6 +44,12 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/smartjam
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - MINIO_URL=http://minio:9000
+      - OTEL_SERVICE_NAME=smartjam-analyzer
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - OTEL_METRICS_EXPORTER=otlp
+      - OTEL_LOGS_EXPORTER=otlp
+      - OTEL_TRACES_EXPORTER=otlp
     deploy:
       resources:
         limits:
@@ -61,6 +73,12 @@ services:
       - SPRING_PROFILES_ACTIVE=prod
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/smartjam
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - OTEL_SERVICE_NAME=smartjam-notification
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - OTEL_METRICS_EXPORTER=otlp
+      - OTEL_LOGS_EXPORTER=otlp
+      - OTEL_TRACES_EXPORTER=otlp
     deploy:
       resources:
         limits:

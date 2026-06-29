@@ -1,5 +1,6 @@
 package com.smartjam.app.ui.screens.room
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -80,6 +81,7 @@ constructor(
                     repository.uploadFileToS3(info.uploadUrl.toString(), file)
                     refreshRoomData()
                 }
+                .onFailure { info -> Log.e("SmartJam_Assignment_room", info.message.toString()) }
             _uiState.update { it.copy(isUploading = false) }
         }
     }

@@ -31,10 +31,14 @@ WORKDIR /application
 ARG SERVICE_NAME
 
 
+
 RUN if [ "$SERVICE_NAME" = "smartjam-analyzer" ]; then \
         apk add --no-cache ffmpeg; \
     fi && \
     addgroup -S smartjam && adduser -S smartjam -G smartjam
+
+ADD --chown=smartjam:smartjam https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar /application/opentelemetry-javaagent.jar
+
 
 USER smartjam
 
@@ -44,6 +48,7 @@ COPY --from=layers /extract/snapshot-dependencies/ ./
 COPY --from=layers /extract/application/ ./
 
 ENTRYPOINT ["java", \
+            "-javaagent:/application/opentelemetry-javaagent.jar", \
             "-XX:MaxRAMPercentage=75.0", \
             "-XX:+UseSerialGC", \
             "-Xss256k", \

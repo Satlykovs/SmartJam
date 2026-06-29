@@ -94,4 +94,7 @@ public class UserEntity {
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    @Column(name = "avatar_updated_at", nullable = false)
+    private Instant avatarUpdatedAt = Instant.EPOCH;
 }

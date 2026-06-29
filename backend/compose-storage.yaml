@@ -78,6 +78,9 @@ services:
       MINIO_NOTIFY_KAFKA_ENABLE_primary: "on"
       MINIO_NOTIFY_KAFKA_BROKERS_primary: kafka:9092
       MINIO_NOTIFY_KAFKA_TOPIC_primary: s3-events
+      MINIO_NOTIFY_KAFKA_ENABLE_avatar_proc: "on"
+      MINIO_NOTIFY_KAFKA_BROKERS_avatar_proc: kafka:9092
+      MINIO_NOTIFY_KAFKA_TOPIC_avatar_proc: s3-avatar-events
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000"
@@ -106,20 +109,29 @@ services:
           sleep 1
         done
         
-        provision_bucket() {
+        provision_primary_bucket() {
           BUCKET_NAME=$$1
-          echo "Provisioning bucket: $$BUCKET_NAME"
-        
+          echo "Provisioning primary Kafka bucket: $$BUCKET_NAME"
           /usr/bin/mc mb --ignore-existing myminio/$$BUCKET_NAME
-        
-        
-          echo "Resetting Kafka events for $$BUCKET_NAME..."
           /usr/bin/mc event remove myminio/$$BUCKET_NAME arn:minio:sqs::primary:kafka --event put || true
           /usr/bin/mc event add myminio/$$BUCKET_NAME arn:minio:sqs::primary:kafka --event put
         }
         
-        provision_bucket references
-        provision_bucket submissions
+        provision_avatar_bucket() {
+          BUCKET_NAME=$$1
+          echo "Provisioning avatar Kafka bucket: $$BUCKET_NAME"
+          /usr/bin/mc mb --ignore-existing myminio/$$BUCKET_NAME
+          /usr/bin/mc event remove myminio/$$BUCKET_NAME arn:minio:sqs::avatar_proc:kafka --event put || true
+          /usr/bin/mc event add myminio/$$BUCKET_NAME arn:minio:sqs::avatar_proc:kafka --event put
+        }
+        
+        provision_primary_bucket references
+        provision_primary_bucket submissions
+        
+        /usr/bin/mc mb --ignore-existing myminio/avatars
+        /usr/bin/mc anonymous set download myminio/avatars
+        
+        provision_avatar_bucket temp-avatars
         
         echo "MinIO infrastructure setup complete."
 

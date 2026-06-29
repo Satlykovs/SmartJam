@@ -66,3 +66,9 @@ minio:
   buckets:
     references: references
     submissions: submissions
+    avatars: avatars
+    temp-avatars: temp-avatars
+  format-avatar:
+    jpeg: "jpeg"
+    jpg: "jpg"
+    png: "png"

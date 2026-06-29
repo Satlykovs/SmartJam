@@ -59,6 +59,9 @@ public abstract class BaseIntegrationTest {
             .withEnv("MINIO_NOTIFY_KAFKA_ENABLE_primary", "on")
             .withEnv("MINIO_NOTIFY_KAFKA_BROKERS_primary", "kafka:9093")
             .withEnv("MINIO_NOTIFY_KAFKA_TOPIC_primary", "s3-events")
+            .withEnv("MINIO_NOTIFY_KAFKA_ENABLE_avatar_proc", "on")
+            .withEnv("MINIO_NOTIFY_KAFKA_BROKERS_avatar_proc", "kafka:9093")
+            .withEnv("MINIO_NOTIFY_KAFKA_TOPIC_avatar_proc", "s3-avatar-events")
             .withNetwork(network);
 
     protected static final GenericContainer<?> dbInit = new GenericContainer<>(
@@ -83,7 +86,6 @@ public abstract class BaseIntegrationTest {
         kafka.start();
         redis.start();
         minio.start();
-
         dbInit.start();
 
         Locale.setDefault(Locale.US);
@@ -97,6 +99,9 @@ public abstract class BaseIntegrationTest {
 
     @DynamicPropertySource
     static void overrideMinioProperties(DynamicPropertyRegistry registry) {
+        registry.add("minio.endpoint", minio::getS3URL);
+        registry.add("minio.public-endpoint", minio::getS3URL);
+
         registry.add("minio.url", minio::getS3URL);
         registry.add("minio.access-key", minio::getUserName);
         registry.add("minio.secret-key", minio::getPassword);
@@ -108,6 +113,14 @@ public abstract class BaseIntegrationTest {
         @Bean
         public NewTopic s3EventsTopic() {
             return TopicBuilder.name("s3-events").partitions(3).replicas(1).build();
+        }
+
+        @Bean
+        public NewTopic s3AvatarEventsTopic() {
+            return TopicBuilder.name("s3-avatar-events")
+                    .partitions(3)
+                    .replicas(1)
+                    .build();
         }
 
         @Bean
@@ -128,17 +141,25 @@ public abstract class BaseIntegrationTest {
             setupBucket(client, "references");
             setupBucket(client, "submissions");
 
+            setupBucket(client, "temp-avatars");
+            setupBucket(client, "avatars");
+
             return client;
         }
 
         private void setupBucket(MinioClient client, String bucketName) throws Exception {
             boolean exists = client.bucketExists(
                     BucketExistsArgs.builder().bucket(bucketName).build());
+
             if (!exists) {
                 client.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
 
+                String arn = bucketName.equals("temp-avatars")
+                        ? "arn:minio:sqs::avatar_proc:kafka"
+                        : "arn:minio:sqs::primary:kafka";
+
                 QueueConfiguration queueConfig = new QueueConfiguration();
-                queueConfig.setQueue("arn:minio:sqs::primary:kafka");
+                queueConfig.setQueue(arn);
                 queueConfig.setEvents(List.of(EventType.OBJECT_CREATED_PUT));
 
                 NotificationConfiguration notificationConfig = new NotificationConfiguration();

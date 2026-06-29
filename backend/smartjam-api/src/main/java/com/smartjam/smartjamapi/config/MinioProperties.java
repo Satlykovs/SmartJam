@@ -40,5 +40,28 @@ public class MinioProperties {
 
         @NotBlank
         private String submissions;
+
+        @NotBlank
+        private String avatars;
+
+        @NotBlank
+        private String tempAvatars;
+    }
+
+    @Valid
+    @NotNull
+    private FormatAvatar formatAvatar;
+
+    @Getter
+    @Setter
+    public static class FormatAvatar {
+        @NotBlank
+        private String jpeg;
+
+        @NotBlank
+        private String jpg;
+
+        @NotBlank
+        private String png;
     }
 }

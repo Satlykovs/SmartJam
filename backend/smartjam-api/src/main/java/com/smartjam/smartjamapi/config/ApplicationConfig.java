@@ -11,6 +11,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 @Configuration
@@ -23,19 +25,36 @@ public class ApplicationConfig {
     }
 
     @Bean
-    public S3Presigner s3Presigner(MinioProperties minioProperties) {
-
-        String effectiveEndpoint = (minioProperties.getPublicEndpoint() != null
-                        && !minioProperties.getPublicEndpoint().isBlank())
-                ? minioProperties.getPublicEndpoint()
-                : minioProperties.getEndpoint();
-
-        return S3Presigner.builder()
-                .endpointOverride(URI.create(effectiveEndpoint))
+    public S3Client s3Client(MinioProperties minioProperties) {
+        return S3Client.builder()
+                .endpointOverride(URI.create(minioProperties.getEndpoint()))
                 .region(Region.US_EAST_1)
-                .serviceConfiguration(software.amazon.awssdk.services.s3.S3Configuration.builder()
-                        .pathStyleAccessEnabled(true)
-                        .build())
+                .credentialsProvider(StaticCredentialsProvider.create(
+                        AwsBasicCredentials.create(minioProperties.getAccessKey(), minioProperties.getSecretKey())))
+                .serviceConfiguration(
+                        S3Configuration.builder().pathStyleAccessEnabled(true).build())
+                .build();
+    }
+
+    @Bean("publicS3Client")
+    public S3Client publicS3Client(MinioProperties minioProperties) {
+        return S3Client.builder()
+                .endpointOverride(URI.create(minioProperties.getPublicEndpoint()))
+                .region(Region.US_EAST_1)
+                .credentialsProvider(StaticCredentialsProvider.create(
+                        AwsBasicCredentials.create(minioProperties.getAccessKey(), minioProperties.getSecretKey())))
+                .serviceConfiguration(
+                        S3Configuration.builder().pathStyleAccessEnabled(true).build())
+                .build();
+    }
+
+    @Bean
+    public S3Presigner s3Presigner(MinioProperties minioProperties) {
+        return S3Presigner.builder()
+                .endpointOverride(URI.create(minioProperties.getPublicEndpoint()))
+                .region(Region.US_EAST_1)
+                .serviceConfiguration(
+                        S3Configuration.builder().pathStyleAccessEnabled(true).build())
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(minioProperties.getAccessKey(), minioProperties.getSecretKey())))
                 .build();

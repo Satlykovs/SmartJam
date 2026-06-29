@@ -11,3 +11,5 @@ databaseChangeLog:
       file: db/changelog/changes/05-add-waveforms-to-submissions.sql
   - include:
       file: db/changelog/changes/06-update-comment-index.sql
+  - include:
+      file: db/changelog/changes/07-add-avatar-version.sql

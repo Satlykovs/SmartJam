@@ -37,9 +37,16 @@ public class ConnectionsService {
 
     @Transactional
     public InviteResponse createInvite() {
-        byte[] randomBytes = new byte[16];
-        new SecureRandom().nextBytes(randomBytes);
-        String inviteCode = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+
+        String alphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+        SecureRandom random = new SecureRandom();
+
+        StringBuilder sb = new StringBuilder(6);
+        for (int i = 0; i < 6; i++) {
+            sb.append(alphabet.charAt(random.nextInt(alphabet.length())));
+        }
+
+        String inviteCode = sb.toString();
 
         UUID userId = identityService.getCurrentUserId();
         UserEntity teacher = userRepository.getReferenceById(userId);
@@ -73,6 +80,7 @@ public class ConnectionsService {
         UserEntity student = userRepository.getReferenceById(userId);
         connection.setStudent(student);
         connection.setStatus(ConnectionsStatus.ACTIVE);
+        connection.setInviteCode(null);
 
         repository.save(connection);
 

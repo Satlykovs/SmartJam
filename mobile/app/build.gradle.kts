@@ -36,10 +36,8 @@ android {
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             )
-            //https://api.smartjam.ru/
-            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8081\"")
+            buildConfigField("String", "BASE_URL", "\"https://api.smartjam.ru\"")
         }
-        //http://10.0.2.2:8081
         getByName("debug") {
             buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8081\"")
         }
@@ -51,13 +49,6 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
-    }
-
-    sourceSets {
-        getByName("main") {
-
-            kotlin.directories.add("${layout.buildDirectory.get()}/generated/openapi/src/main/kotlin")
-        }
     }
 
     sourceSets {
@@ -83,10 +74,10 @@ dependencies {
     implementation(libs.okhttp)
 
     //audio player
-    implementation("androidx.media3:media3-exoplayer:1.10.1")
-    implementation("androidx.media3:media3-exoplayer-dash:1.10.1")
-    implementation("androidx.media3:media3-ui:1.10.1")
-    implementation("androidx.media3:media3-ui-compose-material3:1.10.1")
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.exoplayer.dash)
+    implementation(libs.androidx.media3.ui)
+    implementation(libs.androidx.media3.ui.compose.material3)
 
     //serialization
     implementation(libs.converter.gson)

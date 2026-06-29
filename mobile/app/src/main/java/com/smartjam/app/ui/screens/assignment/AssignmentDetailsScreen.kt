@@ -1,4 +1,4 @@
-package com.smartjam.app.ui.screens.room
+package com.smartjam.app.ui.screens.assignment
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -32,16 +32,15 @@ import java.util.UUID
 
 @Composable
 fun AssignmentDetailsScreen(
-    assignmentId: UUID,
     connectionId: UUID,
     role: UserRole,
-    viewModel: RoomViewModel,
+    viewModel: AssignmentViewModel,
     navController: NavHostController,
     onBack: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    val assignment = state.assignments.firstOrNull { it.id == assignmentId }
+    val assignment = state.assignment
 
     var pendingSavePath by remember { mutableStateOf<String?>(null) }
 
@@ -52,7 +51,7 @@ fun AssignmentDetailsScreen(
                 context.contentResolver.openInputStream(it)?.use { input ->
                     file.outputStream().use { output -> input.copyTo(output) }
                 }
-                viewModel.uploadSubmission(assignmentId, file)
+                viewModel.uploadSubmission(file)
             }
         }
 
@@ -69,8 +68,6 @@ fun AssignmentDetailsScreen(
             pendingSavePath = null
         }
 
-    LaunchedEffect(assignmentId) { viewModel.onAssignmentExpanded(assignmentId) }
-
     Box(modifier = Modifier.fillMaxSize().background(CoreBackground)) {
         AppleLiquidBackground()
 
@@ -81,6 +78,8 @@ fun AssignmentDetailsScreen(
                         WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 16.dp
                     )
             )
+
+            // Шапка
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад", tint = Color.White)
@@ -125,7 +124,7 @@ fun AssignmentDetailsScreen(
                             AppleGlassButton(
                                 text = "Скачать эталон",
                                 onClick = {
-                                    viewModel.downloadReference(assignmentId) { path ->
+                                    viewModel.downloadReference { path ->
                                         if (path != null) {
                                             pendingSavePath = path
                                             saveLauncher.launch("${assignment.title}.wav")
@@ -155,19 +154,18 @@ fun AssignmentDetailsScreen(
                     )
                 }
 
-                val submissions = state.submissionsByAssignment[assignmentId].orEmpty()
-                if (submissions.isEmpty()) {
+                if (state.submissions.isEmpty() && !state.isLoading) {
                     item { Text("Попыток пока нет", color = Color.White.copy(alpha = 0.4f)) }
                 }
 
-                items(submissions) { submission ->
+                items(state.submissions) { submission ->
                     SubmissionRow(
                         submission = submission,
                         onClick = {
                             navController.navigate(
                                 Screen.SubmissionDetail.createRoute(
                                     connectionId = connectionId.toString(),
-                                    assignmentId = assignmentId.toString(),
+                                    assignmentId = assignment.id.toString(),
                                     submissionId = submission.id.toString(),
                                 )
                             )
@@ -196,21 +194,42 @@ private fun SubmissionRow(submission: SubmissionResultEntity, onClick: () -> Uni
                     text =
                         when (submission.status) {
                             "COMPLETED" -> "Анализ готов"
-                            "FAILED" -> "Ошибка"
+                            "FAILED" -> "Ошибка обработки"
                             else -> "В обработке..."
                         },
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
                 )
-                if (submission.totalScore != null) {
+
+                Text(
+                    text = formatSubmissionDate(submission.createdAt),
+                    color = Color.White.copy(alpha = 0.4f),
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+
+                if (submission.totalScore != null && submission.status == "COMPLETED") {
                     Text(
                         "Точность: ${submission.totalScore.toInt()}%",
                         color = BrandCyan,
                         fontSize = 14.sp,
+                        modifier = Modifier.padding(top = 4.dp),
                     )
                 }
             }
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Color.White.copy(0.4f))
         }
     }
+}
+
+fun formatSubmissionDate(instant: java.time.Instant?): String {
+    if (instant == null) return ""
+    val formatter =
+        java.time.format.DateTimeFormatter.ofPattern(
+                "d MMMM, HH:mm",
+                java.util.Locale.forLanguageTag("ru"),
+            )
+            .withZone(java.time.ZoneId.systemDefault())
+    return formatter.format(instant)
 }

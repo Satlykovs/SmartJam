@@ -2,6 +2,7 @@ package com.smartjam.common;
 
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Locale;
 
 import com.redis.testcontainers.RedisContainer;
 import io.minio.BucketExistsArgs;
@@ -87,11 +88,13 @@ public abstract class BaseIntegrationTest {
         minio.start();
         dbInit.start();
 
-        try {
-            Thread.sleep(10000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+        Locale.setDefault(Locale.US);
+
+        //        try {
+        //            Thread.sleep(10000);
+        //        } catch (InterruptedException e) {
+        //            throw new RuntimeException(e);
+        //        }
     }
 
     @DynamicPropertySource

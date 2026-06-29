@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -27,9 +28,10 @@ fun WaveformCompare(
     durationMs: Long,
     onSeek: (Long) -> Unit,
     onErrorGroupClick: (List<FeedbackEvent>) -> Unit,
-    modifier: Modifier = Modifier,
     onScrubbing: (Long) -> Unit = {},
     onScrubbingFinished: (Long) -> Unit = {},
+    selectedRange: ClosedFloatingPointRange<Float>? = null,
+    modifier: Modifier = Modifier,
 ) {
     val barsCount = 100
     val maxAmp =
@@ -66,16 +68,14 @@ fun WaveformCompare(
 
                             if (barErrorStates[clickedBarIdx].isNotEmpty()) {
                                 var startIdx = clickedBarIdx
-                                while (startIdx > 0 && barErrorStates[startIdx - 1].isNotEmpty()) {
-                                    startIdx--
-                                }
+                                while (
+                                    startIdx > 0 && barErrorStates[startIdx - 1].isNotEmpty()
+                                ) startIdx--
                                 var endIdx = clickedBarIdx
                                 while (
                                     endIdx < barsCount - 1 &&
                                         barErrorStates[endIdx + 1].isNotEmpty()
-                                ) {
-                                    endIdx++
-                                }
+                                ) endIdx++
 
                                 val timeStart = (startIdx.toFloat() / barsCount) * totalDurationSec
                                 val timeEnd =
@@ -117,6 +117,16 @@ fun WaveformCompare(
         val centerY = height / 2f
         val stepX = width / barsCount
         val barWidth = stepX * 0.5f
+
+        selectedRange?.let { range ->
+            val startX = (range.start / totalDurationSec) * width
+            val endX = (range.endInclusive / totalDurationSec) * width
+            drawRect(
+                color = Color.White.copy(alpha = 0.12f),
+                topLeft = Offset(startX, 0f),
+                size = Size(endX - startX, height),
+            )
+        }
 
         teacherSampled.forEachIndexed { i, amp ->
             val barH = (amp / maxAmp) * (centerY * 0.85f)

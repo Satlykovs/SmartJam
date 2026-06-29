@@ -1,18 +1,75 @@
 otelcol.receiver.otlp "default" {
     grpc { endpoint = "0.0.0.0:4317" }
-
     http { endpoint = "0.0.0.0:4318" }
 
     output {
+        metrics = [otelcol.processor.transform.fix_all.input]
+        logs    = [otelcol.processor.transform.fix_all.input]
+        traces  = [otelcol.processor.transform.fix_all.input]
+    }
+}
+
+otelcol.processor.transform "fix_all" {
+    error_mode = "ignore"
+
+    metric_statements {
+            context = "resource"
+            statements = [
+                `set(attributes["service_name"], attributes["service.name"])`,
+                `set(attributes["application"], attributes["service.name"])`,
+                `set(attributes["job"], attributes["service.name"])`,
+                `set(attributes["instance"], attributes["service.instance.id"])`,
+
+                `set(attributes["namespace"], "default")`,
+            ]
+        }
+
+        metric_statements {
+            context = "datapoint"
+            statements = [
+                `set(metric.name, "process_uptime_seconds") where metric.name == "process.runtime.jvm.uptime"`,
+                `set(metric.name, "process_cpu_usage") where metric.name == "process.runtime.jvm.cpu.utilization"`,
+                `set(metric.name, "jvm_threads_live_threads") where metric.name == "jvm.thread.count"`,
+                `set(metric.name, "jvm_memory_used_bytes") where metric.name == "jvm.memory.used"`,
+                `set(metric.name, "jvm_memory_max_bytes") where metric.name == "jvm.memory.max"`,
+                `set(metric.name, "jvm_memory_committed_bytes") where metric.name == "jvm.memory.committed"`,
+            ]
+        }
+
+    log_statements {
+        context = "resource"
+        statements = [
+            `set(attributes["service_name"], attributes["service.name"])`,
+        ]
+    }
+
+    trace_statements {
+        context = "resource"
+        statements = [
+            `set(attributes["service_name"], attributes["service.name"])`,
+        ]
+    }
+
+    output {
+        metrics = [otelcol.processor.batch.default.input]
+        logs    = [otelcol.processor.batch.default.input]
+        traces  = [otelcol.processor.batch.default.input]
+    }
+}
+
+otelcol.processor.batch "default" {
+    output {
         metrics = [otelcol.exporter.prometheus.to_prometheus.input]
-
-        logs =    [otelcol.exporter.loki.to_loki.input]
-
-        traces =  [otelcol.exporter.otlp.to_tempo.input]
+        logs    = [otelcol.exporter.loki.to_loki.input]
+        traces  = [otelcol.exporter.otlp.to_tempo.input]
     }
 }
 
 otelcol.exporter.prometheus "to_prometheus" {
+    add_metric_suffixes = true
+
+    resource_to_telemetry_conversion = true
+
     forward_to = [prometheus.remote_write.local_prom.receiver]
 }
 
@@ -20,19 +77,17 @@ prometheus.remote_write "local_prom" {
     endpoint { url = "http://prometheus:9090/api/v1/write" }
 }
 
-
 otelcol.exporter.loki "to_loki" {
     forward_to = [loki.write.local_loki.receiver]
 }
 
 loki.write "local_loki" {
-  endpoint { url = "http://loki:3100/loki/api/v1/push" }
+    endpoint { url = "http://loki:3100/loki/api/v1/push" }
 }
 
 otelcol.exporter.otlp "to_tempo" {
-  client {
-    endpoint = "tempo:4317"
-
-    tls { insecure = true }
-  }
+    client {
+        endpoint = "tempo:4317"
+        tls { insecure = true }
+    }
 }

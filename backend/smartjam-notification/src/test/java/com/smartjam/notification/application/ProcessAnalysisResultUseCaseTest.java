@@ -32,7 +32,7 @@ class ProcessAnalysisResultUseCaseTest {
 
     @ParameterizedTest(name = "Тип: {1}, Статус: {0} -> Ожидаем в пуше: {2}")
     @CsvSource({
-        "COMPLETED, SUBMISSION, проанализирована",
+        "COMPLETED, SUBMISSION, Балл",
         "COMPLETED, REFERENCE, обработана",
         "FAILED,    SUBMISSION, SKIP",
         "FAILED,    REFERENCE,  SKIP"

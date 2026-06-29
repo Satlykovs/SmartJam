@@ -4,13 +4,11 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.annotation.OptIn
+import androidx.core.net.toUri
 import androidx.media3.common.*
 import androidx.media3.common.Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import com.smartjam.app.domain.player.MusicPlayer
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,36 +16,11 @@ import kotlinx.coroutines.flow.StateFlow
 import okhttp3.Call
 
 @OptIn(UnstableApi::class)
-class SmartJamPlayer(private val context: Context, private val callFactory: Call.Factory) :
-    MusicPlayer {
-
-    private val extractorsFactory =
-        androidx.media3.extractor.DefaultExtractorsFactory().apply {
-            setConstantBitrateSeekingAlwaysEnabled(true)
-            setMp3ExtractorFlags(
-                androidx.media3.extractor.mp3.Mp3Extractor.FLAG_ENABLE_INDEX_SEEKING
-            )
-            setMp4ExtractorFlags(
-                androidx.media3.extractor.mp4.Mp4Extractor.FLAG_READ_WITHIN_GOP_SAMPLE_DEPENDENCIES
-            )
-        }
-
-    private val httpDataSourceFactory = OkHttpDataSource.Factory(callFactory)
-    private val dataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
-
-    private val player =
-        ExoPlayer.Builder(context)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory, extractorsFactory))
-            .build()
-            .apply {
-                setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(C.USAGE_MEDIA)
-                        .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
-                        .build(),
-                    true,
-                )
-            }
+class SmartJamPlayer(
+    private val context: Context,
+    private val callFactory: Call.Factory,
+    private val player: ExoPlayer,
+) : MusicPlayer {
 
     private val _currentPosition = MutableStateFlow(0L)
     override val currentPosition: StateFlow<Long> = _currentPosition
@@ -61,6 +34,9 @@ class SmartJamPlayer(private val context: Context, private val callFactory: Call
     private val _isReady = MutableStateFlow(false)
     override val isReady: StateFlow<Boolean> = _isReady
 
+    private val _currentSpeed = MutableStateFlow(1.0f)
+    override val currentSpeed: StateFlow<Float> = _currentSpeed
+
     private var job: Job? = null
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
@@ -70,9 +46,7 @@ class SmartJamPlayer(private val context: Context, private val callFactory: Call
                 override fun onPlaybackStateChanged(state: Int) {
                     if (state == Player.STATE_READY) {
                         _isReady.value = true
-                        if (player.duration > 0) {
-                            _duration.value = player.duration
-                        }
+                        if (player.duration > 0) _duration.value = player.duration
                     }
                 }
 
@@ -82,69 +56,78 @@ class SmartJamPlayer(private val context: Context, private val callFactory: Call
                 }
 
                 override fun onTimelineChanged(timeline: Timeline, reason: Int) {
-                    val dur = player.duration
-                    if (dur > 0) _duration.value = dur
+                    if (player.duration > 0) _duration.value = player.duration
                 }
             }
         )
     }
 
-    override fun prepare(uri: Uri) {
+    override fun prepare(uri: Uri, title: String, subtitle: String) {
+        try {
+            val retriever = android.media.MediaMetadataRetriever()
+            retriever.setDataSource(context, uri)
+            val time =
+                retriever.extractMetadata(
+                    android.media.MediaMetadataRetriever.METADATA_KEY_DURATION
+                )
+            retriever.release()
 
-        val realDurationMs =
-            try {
-                val retriever = android.media.MediaMetadataRetriever()
-                retriever.setDataSource(context, uri)
-                val time =
-                    retriever.extractMetadata(
-                        android.media.MediaMetadataRetriever.METADATA_KEY_DURATION
-                    )
-                retriever.release()
-                time?.toLong() ?: 0L
-            } catch (e: Exception) {
-                0L
+            val durationMs = time?.toLong() ?: 0L
+            if (durationMs > 0) {
+                _duration.value = durationMs
+                Log.d("SmartJam_Player", "Manual duration detected: $durationMs")
             }
-
-        if (realDurationMs > 0) {
-            Log.d("SmartJam_Player", "Total dur$realDurationMs")
-            _duration.value = realDurationMs
+        } catch (e: Exception) {
+            Log.e("SmartJam_Player", "Error getting duration", e)
         }
 
-        val safeUri =
-            try {
-                val urlString = uri.toString()
-                Uri.parse(Uri.decode(urlString))
-            } catch (e: Exception) {
-                uri
-            }
+        val mediaMetadata =
+            MediaMetadata.Builder()
+                .setTitle(title)
+                .setArtist(subtitle)
+                .setArtworkUri(
+                    "android.resource://${context.packageName}/mipmap/ic_launcher".toUri()
+                )
+                .build()
 
         val mediaItem =
-            MediaItem.Builder().setUri(safeUri).setMimeType(MimeTypes.AUDIO_UNKNOWN).build()
+            MediaItem.Builder()
+                .setUri(uri)
+                .setMimeType(MimeTypes.AUDIO_UNKNOWN)
+                .setMediaMetadata(mediaMetadata)
+                .build()
 
         player.setMediaItem(mediaItem)
         player.prepare()
     }
 
-    override fun play() = player.play()
+    override fun play() {
+        player.play()
+    }
 
     override fun pause() = player.pause()
 
     override fun seekTo(positionMs: Long) {
-
         if (player.isCommandAvailable(COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)) {
-            Log.d("SmartJam_Player", "Seek is available, seeking now to $positionMs")
             player.seekTo(positionMs)
             _currentPosition.value = positionMs
-        } else {
-            Log.d("SmartJam_Player", "WATAFA SEEK IS NOT AVAILABLE")
-            Log.d("SmartJam_Player", player.audioFormat.toString())
         }
+    }
+
+    override fun seekRelative(offsetMs: Long) {
+        val newPos = (player.currentPosition + offsetMs).coerceIn(0, player.duration)
+        player.seekTo(newPos)
+        _currentPosition.value = newPos
+    }
+
+    override fun setPlaybackSpeed(speed: Float) {
+        _currentSpeed.value = speed
+        player.playbackParameters = PlaybackParameters(speed)
     }
 
     override fun release() {
         job?.cancel()
         scope.cancel()
-        player.release()
     }
 
     private fun startPositionUpdates() {
@@ -152,7 +135,6 @@ class SmartJamPlayer(private val context: Context, private val callFactory: Call
         job = scope.launch {
             while (isActive) {
                 _currentPosition.value = player.currentPosition
-                if (player.duration > 0) _duration.value = player.duration
                 delay(100L)
             }
         }

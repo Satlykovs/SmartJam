@@ -48,7 +48,12 @@ services:
         
         /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic analysis-results --partitions 3 --replication-factor 1
         
-        echo "Topics created: s3-events, s3-avatar-events, analysis-results."
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic connection-events --partitions 3 --replication-factor 1
+        
+        echo "Topics created: s3-events, analysis-results, s3-avatar-events and connection-events."
+
+
+
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest

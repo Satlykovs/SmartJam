@@ -329,4 +329,17 @@ constructor(
             }
             existing.referenceAudioLocalPath
         }
+
+    suspend fun getAssignment(assignmentId: UUID): AssignmentEntity? =
+        withContext(Dispatchers.IO) { assignmentDao.getAssignmentById(assignmentId) }
+
+    suspend fun getSubmissionEntity(
+        assignmentId: UUID,
+        submissionId: UUID,
+    ): SubmissionResultEntity? =
+        withContext(Dispatchers.IO) {
+            submissionResultDao.getResultsForAssignmentOnce(assignmentId).find {
+                it.id == submissionId
+            }
+        }
 }

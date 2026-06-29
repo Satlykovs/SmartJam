@@ -8,14 +8,19 @@ interface MusicPlayer {
     val duration: StateFlow<Long>
     val isPlaying: StateFlow<Boolean>
     val isReady: StateFlow<Boolean>
+    val currentSpeed: StateFlow<Float>
 
-    fun prepare(uri: Uri)
+    fun setPlaybackSpeed(speed: Float)
+
+    fun prepare(uri: Uri, title: String, subtitle: String)
 
     fun play()
 
     fun pause()
 
     fun seekTo(positionMs: Long)
+
+    fun seekRelative(offsetMs: Long)
 
     fun release()
 }

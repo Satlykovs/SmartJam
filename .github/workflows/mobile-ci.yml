@@ -37,3 +37,5 @@ jobs:
 
       - name: Build Android App
         run: ./gradlew spotlessCheck assembleDebug lintDebug testDebugUnitTest --no-daemon
+        env:
+            GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m"

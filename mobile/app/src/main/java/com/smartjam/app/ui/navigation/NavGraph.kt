@@ -36,6 +36,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.smartjam.app.model.UserRole
 import com.smartjam.app.ui.screens.assignment.AssignmentDetailsScreen
 import com.smartjam.app.ui.screens.assignment.AssignmentViewModel
 import com.smartjam.app.ui.screens.home.HomeScreen
@@ -176,10 +177,7 @@ fun SmartJamNavGraph(navController: NavHostController, startDestination: String)
             composable(route = Screen.Room.route) {
                 val viewModel: RoomViewModel = hiltViewModel()
                 val connectionId = UUID.fromString(it.arguments?.getString("connectionId"))
-                val role =
-                    com.smartjam.app.domain.model.UserRole.valueOf(
-                        it.arguments?.getString("role") ?: "STUDENT"
-                    )
+                val role = UserRole.valueOf(it.arguments?.getString("role") ?: "STUDENT")
 
                 RoomScreen(
                     connectionId = connectionId,
@@ -203,9 +201,7 @@ fun SmartJamNavGraph(navController: NavHostController, startDestination: String)
                 val connectionId =
                     UUID.fromString(backStackEntry.arguments?.getString("connectionId"))
                 val role =
-                    com.smartjam.app.domain.model.UserRole.valueOf(
-                        backStackEntry.arguments?.getString("role") ?: "STUDENT"
-                    )
+                    UserRole.valueOf(backStackEntry.arguments?.getString("role") ?: "STUDENT")
 
                 AssignmentDetailsScreen(
                     connectionId = connectionId,

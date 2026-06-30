@@ -3,8 +3,8 @@ package com.smartjam.app.ui.screens.assignment
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.smartjam.app.data.local.entity.AssignmentEntity
 import com.smartjam.app.data.local.entity.SubmissionResultEntity
+import com.smartjam.app.domain.repository.ConnectionRepository
 import com.smartjam.app.domain.repository.RoomRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
@@ -13,14 +13,25 @@ import java.util.UUID
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+
+data class AssignmentUiState(
+    val assignment: com.smartjam.app.data.local.entity.AssignmentEntity? = null,
+    val peerName: String = "",
+    val peerFirstName: String? = null,
+    val peerLastName: String? = null,
+    val peerAvatarUrl: String? = null,
+    val submissions: List<SubmissionResultEntity> = emptyList(),
+    val isLoading: Boolean = false,
+    val isUploading: Boolean = false,
+)
 
 @HiltViewModel
 class AssignmentViewModel
 @Inject
 constructor(
     private val repository: RoomRepository,
+    private val connectionRepository: ConnectionRepository,
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -34,6 +45,7 @@ constructor(
 
     init {
         loadAssignmentInfo()
+        observePeerInfo()
         observeSubmissions()
         refreshSubmissions()
     }
@@ -47,6 +59,24 @@ constructor(
                 _uiState.update { it.copy(assignment = updated) }
             }
         }
+    }
+
+    private fun observePeerInfo() {
+        repository
+            .getConnectionFlow(connectionId)
+            .onEach { entity ->
+                if (entity != null) {
+                    _uiState.update {
+                        it.copy(
+                            peerName = entity.peerUsername,
+                            peerFirstName = entity.peerFirstName,
+                            peerLastName = entity.peerLastName,
+                            peerAvatarUrl = entity.peerAvatarUrl,
+                        )
+                    }
+                }
+            }
+            .launchIn(viewModelScope)
     }
 
     private fun observeSubmissions() {
@@ -78,7 +108,7 @@ constructor(
     private fun startPolling() {
         pollingJob?.cancel()
         pollingJob = viewModelScope.launch {
-            while (isActive) {
+            while (true) {
                 delay(3000L)
                 repository.syncSubmissions(assignmentId)
                 val current = _uiState.value.submissions
@@ -105,10 +135,3 @@ constructor(
         }
     }
 }
-
-data class AssignmentUiState(
-    val assignment: AssignmentEntity? = null,
-    val submissions: List<SubmissionResultEntity> = emptyList(),
-    val isLoading: Boolean = false,
-    val isUploading: Boolean = false,
-)

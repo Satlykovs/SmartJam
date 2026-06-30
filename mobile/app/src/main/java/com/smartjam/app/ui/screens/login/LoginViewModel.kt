@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.smartjam.app.domain.repository.AuthRepository
 import com.smartjam.app.domain.repository.ConnectionRepository
+import com.smartjam.app.model.UserRole
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
 import kotlinx.coroutines.channels.Channel
@@ -17,8 +18,7 @@ import kotlinx.coroutines.launch
 data class LoginState(
     val emailInput: String = "",
     val passwordInput: String = "",
-    val selectedRole: com.smartjam.app.domain.model.UserRole =
-        com.smartjam.app.domain.model.UserRole.STUDENT,
+    val selectedRole: UserRole = UserRole.STUDENT,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
 )
@@ -52,7 +52,7 @@ constructor(
         _state.update { it.copy(emailInput = newEmail, errorMessage = null) }
     }
 
-    fun onRoleSelected(role: com.smartjam.app.domain.model.UserRole) {
+    fun onRoleSelected(role: UserRole) {
         _state.update { it.copy(selectedRole = role) }
     }
 

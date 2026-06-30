@@ -3,9 +3,10 @@ package com.smartjam.app.ui.screens.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.smartjam.app.domain.model.Connection
-import com.smartjam.app.domain.model.UserRole
 import com.smartjam.app.domain.repository.AuthRepository
 import com.smartjam.app.domain.repository.ConnectionRepository
+import com.smartjam.app.domain.repository.UserRepository
+import com.smartjam.app.model.UserRole
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
 import kotlinx.coroutines.Job
@@ -25,6 +26,7 @@ data class HomeState(
     val nextPage: Int = 0,
     val pageSize: Int = 20,
     val errorMessage: String? = null,
+    val myAvatarUrl: String? = null,
 )
 
 sealed class HomeEvent {
@@ -41,6 +43,7 @@ class HomeViewModel
 constructor(
     private val connectionRepository: ConnectionRepository,
     private val authRepository: AuthRepository,
+    private val userRepository: UserRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
@@ -55,7 +58,7 @@ constructor(
     val refreshTicker = flow {
         while (true) {
             emit(Unit)
-            delay(45_000L)
+            delay(5000L)
         }
     }
 
@@ -73,6 +76,18 @@ constructor(
                 connectionRepository.clearAllConnections()
                 startObservingConnections()
             }
+        }
+        loadMyAvatar()
+    }
+
+    private fun loadMyAvatar() {
+        viewModelScope.launch {
+            try {
+                val response = userRepository.getProfile()
+                if (response.isSuccessful) {
+                    _state.update { it.copy(myAvatarUrl = response.body()?.avatarUrl?.toString()) }
+                }
+            } catch (e: Exception) {}
         }
     }
 

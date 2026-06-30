@@ -6,3 +6,5 @@
 
 firebase-adminsdk.json
 google-services.json
+
+*.env

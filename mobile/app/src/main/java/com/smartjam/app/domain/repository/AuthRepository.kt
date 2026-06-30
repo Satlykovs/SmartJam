@@ -6,11 +6,11 @@ import com.smartjam.app.BuildConfig
 import com.smartjam.app.api.AuthApi
 import com.smartjam.app.api.DevicesApi
 import com.smartjam.app.data.local.TokenStorage
-import com.smartjam.app.domain.model.UserRole
 import com.smartjam.app.model.DeviceRegistrationRequest
 import com.smartjam.app.model.LoginRequest
 import com.smartjam.app.model.RefreshRequest
 import com.smartjam.app.model.RegisterRequest
+import com.smartjam.app.model.UserRole
 import jakarta.inject.Inject
 import jakarta.inject.Singleton
 import kotlinx.coroutines.CancellationException

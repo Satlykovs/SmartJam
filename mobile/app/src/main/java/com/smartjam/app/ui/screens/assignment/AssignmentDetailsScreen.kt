@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.smartjam.app.data.local.entity.SubmissionResultEntity
-import com.smartjam.app.domain.model.UserRole
+import com.smartjam.app.model.UserRole
 import com.smartjam.app.ui.components.*
 import com.smartjam.app.ui.navigation.Screen
 import com.smartjam.app.ui.theme.BrandCyan
@@ -79,19 +79,23 @@ fun AssignmentDetailsScreen(
                     )
             )
 
-            // Шапка
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад", tint = Color.White)
                 }
-                if (assignment != null) {
-                    Text(
-                        text = assignment.title,
-                        color = Color.White,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
+
+                Spacer(Modifier.width(4.dp))
+
+                SmartJamAvatar(url = state.peerAvatarUrl, size = 42.dp)
+
+                Spacer(Modifier.width(12.dp))
+
+                UserIdentityBlock(
+                    firstName = state.peerFirstName,
+                    lastName = state.peerLastName,
+                    username = state.peerName,
+                    isCyanUsername = true,
+                )
             }
 
             if (assignment == null) {
@@ -100,6 +104,14 @@ fun AssignmentDetailsScreen(
                 }
                 return@Column
             }
+
+            Spacer(Modifier.height(24.dp))
+            Text(
+                text = assignment.title,
+                color = Color.White,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.ExtraBold,
+            )
 
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),

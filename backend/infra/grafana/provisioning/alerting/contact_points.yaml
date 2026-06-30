@@ -1,0 +1,19 @@
+apiVersion: 1
+contactPoints:
+  - name: 'Telegram'
+    receivers:
+      - uid: 'tg-alerts-1'
+        type: 'telegram'
+        settings:
+          bottoken: '${TG_BOT_TOKEN}'
+          chatid: '${TG_CHAT_ID}'
+          message: |
+            {{ if eq .Status "firing" }}🚨 <b>ОБНАРУЖЕНА ПРОБЛЕМА</b>{{ else }}✅ <b>ВСЁ ИСПРАВЛЕНО</b>{{ end }}
+            
+            <b>Тип:</b> {{ .CommonLabels.alertname }}
+            <b>Сервис:</b> <code>{{ .CommonLabels.service_name }}</code>
+            
+            {{ range .Alerts }}
+            📝 {{ .Annotations.description }}
+            {{ end }}
+          parseMode: 'HTML'

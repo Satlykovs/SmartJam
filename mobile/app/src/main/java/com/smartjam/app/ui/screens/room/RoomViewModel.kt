@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.smartjam.app.data.local.entity.AssignmentEntity
+import com.smartjam.app.domain.repository.AuthRepository
 import com.smartjam.app.domain.repository.ConnectionRepository
 import com.smartjam.app.domain.repository.RoomRepository
 import com.smartjam.app.model.CreateAssignmentRequest
@@ -23,6 +24,7 @@ constructor(
     private val repository: RoomRepository,
     private val connectionRepository: ConnectionRepository,
     private val savedStateHandle: SavedStateHandle,
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
     private val connectionId: UUID = UUID.fromString(checkNotNull(savedStateHandle["connectionId"]))
@@ -32,7 +34,6 @@ constructor(
 
     private var isSyncingAssignments = false
 
-    // Тикер обновляет список уроков раз в 15 секунд (например, если учитель добавил новый)
     val roomTicker = flow {
         while (true) {
             emit(Unit)
@@ -41,15 +42,26 @@ constructor(
     }
 
     init {
-        loadPeerName()
+        observePeerInfo()
         observeAssignments()
     }
 
-    private fun loadPeerName() {
-        viewModelScope.launch {
-            val name = connectionRepository.getPeerName(connectionId)
-            _uiState.update { it.copy(peerName = name ?: "Комната") }
-        }
+    private fun observePeerInfo() {
+        repository
+            .getConnectionFlow(connectionId)
+            .onEach { entity ->
+                if (entity != null) {
+                    _uiState.update {
+                        it.copy(
+                            peerName = entity.peerUsername,
+                            peerFirstName = entity.peerFirstName,
+                            peerLastName = entity.peerLastName,
+                            peerAvatarUrl = entity.peerAvatarUrl,
+                        )
+                    }
+                }
+            }
+            .launchIn(viewModelScope)
     }
 
     private fun observeAssignments() {
@@ -89,6 +101,9 @@ constructor(
 
 data class RoomUiState(
     val peerName: String = "Загрузка...",
+    val peerFirstName: String? = null,
+    val peerLastName: String? = null,
+    val peerAvatarUrl: String? = null,
     val assignments: List<AssignmentEntity> = emptyList(),
     val isLoading: Boolean = false,
     val isUploading: Boolean = false,

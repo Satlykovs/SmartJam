@@ -1,0 +1,105 @@
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: 'SmartJam-Infrastructure-Rules'
+    folder: 'Alerts'
+    interval: '1m'
+    rules:
+      - uid: 'api-500-errors'
+        title: 'API 500 Errors'
+        condition: 'C'
+        data:
+          - refId: 'A'
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: 'PBFA97CFB590B2093'
+            model:
+              expr: 'sum(rate(http_server_requests_seconds_count{service_name="smartjam-api", status=~"5.."}[1m])) or on() vector(0)'
+              refId: 'A'
+          - refId: 'B'
+            datasourceUid: '-100'
+            model:
+              expression: 'A'
+              type: 'reduce'
+              reducer: 'last'
+              refId: 'B'
+          - refId: 'C'
+            datasourceUid: '-100'
+            model:
+              expression: 'B'
+              type: 'threshold'
+              conditions:
+                - { evaluator: { params: [0], type: 'gt' }, type: 'query' }
+              refId: 'C'
+        noDataState: 'OK'
+        for: '1m'
+        annotations:
+          summary: '🚨 Ошибка 500 в API'
+          description: 'Сервис smartjam-api начал выдавать 500-ки. Серг, фикси!'
+        labels:
+          severity: 'critical'
+
+      - uid: 'all-services-high-memory'
+        title: 'Service High Memory Usage'
+        condition: 'C'
+        data:
+          - refId: 'A'
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: 'PBFA97CFB590B2093'
+            model:
+              expr: '(sum by (service_name) (jvm_memory_used_bytes{jvm_memory_type="heap"})) / (sum by (service_name) (jvm_memory_limit_bytes{jvm_memory_type="heap"}))'
+              refId: 'A'
+          - refId: 'B'
+            datasourceUid: '-100'
+            model:
+              expression: 'A'
+              type: 'reduce'
+              reducer: 'last'
+              refId: 'B'
+          - refId: 'C'
+            datasourceUid: '-100'
+            model:
+              expression: 'B'
+              type: 'threshold'
+              conditions:
+                - { evaluator: { params: [0.9], type: 'gt' }, type: 'query' }
+              refId: 'C'
+        noDataState: 'OK'
+        for: '5m'
+        annotations:
+          summary: '🧠 Утечка памяти: {{ $labels.service_name }}'
+          description: 'Занято более 90% Heap в сервисе {{ $labels.service_name }}.'
+        labels:
+          severity: 'critical'
+
+      - uid: 'all-services-high-cpu'
+        title: 'Service High CPU Usage'
+        condition: 'C'
+        data:
+          - refId: 'A'
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: 'PBFA97CFB590B2093'
+            model:
+              expr: 'sum by (service_name) (jvm_cpu_recent_utilization_ratio)'
+              refId: 'A'
+          - refId: 'B'
+            datasourceUid: '-100'
+            model:
+              expression: 'A'
+              type: 'reduce'
+              reducer: 'last'
+              refId: 'B'
+          - refId: 'C'
+            datasourceUid: '-100'
+            model:
+              expression: 'B'
+              type: 'threshold'
+              conditions:
+                - { evaluator: { params: [0.8], type: 'gt' }, type: 'query' }
+              refId: 'C'
+        noDataState: 'OK'
+        for: '5m'
+        annotations:
+          summary: '🔥 Перегрев CPU: {{ $labels.service_name }}'
+          description: 'Нагрузка выше 80% в сервисе {{ $labels.service_name }}.'
+        labels:
+          severity: 'critical'

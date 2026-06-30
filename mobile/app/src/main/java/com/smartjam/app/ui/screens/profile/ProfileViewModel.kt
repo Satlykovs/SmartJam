@@ -117,27 +117,69 @@ constructor(
 
     fun saveProfile() {
         viewModelScope.launch {
+            val oldAvatarUrl = state.avatarUrl
+            val wasImageSelected = state.selectedImageUri != null
+
             state = state.copy(isSaving = true, error = null)
-            val result =
-                userRepository.updateProfile(
-                    username = state.username,
-                    firstName = state.firstName.ifBlank { null },
-                    lastName = state.lastName.ifBlank { null },
-                    newAvatarUri = state.selectedImageUri,
-                )
+
+            val result = userRepository.updateProfile(
+                username = state.username,
+                firstName = state.firstName.ifBlank { null },
+                lastName = state.lastName.ifBlank { null },
+                newAvatarUri = state.selectedImageUri
+            )
+
             if (result.isSuccess) {
-                state =
-                    state.copy(
-                        isSaving = false,
-                        isSuccess = true,
-                        isEditing = false,
-                        selectedImageUri = null,
-                    )
-                loadProfile()
+                state = state.copy(
+                    isSaving = false,
+                    isSuccess = true,
+                    isEditing = false
+                )
+
+                if (wasImageSelected) {
+                    startAvatarSync(oldAvatarUrl)
+                } else {
+                    loadProfile()
+                }
+
                 delay(2000)
-                state = state.copy(isSuccess = false)
+                state = state.copy(isSuccess = false, selectedImageUri = null)
             } else {
                 state = state.copy(isSaving = false, error = "Ошибка сохранения")
+            }
+        }
+    }
+
+    private fun startAvatarSync(oldUrl: String?) {
+        viewModelScope.launch {
+            var isSynced = false
+
+            repeat(6) { attempt ->
+                delay(2500)
+
+                val result = userRepository.getProfile()
+                if (result.isSuccessful && result.body() != null) {
+                    val user = result.body()!!
+                    val currentServerUrl = user.avatarUrl?.toString()
+
+                    if (currentServerUrl != oldUrl) {
+                        state = state.copy(
+                            username = user.username,
+                            firstName = user.firstName ?: "",
+                            lastName = user.lastName ?: "",
+                            email = user.email,
+                            avatarUrl = currentServerUrl,
+                            isLoading = false
+                        )
+                        isSynced = true
+                        android.util.Log.d("SmartJam_Profile", "Avatar synced on attempt $attempt")
+                        return@launch
+                    }
+                }
+            }
+
+            if (!isSynced) {
+                loadProfile()
             }
         }
     }

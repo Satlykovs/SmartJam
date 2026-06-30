@@ -5,8 +5,10 @@ import com.smartjam.app.api.AssignmentsApi
 import com.smartjam.app.api.SubmissionsApi
 import com.smartjam.app.data.local.AudioFileStore
 import com.smartjam.app.data.local.dao.AssignmentDao
+import com.smartjam.app.data.local.dao.ConnectionDao
 import com.smartjam.app.data.local.dao.SubmissionResultDao
 import com.smartjam.app.data.local.entity.AssignmentEntity
+import com.smartjam.app.data.local.entity.ConnectionEntity
 import com.smartjam.app.data.local.entity.SubmissionResultEntity
 import com.smartjam.app.model.AssignmentResponseDetailed
 import com.smartjam.app.model.AssignmentUploadResponse
@@ -33,8 +35,9 @@ constructor(
     private val submissionsApi: SubmissionsApi,
     private val assignmentDao: AssignmentDao,
     private val submissionResultDao: SubmissionResultDao,
+    private val connectionDao: ConnectionDao,
     private val audioFileStore: AudioFileStore,
-    private val httpClient: okhttp3.OkHttpClient,
+    private val httpClient: OkHttpClient,
 ) {
 
     data class AssignmentPageInfo(
@@ -46,6 +49,10 @@ constructor(
 
     fun getAssignmentsFlow(connectionId: UUID): Flow<List<AssignmentEntity>> {
         return assignmentDao.getAssignmentsForConnection(connectionId)
+    }
+
+    fun getConnectionFlow(connectionId: UUID): Flow<ConnectionEntity?> {
+        return connectionDao.getConnectionByIdFlow(connectionId)
     }
 
     fun getSubmissionsFlow(assignmentId: UUID): Flow<List<SubmissionResultEntity>> {

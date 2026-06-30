@@ -22,7 +22,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.smartjam.app.data.local.entity.AssignmentEntity
-import com.smartjam.app.domain.model.UserRole
+import com.smartjam.app.model.UserRole
 import com.smartjam.app.ui.components.*
 import com.smartjam.app.ui.theme.*
 import java.io.File
@@ -47,7 +47,7 @@ fun RoomScreen(
     }
 
     var pendingTitle by remember { mutableStateOf("") }
-    var pendingDesc by remember { mutableStateOf("") } // ВЕРНУЛИ ОПИСАНИЕ
+    var pendingDesc by remember { mutableStateOf("") }
     var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
 
     val audioPicker =
@@ -65,19 +65,26 @@ fun RoomScreen(
                 )
             )
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 IconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White)
                 }
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = state.peerName,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
+
+                Spacer(Modifier.width(4.dp))
+
+                SmartJamAvatar(url = state.peerAvatarUrl, size = 40.dp)
+
+                Spacer(Modifier.width(12.dp))
+
+                UserIdentityBlock(
+                    firstName = state.peerFirstName,
+                    lastName = state.peerLastName,
+                    username = state.peerName,
                 )
             }
-
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(16.dp),

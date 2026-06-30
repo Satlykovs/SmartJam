@@ -30,7 +30,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.smartjam.app.domain.model.UserRole
+import com.smartjam.app.model.UserRole
 import com.smartjam.app.ui.components.AppleGlassTextField
 import com.smartjam.app.ui.components.AppleLiquidBackground
 import com.smartjam.app.ui.components.GoldenStringsButton

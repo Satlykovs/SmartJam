@@ -5,8 +5,8 @@ import com.smartjam.app.api.ConnectionsApi
 import com.smartjam.app.data.local.dao.ConnectionDao
 import com.smartjam.app.data.local.entity.ConnectionEntity
 import com.smartjam.app.domain.model.Connection
-import com.smartjam.app.domain.model.UserRole
 import com.smartjam.app.model.JoinRequest
+import com.smartjam.app.model.UserRole
 import jakarta.inject.Inject
 import jakarta.inject.Singleton
 import java.util.UUID
@@ -34,7 +34,10 @@ constructor(private val api: ConnectionsApi, private val dao: ConnectionDao) {
                     id = entity.connectionId.toString(),
                     peerId = entity.peerId.toString(),
                     peerName = entity.peerUsername,
+                    peerFirstName = entity.peerFirstName,
+                    peerLastName = entity.peerLastName,
                     peerAvatarUrl = entity.peerAvatarUrl,
+                    createdAt = entity.createdAt,
                 )
             }
         }

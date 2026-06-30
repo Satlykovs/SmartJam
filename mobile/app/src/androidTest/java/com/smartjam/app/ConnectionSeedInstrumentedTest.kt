@@ -8,7 +8,6 @@ import com.smartjam.app.api.DevicesApi
 import com.smartjam.app.data.local.SmartJamDatabase
 import com.smartjam.app.data.local.TokenStorage
 import com.smartjam.app.data.local.entity.ConnectionEntity
-import com.smartjam.app.domain.model.UserRole
 import com.smartjam.app.domain.repository.AuthRepository
 import com.smartjam.app.model.AuthResponse
 import com.smartjam.app.model.LoginRequest

@@ -26,4 +26,7 @@ interface ConnectionDao {
 
     @Query("SELECT peerUsername FROM connections WHERE connectionId = :id LIMIT 1")
     suspend fun getPeerNameById(id: UUID): String?
+
+    @Query("SELECT * FROM connections WHERE connectionId = :id LIMIT 1")
+    fun getConnectionByIdFlow(id: UUID): Flow<ConnectionEntity?>
 }

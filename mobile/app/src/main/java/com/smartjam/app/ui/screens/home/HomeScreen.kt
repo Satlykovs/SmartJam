@@ -7,6 +7,7 @@ import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -27,17 +28,19 @@ import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
 import com.smartjam.app.domain.model.Connection
-import com.smartjam.app.domain.model.UserRole
+import com.smartjam.app.model.UserRole
 import com.smartjam.app.ui.components.*
 import com.smartjam.app.ui.theme.*
 import kotlinx.coroutines.launch
@@ -103,6 +106,7 @@ fun HomeScreen(
                 isLoading = state.isLoading,
                 onProfileClick = onNavigateToProfile,
                 onToggleRole = viewModel::toggleDebugRole,
+                myAvatarUrl = state.myAvatarUrl,
             )
 
             if (state.errorMessage != null) {
@@ -160,6 +164,7 @@ private fun HomeHeader(
     isLoading: Boolean,
     onProfileClick: () -> Unit,
     onToggleRole: () -> Unit,
+    myAvatarUrl: String?,
 ) {
     Row(
         Modifier.fillMaxWidth().padding(top = 48.dp, start = 24.dp, end = 16.dp, bottom = 16.dp),
@@ -183,16 +188,14 @@ private fun HomeHeader(
                     2.dp,
                 )
             }
-            IconButton(
+            Surface(
                 onClick = onProfileClick,
-                modifier = Modifier.clip(CircleShape).background(Color.White.copy(0.1f)),
+                shape = CircleShape,
+                color = Color.White.copy(0.05f),
+                modifier = Modifier.size(42.dp),
+                border = BorderStroke(1.dp, Color.White.copy(0.1f)),
             ) {
-                Icon(
-                    Icons.Default.Person,
-                    null,
-                    tint = Color.White,
-                ) // Здесь хз, наверное, можно делать вызов к апишке, чтобы аватарку о себе брать и
-                // отрисовывать ее, если есть. А  может можно и так оставить, в целом, вроде норм.
+                SmartJamAvatar(url = myAvatarUrl, size = 42.dp)
             }
         }
     }
@@ -208,6 +211,13 @@ private fun TeacherInviteSection(code: String?, isLoading: Boolean, onGenerate: 
     val clipboard = LocalClipboard.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    val displayCode =
+        remember(code) {
+            if (code != null && code.length == 6) {
+                "${code.take(3)}-${code.drop(3)}"
+            } else code ?: ""
+        }
 
     GlassContainer {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -232,7 +242,7 @@ private fun TeacherInviteSection(code: String?, isLoading: Boolean, onGenerate: 
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = code,
+                        text = displayCode,
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold,
                         color = BrandGold,
@@ -267,16 +277,17 @@ private fun StudentJoinSection(
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("Присоединиться", color = Color.White.copy(0.6f), fontSize = 14.sp)
             AppleGlassTextField(
-                value,
-                onValueChange,
+                value = value,
+                onValueChange = { input -> onValueChange(formatRawCode(input)) },
                 "Введите код",
                 Icons.Default.Person,
                 enabled = !isLoading,
+                visualTransformation = InviteCodeTransformation(),
             )
             GoldenStringsButton(
                 "Отправить заявку",
                 onJoin,
-                enabled = !isLoading && value.isNotBlank(),
+                enabled = !isLoading && value.length == 6,
             )
         }
     }
@@ -290,34 +301,46 @@ private fun ActiveConnectionCard(connection: Connection, onClick: () -> Unit) {
         colors = CardDefaults.cardColors(containerColor = Color.White.copy(0.05f)),
     ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (!connection.peerAvatarUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model =
-                        ImageRequest.Builder(LocalContext.current)
-                            .data(connection.peerAvatarUrl)
-                            .crossfade(true)
-                            .build(),
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp).clip(CircleShape),
-                )
-            } else {
-                Box(
-                    Modifier.size(48.dp).clip(CircleShape).background(Color.White.copy(0.1f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(Icons.Default.Person, null, tint = Color.White)
-                }
-            }
+            SmartJamAvatar(url = connection.peerAvatarUrl)
             Spacer(Modifier.width(16.dp))
-            Column {
-                Text(
-                    connection.peerName,
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text("Нажмите, чтобы открыть", color = Color.White.copy(0.4f), fontSize = 12.sp)
-            }
+            UserIdentityBlock(
+                firstName = connection.peerFirstName,
+                lastName = connection.peerLastName,
+                username = connection.peerName,
+            )
         }
     }
+}
+
+class InviteCodeTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val input = text.text
+        val out = buildString {
+            for (i in input.indices) {
+                append(input[i])
+                if (i == 2 && input.length > 3) append("-")
+            }
+        }
+
+        val offsetMapping =
+            object : OffsetMapping {
+                override fun originalToTransformed(offset: Int): Int {
+                    if (offset <= 2) return offset
+                    if (offset <= 6) return offset + 1
+                    return 7
+                }
+
+                override fun transformedToOriginal(offset: Int): Int {
+                    if (offset <= 2) return offset
+                    if (offset <= 7) return offset - 1
+                    return 6
+                }
+            }
+
+        return TransformedText(AnnotatedString(out), offsetMapping)
+    }
+}
+
+private fun formatRawCode(input: String): String {
+    return input.uppercase().filter { it.isLetterOrDigit() }.take(6)
 }

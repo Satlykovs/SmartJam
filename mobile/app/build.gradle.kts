@@ -61,6 +61,8 @@ android {
 }
 
 dependencies {
+    implementation(libs.coil.svg)
+
 
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.media3.datasource.okhttp)

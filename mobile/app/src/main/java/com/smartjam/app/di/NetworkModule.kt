@@ -6,6 +6,7 @@ import com.smartjam.app.api.AssignmentsApi
 import com.smartjam.app.api.AuthApi
 import com.smartjam.app.api.ConnectionsApi
 import com.smartjam.app.api.DevicesApi
+import com.smartjam.app.api.ProfileApi
 import com.smartjam.app.api.SubmissionsApi
 import com.smartjam.app.data.api.AuthAuthenticator
 import com.smartjam.app.data.api.InstantAdapter
@@ -127,4 +128,8 @@ object NetworkModule {
     @Provides
     fun provideDevicesApi(apiClient: ApiClient): DevicesApi =
         apiClient.createService(DevicesApi::class.java)
+
+    @Provides
+    fun provideProfileApi(apiClient: ApiClient): ProfileApi =
+        apiClient.createService(ProfileApi::class.java)
 }

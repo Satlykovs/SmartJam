@@ -2,8 +2,8 @@ package com.smartjam.app.ui.screens.register
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.smartjam.app.domain.model.UserRole
 import com.smartjam.app.domain.repository.AuthRepository
+import com.smartjam.app.model.UserRole
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
 import kotlinx.coroutines.channels.Channel

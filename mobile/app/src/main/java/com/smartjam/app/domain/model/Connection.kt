@@ -4,5 +4,8 @@ data class Connection(
     val id: String,
     val peerId: String,
     val peerName: String,
-    val peerAvatarUrl: String? = null,
+    val peerFirstName: String?,
+    val peerLastName: String?,
+    val peerAvatarUrl: String?,
+    val createdAt: java.time.Instant,
 )

@@ -29,8 +29,8 @@ services:
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-      - TG_BOT_TOKEN=${TG_BOT_TOKEN}
-      - TG_CHAT_ID=${TG_CHAT_ID}
+      - TG_BOT_TOKEN=${TG_BOT_TOKEN:-none}
+      - TG_CHAT_ID=${TG_CHAT_ID:-none}
     volumes:
       - ./infra/grafana/provisioning:/etc/grafana/provisioning
       - grafana_data:/var/lib/grafana

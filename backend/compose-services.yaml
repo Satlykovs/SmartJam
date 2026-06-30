@@ -9,11 +9,13 @@ services:
     ports:
       - "8081:8081"
     environment:
-      - SPRING_PROFILES_ACTIVE=debug
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/smartjam
+      - SPRING_PROFILES_ACTIVE=${ACTIVE_PROFILE:-prod}
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-smartjam}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-admin}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-admin}
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - MINIO_ENDPOINT=http://minio:9000
-      - MINIO_PUBLIC_ENDPOINT=http://localhost:9000
+      - MINIO_PUBLIC_ENDPOINT=${MINIO_EXTERNAL_URL:-http://localhost:9000}
       - OTEL_SERVICE_NAME=smartjam-api
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4317
       - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
@@ -40,8 +42,10 @@ services:
         SERVICE_NAME: smartjam-analyzer
     container_name: smartjam-analyzer
     environment:
-      - SPRING_PROFILES_ACTIVE=debug
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/smartjam
+      - SPRING_PROFILES_ACTIVE=${ACTIVE_PROFILE}
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-smartjam}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-admin}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-admin}
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - MINIO_URL=http://minio:9000
       - OTEL_SERVICE_NAME=smartjam-analyzer
@@ -70,8 +74,10 @@ services:
         SERVICE_NAME: smartjam-notification
     container_name: smartjam-notification
     environment:
-      - SPRING_PROFILES_ACTIVE=prod
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/smartjam
+      - SPRING_PROFILES_ACTIVE=${ACTIVE_PROFILE}
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-smartjam}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-admin}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-admin}
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - OTEL_SERVICE_NAME=smartjam-notification
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4317

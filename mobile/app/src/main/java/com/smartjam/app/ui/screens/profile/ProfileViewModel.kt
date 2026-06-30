@@ -122,19 +122,16 @@ constructor(
 
             state = state.copy(isSaving = true, error = null)
 
-            val result = userRepository.updateProfile(
-                username = state.username,
-                firstName = state.firstName.ifBlank { null },
-                lastName = state.lastName.ifBlank { null },
-                newAvatarUri = state.selectedImageUri
-            )
+            val result =
+                userRepository.updateProfile(
+                    username = state.username,
+                    firstName = state.firstName.ifBlank { null },
+                    lastName = state.lastName.ifBlank { null },
+                    newAvatarUri = state.selectedImageUri,
+                )
 
             if (result.isSuccess) {
-                state = state.copy(
-                    isSaving = false,
-                    isSuccess = true,
-                    isEditing = false
-                )
+                state = state.copy(isSaving = false, isSuccess = true, isEditing = false)
 
                 if (wasImageSelected) {
                     startAvatarSync(oldAvatarUrl)
@@ -163,14 +160,15 @@ constructor(
                     val currentServerUrl = user.avatarUrl?.toString()
 
                     if (currentServerUrl != oldUrl) {
-                        state = state.copy(
-                            username = user.username,
-                            firstName = user.firstName ?: "",
-                            lastName = user.lastName ?: "",
-                            email = user.email,
-                            avatarUrl = currentServerUrl,
-                            isLoading = false
-                        )
+                        state =
+                            state.copy(
+                                username = user.username,
+                                firstName = user.firstName ?: "",
+                                lastName = user.lastName ?: "",
+                                email = user.email,
+                                avatarUrl = currentServerUrl,
+                                isLoading = false,
+                            )
                         isSynced = true
                         android.util.Log.d("SmartJam_Profile", "Avatar synced on attempt $attempt")
                         return@launch
